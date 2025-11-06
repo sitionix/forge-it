@@ -19,9 +19,10 @@
     <description>Multi-module toolkit for reusable, containerized Spring Boot integration testing.</description>
 
     <modules>
-        <module>forge-it-core</module>
+        <module>forge-it-annotations</module>
         <module>forge-it-wiremock</module>
         <module>forge-it-annotation-processor</module>
+        <module>forge-it-core</module>
     </modules>
 
     <properties>

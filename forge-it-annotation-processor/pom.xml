@@ -15,17 +15,23 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <auto-service.version>1.1.1</auto-service.version>
+        <javapoet.version>1.13.0</javapoet.version>
     </properties>
 
     <dependencies>
-        <!-- API, де оголошено ForgeIt / ForgeFeatures -->
+        <!-- Annotations that describe Forge features -->
         <dependency>
             <groupId>${project.parent.groupId}</groupId>
-            <artifactId>forge-it-core</artifactId>
+            <artifactId>forge-it-annotations</artifactId>
             <version>${project.parent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>${javapoet.version}</version>
         </dependency>
 
         <!-- Аннотація @AutoService (compile-time only) -->
@@ -39,13 +45,11 @@
 
     <build>
         <plugins>
-            <!-- Збираємо процесор і генеруємо META-INF/services/... -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <release>${maven.compiler.release}</release>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>com.google.auto.service</groupId>
@@ -56,7 +60,6 @@
                 </configuration>
             </plugin>
 
-            <!-- (опц.) вихідники -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
@@ -69,7 +72,6 @@
                 </executions>
             </plugin>
 
-            <!-- (опц.) стабільне module name -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
