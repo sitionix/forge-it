@@ -12,7 +12,7 @@
 
     <artifactId>forge-it-core</artifactId>
     <name>ForgeIT Core</name>
-    <description>Base module providing unified @IntegrationTest and bootstrap for ForgeIT.</description>
+    <description>Core ForgeIT API exposing the generated feature aggregation interface.</description>
     <packaging>jar</packaging>
 
     <dependencies>
