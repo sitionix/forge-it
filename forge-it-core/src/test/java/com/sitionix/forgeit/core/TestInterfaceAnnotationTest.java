@@ -10,6 +10,7 @@ class TestInterfaceAnnotationTest {
     @Test
     void annotatedInterfaceExtendsRequestedSupport() {
         assertThat(WireMockSupport.class.isAssignableFrom(TestInterface.class)).isTrue();
+        assertThat(TestInterfaceDefinition.class.isAssignableFrom(TestInterface.class)).isTrue();
     }
 
     @Test
