@@ -1,4 +1,6 @@
 package com.sitionix.forgeit.core.api;
 
-public interface ForgeIT {
+import com.sitionix.forgeit.core.generated.ForgeITFeatures;
+
+public interface ForgeIT extends ForgeITFeatures {
 }

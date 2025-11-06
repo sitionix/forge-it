@@ -19,9 +19,10 @@
     <description>Multi-module toolkit for reusable, containerized Spring Boot integration testing.</description>
 
     <modules>
-        <module>forge-it-core</module>
+        <module>forge-it-annotations</module>
         <module>forge-it-wiremock</module>
         <module>forge-it-annotation-processor</module>
+        <module>forge-it-core</module>
     </modules>
 
     <properties>
@@ -29,6 +30,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <wiremock.version>3.6.0</wiremock.version>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/${project.groupId}/${project.artifactId}</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/${project.groupId}/${project.artifactId}</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <build>
         <pluginManagement>
