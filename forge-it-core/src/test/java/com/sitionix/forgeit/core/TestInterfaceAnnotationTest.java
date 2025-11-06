@@ -1,0 +1,14 @@
+package com.sitionix.forgeit.core;
+
+import com.sitionix.forgeit.wiremock.api.WireMockSupport;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class TestInterfaceAnnotationTest {
+
+    @Test
+    void generatedInterfaceIncludesWireMockSupport() {
+        assertThat(WireMockSupport.class.isAssignableFrom(TestInterface.class)).isTrue();
+    }
+}
