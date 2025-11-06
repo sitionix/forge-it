@@ -50,9 +50,6 @@ jobs:
       - name: Build
         run: ./mvnw -B -ntp -DskipTests verify
 
-      - name: Show effective POM distMgmt (debug)
-        run: ./mvnw -ntp help:effective-pom -Doutput=effective-pom.xml && grep -A2 -n "<distributionManagement>" -n effective-pom.xml
-
       - name: Deploy (main only)
         if: github.ref == 'refs/heads/main'
         run: ./mvnw -B -ntp -DskipTests deploy
