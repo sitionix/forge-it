@@ -35,12 +35,12 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/${project.groupId}/${project.artifactId}</url>
+            <url>https://maven.pkg.github.com/com.sitionix/forgeit</url>
         </repository>
         <snapshotRepository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/${project.groupId}/${project.artifactId}</url>
+            <url>https://maven.pkg.github.com/com.sitionix/forgeit</url>
         </snapshotRepository>
     </distributionManagement>
 

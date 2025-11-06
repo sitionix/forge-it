@@ -3,16 +3,17 @@ name: Build & Deploy to GitHub Packages
 on:
   push:
     branches: [ main ]
-  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-  build:
+  build-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
@@ -21,15 +22,13 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
-          server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: ${{ secrets.GITHUB_TOKEN }}
+          server-id: github              # must match <id> in distributionManagement
+          server-username: GITHUB_ACTOR  # Maven will read from generated settings.xml
+          server-password: ${{ secrets.GH_FORGE_IT_TOKEN }}
 
-      - name: Build with Maven
-        run: ./mvnw -B -ntp verify
+      - name: Build
+        run: ./mvnw -B -ntp -DskipTests verify
 
-      - name: Deploy artifacts to GitHub Packages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mvnw -B -ntp deploy
+      - name: Deploy (main only)
+        if: github.ref == 'refs/heads/main'
+        run: ./mvnw -B -ntp -DskipTests deploy
