@@ -21,10 +21,10 @@
     </properties>
 
     <dependencies>
-        <!-- API, де оголошено ForgeIt / ForgeFeatures -->
+        <!-- Annotations that describe Forge features -->
         <dependency>
             <groupId>${project.parent.groupId}</groupId>
-            <artifactId>forge-it-core</artifactId>
+            <artifactId>forge-it-annotations</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
