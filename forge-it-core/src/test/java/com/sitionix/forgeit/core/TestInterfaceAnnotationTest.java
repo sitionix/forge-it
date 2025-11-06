@@ -8,7 +8,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TestInterfaceAnnotationTest {
 
     @Test
-    void generatedInterfaceIncludesWireMockSupport() {
+    void annotatedInterfaceExtendsRequestedSupport() {
         assertThat(WireMockSupport.class.isAssignableFrom(TestInterface.class)).isTrue();
+    }
+
+    @Test
+    void wireMockFeatureMethodsAreCallable() {
+        TestInterface testInterface = new TestInterface() { };
+        assertThat(testInterface.wiremock()).isEqualTo("wiremock");
     }
 }
