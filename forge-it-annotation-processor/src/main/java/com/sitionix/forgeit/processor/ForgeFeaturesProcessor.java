@@ -2,17 +2,12 @@ package com.sitionix.forgeit.processor;
 
 import com.google.auto.service.AutoService;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
-import com.sun.source.util.TreePath;
-import com.sun.source.util.Trees;
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeMaker;
-import com.sun.tools.javac.util.List;
-import com.sun.tools.javac.util.ListBuffer;
-import com.sun.tools.javac.util.Name;
-import com.sun.tools.javac.util.Names;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.TypeSpec;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.FilerException;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
@@ -26,13 +21,18 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.MirroredTypesException;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import javax.tools.Diagnostic.Kind;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardLocation;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @SupportedAnnotationTypes("com.sitionix.forgeit.core.annotation.ForgeFeatures")
@@ -40,15 +40,15 @@ import java.util.Set;
 @AutoService(Processor.class)
 public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.api.ForgeIT";
+    private static final ClassName GENERATED_FEATURES =
+            ClassName.get("com.sitionix.forgeit.core.generated", "ForgeITFeatures");
 
     private Messager messager;
     private Elements elements;
     private Types types;
-    private Trees trees;
-    private TreeMaker treeMaker;
-    private Names names;
-    private final Set<String> pendingSupports = new LinkedHashSet<>();
-    private boolean forgeItAugmented;
+    private final Set<String> aggregatedSupports = new LinkedHashSet<>();
+    private boolean featuresGenerated;
+    private String lastEmittedSignature = "";
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -56,11 +56,6 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         this.messager = processingEnv.getMessager();
         this.elements = processingEnv.getElementUtils();
         this.types = processingEnv.getTypeUtils();
-        this.trees = Trees.instance(processingEnv);
-
-        JavacProcessingEnvironment javacEnv = (JavacProcessingEnvironment) processingEnv;
-        this.treeMaker = TreeMaker.instance(javacEnv.getContext());
-        this.names = Names.instance(javacEnv.getContext());
     }
 
     @Override
@@ -71,51 +66,64 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
 
         for (Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
             if (element.getKind() != ElementKind.INTERFACE) {
-                messager.printMessage(Diagnostic.Kind.ERROR,
-                        "@ForgeFeatures can only be applied to interfaces", element);
+                messager.printMessage(Kind.ERROR, "@ForgeFeatures can only be applied to interfaces", element);
                 continue;
             }
 
             if (element.getModifiers().contains(Modifier.PRIVATE)) {
-                messager.printMessage(Diagnostic.Kind.ERROR,
-                        "@ForgeFeatures cannot be applied to private interfaces", element);
+                messager.printMessage(Kind.ERROR, "@ForgeFeatures cannot be applied to private interfaces", element);
                 continue;
             }
 
             TypeElement interfaceElement = (TypeElement) element;
             if (!extendsForgeIT(interfaceElement)) {
-                messager.printMessage(Diagnostic.Kind.ERROR,
-                        "@ForgeFeatures interfaces must extend ForgeIT", element);
+                messager.printMessage(Kind.ERROR, "@ForgeFeatures interfaces must extend ForgeIT", element);
                 continue;
             }
 
             ForgeFeatures forgeFeatures = interfaceElement.getAnnotation(ForgeFeatures.class);
             Collection<? extends TypeMirror> featureTypes = extractFeatureTypes(forgeFeatures);
             if (featureTypes.isEmpty()) {
-                messager.printMessage(Diagnostic.Kind.ERROR,
-                        "@ForgeFeatures must declare at least one feature", element);
+                messager.printMessage(Kind.ERROR, "@ForgeFeatures must declare at least one feature", element);
                 continue;
             }
 
             for (TypeMirror featureMirror : featureTypes) {
-                TypeElement featureElement = (TypeElement) types.asElement(featureMirror);
+                TypeElement featureElement = asTypeElement(featureMirror);
                 if (featureElement == null) {
-                    messager.printMessage(Diagnostic.Kind.ERROR,
-                            "Unable to resolve feature type", element);
+                    messager.printMessage(Kind.ERROR, "Unable to resolve feature type", element);
                     continue;
                 }
 
                 for (String support : FeatureRegistry.resolveSupportInterfaces(featureElement.getQualifiedName().toString())) {
-                    pendingSupports.add(support);
+                    aggregatedSupports.add(support);
                 }
             }
         }
 
-        if (!pendingSupports.isEmpty() && !forgeItAugmented) {
-            augmentForgeIT();
+        reconcileGeneratedInterface();
+        return false;
+    }
+
+    private void reconcileGeneratedInterface() {
+        String signature = String.join("\n", aggregatedSupports);
+        if (!featuresGenerated) {
+            emitGeneratedInterface(signature);
+            return;
         }
 
-        return false;
+        if (!lastEmittedSignature.equals(signature)) {
+            try {
+                processingEnv.getFiler()
+                        .getResource(StandardLocation.SOURCE_OUTPUT,
+                                GENERATED_FEATURES.packageName(),
+                                GENERATED_FEATURES.simpleName() + ".java")
+                        .delete();
+            } catch (IOException ignored) {
+                // best-effort delete; if it fails we'll try overwriting below
+            }
+            emitGeneratedInterface(signature);
+        }
     }
 
     private Collection<? extends TypeMirror> extractFeatureTypes(ForgeFeatures annotation) {
@@ -127,88 +135,73 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         return java.util.List.of();
     }
 
-    private boolean extendsForgeIT(TypeElement typeElement) {
-        TypeElement forgeIT = elements.getTypeElement(FORGE_IT_FQN);
-        if (forgeIT == null) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
-                    "ForgeIT type was not found on the compilation classpath");
+    private boolean extendsForgeIT(TypeElement candidate) {
+        TypeElement forgeIt = elements.getTypeElement(FORGE_IT_FQN);
+        if (forgeIt == null) {
+            messager.printMessage(Kind.ERROR, "ForgeIT type was not found on the compilation classpath");
             return false;
         }
+        return implementsInterface(candidate, forgeIt.asType());
+    }
 
-        TypeMirror forgeItMirror = forgeIT.asType();
-        for (TypeMirror iface : typeElement.getInterfaces()) {
-            if (types.isSameType(iface, forgeItMirror)) {
+    private boolean implementsInterface(TypeElement candidate, TypeMirror targetInterface) {
+        for (TypeMirror iface : candidate.getInterfaces()) {
+            if (types.isSameType(iface, targetInterface)) {
                 return true;
             }
+            Element element = types.asElement(iface);
+            if (element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface)) {
+                return true;
+            }
+        }
 
-            if (iface instanceof DeclaredType declared) {
-                Element element = declared.asElement();
-                if (element instanceof TypeElement parent && extendsForgeIT(parent)) {
-                    return true;
-                }
+        TypeMirror superclass = candidate.getSuperclass();
+        if (superclass.getKind() != TypeKind.NONE) {
+            Element element = types.asElement(superclass);
+            if (element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface)) {
+                return true;
             }
         }
         return false;
     }
 
-    private void augmentForgeIT() {
-        TypeElement forgeIT = elements.getTypeElement(FORGE_IT_FQN);
-        if (forgeIT == null) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
-                    "ForgeIT type was not found on the compilation classpath");
-            return;
-        }
-
-        TreePath treePath = trees.getPath(forgeIT);
-        if (treePath == null) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
-                    "Unable to resolve the source tree for ForgeIT");
-            return;
-        }
-
-        JCTree tree = (JCTree) treePath.getLeaf();
-        if (!(tree instanceof JCTree.JCClassDecl classDecl)) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
-                    "ForgeIT is not represented as a class declaration in the AST");
-            return;
-        }
-
-        Set<String> alreadyPresent = new LinkedHashSet<>();
-        for (JCTree.JCExpression existing : classDecl.implementing) {
-            alreadyPresent.add(existing.toString());
-        }
-
-        ListBuffer<JCTree.JCExpression> additions = new ListBuffer<>();
-        for (String support : pendingSupports) {
-            if (alreadyPresent.contains(support)) {
-                continue;
+    private TypeElement asTypeElement(TypeMirror mirror) {
+        if (mirror instanceof DeclaredType declaredType) {
+            Element element = declaredType.asElement();
+            if (element instanceof TypeElement typeElement) {
+                return typeElement;
             }
-            additions.append(qualify(support));
         }
-
-        if (!additions.isEmpty()) {
-            classDecl.implementing = classDecl.implementing.appendList(additions.toList());
-        }
-
-        forgeItAugmented = true;
-        pendingSupports.clear();
+        return null;
     }
 
-    private JCTree.JCExpression qualify(String fqcn) {
-        String[] parts = fqcn.split("\\.");
-        if (parts.length == 0) {
-            throw new IllegalArgumentException("Empty type name");
+    private void emitGeneratedInterface(String signature) {
+        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(GENERATED_FEATURES.simpleName())
+                .addModifiers(Modifier.PUBLIC)
+                .addJavadoc("Generated by {@link $L}.\n", ForgeFeaturesProcessor.class.getName());
+
+        for (String support : aggregatedSupports) {
+            typeBuilder.addSuperinterface(ClassName.bestGuess(support));
         }
 
-        JCTree.JCExpression expression = treeMaker.Ident(name(parts[0]));
-        for (int i = 1; i < parts.length; i++) {
-            expression = treeMaker.Select(expression, name(parts[i]));
-        }
-        return expression;
-    }
+        JavaFile javaFile = JavaFile.builder(GENERATED_FEATURES.packageName(), typeBuilder.build())
+                .skipJavaLangImports(true)
+                .build();
 
-    private Name name(String identifier) {
-        Objects.requireNonNull(identifier, "identifier");
-        return names.fromString(identifier);
+        try {
+            JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(
+                    GENERATED_FEATURES.packageName() + "." + GENERATED_FEATURES.simpleName());
+            try (Writer writer = sourceFile.openWriter()) {
+                javaFile.writeTo(writer);
+            }
+            featuresGenerated = true;
+            lastEmittedSignature = signature;
+        } catch (FilerException ex) {
+            messager.printMessage(Diagnostic.Kind.ERROR,
+                    "ForgeIT features interface already exists and could not be replaced: " + ex.getMessage());
+        } catch (IOException ex) {
+            messager.printMessage(Diagnostic.Kind.ERROR,
+                    "Failed to generate ForgeIT features interface: " + ex.getMessage());
+        }
     }
 }
