@@ -2,14 +2,9 @@ package com.sitionix.forgeit.processor;
 
 import com.google.auto.service.AutoService;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
-import com.sun.source.util.TreePath;
-import com.sun.tools.javac.api.JavacProcessingEnvironment;
-import com.sun.tools.javac.code.Symbol;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeMaker;
-import com.sun.tools.javac.util.ListBuffer;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
@@ -19,122 +14,169 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
-import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
 
 @SupportedAnnotationTypes("com.sitionix.forgeit.core.annotation.ForgeFeatures")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ForgeFeaturesProcessor extends AbstractProcessor {
+    private static final ClassName GENERATED = ClassName.get("javax.annotation.processing", "Generated");
+
+    private final Set<String> generatedTypes = new LinkedHashSet<>();
+
     private Messager messager;
-    private com.sun.tools.javac.api.JavacTrees trees;
-    private TreeMaker treeMaker;
-    private Types typeUtils;
     private Elements elementUtils;
-    private final Set<String> processedTypes = new HashSet<>();
+    private Filer filer;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         this.messager = processingEnv.getMessager();
-        this.typeUtils = processingEnv.getTypeUtils();
         this.elementUtils = processingEnv.getElementUtils();
-        this.trees = com.sun.tools.javac.api.JavacTrees.instance(processingEnv);
-
-        JavacProcessingEnvironment javacEnv = (JavacProcessingEnvironment) processingEnv;
-        this.treeMaker = TreeMaker.instance(javacEnv.getContext());
+        this.filer = processingEnv.getFiler();
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        for (Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
-            if (element.getKind() != ElementKind.INTERFACE) {
-                messager.printMessage(Diagnostic.Kind.ERROR, "@ForgeFeatures can only be applied to interfaces", element);
+        for (Element annotated : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
+            if (annotated.getKind() != ElementKind.INTERFACE) {
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "@ForgeFeatures can only be applied to interfaces", annotated);
                 continue;
             }
 
-            TypeElement typeElement = (TypeElement) element;
-            String typeName = typeElement.getQualifiedName().toString();
-            if (!processedTypes.add(typeName)) {
+            TypeElement blueprint = (TypeElement) annotated;
+            ForgeFeatures forgeFeatures = blueprint.getAnnotation(ForgeFeatures.class);
+            if (forgeFeatures == null) {
                 continue;
             }
 
-            List<? extends TypeMirror> featureTypes = extractFeatureTypes(typeElement);
+            List<? extends TypeMirror> featureTypes = extractFeatureTypes(forgeFeatures);
             if (featureTypes.isEmpty()) {
-                messager.printMessage(Diagnostic.Kind.ERROR, "@ForgeFeatures must declare at least one feature", element);
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "@ForgeFeatures must declare at least one feature", annotated);
                 continue;
             }
 
-            JCTree tree = trees.getTree(typeElement);
-            if (!(tree instanceof JCTree.JCClassDecl classDecl)) {
-                messager.printMessage(Diagnostic.Kind.WARNING, "Unable to read class declaration for " + typeName, element);
+            String exposedName = forgeFeatures.exposedName();
+            if (exposedName == null || exposedName.isBlank()) {
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "@ForgeFeatures requires 'exposedName' to generate a concrete interface", annotated);
                 continue;
             }
 
-            Set<String> alreadyImplemented = new HashSet<>();
-            TreePath typePath = trees.getPath(typeElement);
-            for (JCTree.JCExpression implemented : classDecl.implementing) {
-                alreadyImplemented.add(implemented.toString());
-                if (typePath != null) {
-                    TreePath implPath = TreePath.getPath(typePath, implemented);
-                    Element resolved = implPath != null ? trees.getElement(implPath) : null;
-                    if (resolved instanceof TypeElement resolvedType) {
-                        alreadyImplemented.add(resolvedType.getQualifiedName().toString());
-                    }
-                }
+            PackageElement pkg = elementUtils.getPackageOf(blueprint);
+            String packageName = pkg.isUnnamed() ? "" : pkg.getQualifiedName().toString();
+            String qualifiedName = packageName.isEmpty() ? exposedName : packageName + "." + exposedName;
+
+            if (!generatedTypes.add(qualifiedName)) {
+                continue;
             }
 
-            ListBuffer<JCTree.JCExpression> updatedImplementing = new ListBuffer<>();
-            for (JCTree.JCExpression implemented : classDecl.implementing) {
-                updatedImplementing.append(implemented);
+            try {
+                generateInterface(blueprint, featureTypes, exposedName, packageName, qualifiedName);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
             }
-
-            for (TypeMirror mirror : featureTypes) {
-                TypeElement featureElement = (TypeElement) typeUtils.asElement(mirror);
-                if (featureElement == null) {
-                    messager.printMessage(Diagnostic.Kind.ERROR, "Unable to resolve feature type", element);
-                    continue;
-                }
-                String featureName = featureElement.getQualifiedName().toString();
-                for (String supportTypeName : FeatureRegistry.resolveSupportInterfaces(featureName)) {
-                    if (alreadyImplemented.contains(supportTypeName)) {
-                        continue;
-                    }
-
-                    TypeElement supportElement = supportTypeName.equals(featureName)
-                            ? featureElement
-                            : elementUtils.getTypeElement(supportTypeName);
-                    if (supportElement == null) {
-                        messager.printMessage(Diagnostic.Kind.ERROR,
-                                "Unknown feature support type: " + supportTypeName, element);
-                        continue;
-                    }
-
-                    Symbol.TypeSymbol symbol = (Symbol.TypeSymbol) supportElement;
-                    JCTree.JCExpression featureExpr = treeMaker.QualIdent(symbol);
-                    updatedImplementing.append(featureExpr);
-                    alreadyImplemented.add(supportTypeName);
-                }
-            }
-
-            classDecl.implementing = updatedImplementing.toList();
         }
         return false;
     }
 
-    private List<? extends TypeMirror> extractFeatureTypes(TypeElement element) {
-        ForgeFeatures annotation = element.getAnnotation(ForgeFeatures.class);
-        if (annotation == null) {
-            return List.of();
+    private void generateInterface(TypeElement blueprint,
+                                   List<? extends TypeMirror> featureTypes,
+                                   String simpleName,
+                                   String packageName,
+                                   String qualifiedName) throws IOException {
+        LinkedHashSet<String> seenInterfaces = new LinkedHashSet<>();
+        List<TypeName> superInterfaces = new ArrayList<>();
+
+        collectDeclaredInterfaces(blueprint, seenInterfaces, superInterfaces);
+        collectFeatureInterfaces(featureTypes, blueprint, seenInterfaces, superInterfaces);
+
+        TypeSpec.Builder typeBuilder = TypeSpec.interfaceBuilder(simpleName)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(AnnotationSpec.builder(GENERATED)
+                        .addMember("value", "$S", ForgeFeaturesProcessor.class.getName())
+                        .build());
+
+        superInterfaces.forEach(typeBuilder::addSuperinterface);
+
+        JavaFile javaFile = JavaFile.builder(packageName, typeBuilder.build())
+                .skipJavaLangImports(true)
+                .build();
+
+        JavaFileObject sourceFile = filer.createSourceFile(qualifiedName, blueprint);
+        try (Writer writer = sourceFile.openWriter()) {
+            javaFile.writeTo(writer);
         }
+    }
+
+    private void collectDeclaredInterfaces(TypeElement blueprint,
+                                           Set<String> seenInterfaces,
+                                           List<TypeName> superInterfaces) {
+        for (TypeMirror mirror : blueprint.getInterfaces()) {
+            TypeElement typeElement = (TypeElement) processingEnv.getTypeUtils().asElement(mirror);
+            if (typeElement == null) {
+                continue;
+            }
+
+            String fqName = typeElement.getQualifiedName().toString();
+            if (seenInterfaces.add(fqName)) {
+                superInterfaces.add(TypeName.get(mirror));
+            }
+        }
+    }
+
+    private void collectFeatureInterfaces(List<? extends TypeMirror> featureTypes,
+                                          TypeElement blueprint,
+                                          Set<String> seenInterfaces,
+                                          List<TypeName> superInterfaces) {
+        for (TypeMirror featureMirror : featureTypes) {
+            TypeElement featureElement = (TypeElement) processingEnv.getTypeUtils().asElement(featureMirror);
+            if (featureElement == null) {
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "Unable to resolve feature type", blueprint);
+                continue;
+            }
+
+            String featureName = featureElement.getQualifiedName().toString();
+            for (String supportTypeName : FeatureRegistry.resolveSupportInterfaces(featureName)) {
+                TypeElement supportElement = elementUtils.getTypeElement(supportTypeName);
+                if (supportElement == null) {
+                    messager.printMessage(Diagnostic.Kind.ERROR,
+                            "Unknown feature support type: " + supportTypeName, blueprint);
+                    continue;
+                }
+
+                String fqName = supportElement.getQualifiedName().toString();
+                if (seenInterfaces.add(fqName)) {
+                    superInterfaces.add(TypeName.get(supportElement.asType()));
+                }
+            }
+        }
+    }
+
+    private List<? extends TypeMirror> extractFeatureTypes(ForgeFeatures annotation) {
         try {
             annotation.value();
         } catch (MirroredTypesException ex) {

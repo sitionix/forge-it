@@ -13,4 +13,11 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface ForgeFeatures {
     Class<?>[] value();
+
+    /**
+     * Name of the concrete interface that should be generated for the annotated blueprint.
+     * When left blank the processor will report an error to avoid clashing with the
+     * user-defined type compiled from source.
+     */
+    String exposedName() default "";
 }
