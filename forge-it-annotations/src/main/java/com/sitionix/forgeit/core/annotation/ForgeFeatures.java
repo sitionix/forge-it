@@ -11,6 +11,4 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface ForgeFeatures {
     Class<?>[] value();
-
-    String exposedName() default "";
 }

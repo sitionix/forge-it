@@ -10,18 +10,15 @@ import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 public final class WireMockUsageExample {
 
     /**
-     * The consumer writes a package-private blueprint that extends {@link ForgeIT}
-     * and lists the desired features.
+     * The consumer annotates their Forge entry point directly. After compilation,
+     * {@link ForgeIT} inherits {@link WireMockSupport}, so any extension of ForgeIT
+     * gains WireMock helpers automatically.
      */
-    @ForgeFeatures(value = WireMockSupport.class, exposedName = "UserForgeTests")
-    interface UserForgeTestsDefinition extends ForgeIT {
+    @ForgeFeatures(WireMockSupport.class)
+    public interface UserForgeTests extends ForgeIT {
     }
 
-    /**
-     * After compilation the processor creates a {@code UserForgeTests} interface that
-     * inherits {@link ForgeIT} together with {@link WireMockSupport}.
-     */
-    public String callWireMockFromGeneratedFacade() {
+    public String callWireMockFromForgeInterface() {
         UserForgeTests forgeTests = new UserForgeTests() { };
         return forgeTests.wiremock();
     }

@@ -8,14 +8,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TestInterfaceAnnotationTest {
 
     @Test
-    void annotatedInterfaceExtendsRequestedSupport() {
-        assertThat(WireMockSupport.class.isAssignableFrom(TestInterface.class)).isTrue();
-        assertThat(com.sitionix.forgeit.core.api.ForgeIT.class.isAssignableFrom(TestInterface.class)).isTrue();
+    void forgeItInheritsRequestedSupport() {
+        assertThat(WireMockSupport.class.isAssignableFrom(com.sitionix.forgeit.core.api.ForgeIT.class)).isTrue();
     }
 
     @Test
     void wireMockFeatureMethodsAreCallable() {
-        TestInterface testInterface = new TestInterface() { };
+        TestInterfaceDefinition testInterface = new TestInterfaceDefinition() { };
         assertThat(testInterface.wiremock()).isEqualTo("wiremock");
     }
 }
