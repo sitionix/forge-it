@@ -19,7 +19,7 @@ public final class WireMockUsageExample {
 
     /**
      * After compilation the processor creates a {@code UserForgeTests} interface that
-     * inherits both {@link UserForgeTestsDefinition} and {@link WireMockSupport}.
+     * inherits {@link ForgeIT} together with {@link WireMockSupport}.
      */
     public String callWireMockFromGeneratedFacade() {
         UserForgeTests forgeTests = new UserForgeTests() { };

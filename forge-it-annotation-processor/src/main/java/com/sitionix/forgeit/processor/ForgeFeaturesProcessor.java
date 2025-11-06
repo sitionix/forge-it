@@ -4,6 +4,8 @@ import com.google.auto.service.AutoService;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
@@ -18,10 +20,12 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
@@ -101,21 +105,29 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
 
         TypeSpec.Builder interfaceBuilder = TypeSpec.interfaceBuilder(exposedName)
                 .addModifiers(Modifier.PUBLIC)
-                .addOriginatingElement(blueprint)
-                .addSuperinterface(TypeName.get(blueprint.asType()));
+                .addOriginatingElement(blueprint);
 
         for (TypeParameterElement parameter : blueprint.getTypeParameters()) {
             interfaceBuilder.addTypeVariable(TypeVariableName.get(parameter));
         }
 
         Set<String> alreadyAdded = new LinkedHashSet<>();
-        alreadyAdded.add(blueprint.getQualifiedName().toString());
         for (TypeMirror parent : blueprint.getInterfaces()) {
             TypeElement parentElement = (TypeElement) typeUtils.asElement(parent);
             if (parentElement != null) {
-                alreadyAdded.add(parentElement.getQualifiedName().toString());
+                String qualifiedName = parentElement.getQualifiedName().toString();
+                if (alreadyAdded.add(qualifiedName)) {
+                    interfaceBuilder.addSuperinterface(TypeName.get(parent));
+                }
+            } else {
+                TypeName parentType = TypeName.get(parent);
+                if (alreadyAdded.add(parentType.toString())) {
+                    interfaceBuilder.addSuperinterface(parentType);
+                }
             }
         }
+
+        copyBlueprintMethods(blueprint, interfaceBuilder);
 
         for (TypeMirror featureMirror : featureTypes) {
             TypeElement featureElement = (TypeElement) typeUtils.asElement(featureMirror);
@@ -151,5 +163,45 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             return ex.getTypeMirrors();
         }
         return List.of();
+    }
+
+    private void copyBlueprintMethods(TypeElement blueprint, TypeSpec.Builder interfaceBuilder) {
+        for (Element enclosed : blueprint.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) {
+                continue;
+            }
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+
+            if (method.getModifiers().contains(Modifier.DEFAULT)
+                    || method.getModifiers().contains(Modifier.STATIC)
+                    || method.getModifiers().contains(Modifier.PRIVATE)) {
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "@ForgeFeatures does not support default, static, or private interface methods", method);
+                continue;
+            }
+
+            MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.getSimpleName().toString())
+                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                    .returns(TypeName.get(method.getReturnType()));
+
+            for (TypeParameterElement typeParameterElement : method.getTypeParameters()) {
+                methodBuilder.addTypeVariable(TypeVariableName.get(typeParameterElement));
+            }
+
+            for (VariableElement parameter : method.getParameters()) {
+                ParameterSpec parameterSpec = ParameterSpec.builder(
+                                TypeName.get(parameter.asType()),
+                                parameter.getSimpleName().toString())
+                        .build();
+                methodBuilder.addParameter(parameterSpec);
+            }
+
+            for (TypeMirror thrownType : method.getThrownTypes()) {
+                methodBuilder.addException(TypeName.get(thrownType));
+            }
+
+            interfaceBuilder.addMethod(methodBuilder.build());
+        }
     }
 }
