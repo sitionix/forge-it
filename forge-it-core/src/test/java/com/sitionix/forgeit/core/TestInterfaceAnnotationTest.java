@@ -1,5 +1,7 @@
 package com.sitionix.forgeit.core;
 
+import com.sitionix.forgeit.core.domain.ForgeIT;
+import com.sitionix.forgeit.core.examples.TestInterfaceDefinition;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 import org.junit.jupiter.api.Test;
 
@@ -9,7 +11,7 @@ class TestInterfaceAnnotationTest {
 
     @Test
     void forgeItInheritsRequestedSupport() {
-        assertThat(WireMockSupport.class.isAssignableFrom(com.sitionix.forgeit.core.api.ForgeIT.class)).isTrue();
+        assertThat(WireMockSupport.class.isAssignableFrom(ForgeIT.class)).isTrue();
     }
 
     @Test

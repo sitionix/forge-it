@@ -1,9 +1,9 @@
-package com.sitionix.forgeit.core;
+package com.sitionix.forgeit.core.examples;
 
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
-import com.sitionix.forgeit.core.api.ForgeIT;
+import com.sitionix.forgeit.core.domain.ForgeIT;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 
-@ForgeFeatures(value = WireMockSupport.class)
+@ForgeFeatures(WireMockSupport.class)
 public interface TestInterfaceDefinition extends ForgeIT {
 }
