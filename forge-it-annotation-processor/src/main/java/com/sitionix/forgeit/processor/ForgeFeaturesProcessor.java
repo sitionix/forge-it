@@ -159,6 +159,10 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     }
 
     private boolean extendsForgeIT(TypeElement candidate) {
+        if (candidate.getQualifiedName().contentEquals(FORGE_IT_FQN)) {
+            return true;
+        }
+
         TypeElement forgeIt = elements.getTypeElement(FORGE_IT_FQN);
         if (forgeIt == null) {
             messager.printMessage(Kind.ERROR, "ForgeIT type was not found on the compilation classpath");

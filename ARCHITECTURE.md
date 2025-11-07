@@ -41,7 +41,9 @@ infrastructure live behind internal boundaries.
    compilation. `ForgeIT` extends this interface so every consumer implementation
    inherits all requested features. The processor inspects the interfaces listed
    in `@ForgeFeatures` directly, so no manual registry of feature names is
-   required.
+   required. `ForgeIT` itself carries a baseline marker annotated with
+   `@ForgeFeatures` to ensure the aggregation pipeline is active even when a
+   compilation unit does not yet define any consumer contracts.
 3. **Generated features ➜ Feature modules** – Each feature module (e.g. WireMock)
    contributes support interfaces under its own `api` package. Implementations live
    in matching `internal` packages and are invoked through default methods or
