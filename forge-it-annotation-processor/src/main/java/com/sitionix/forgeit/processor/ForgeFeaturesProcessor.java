@@ -39,7 +39,7 @@ import java.util.Set;
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ForgeFeaturesProcessor extends AbstractProcessor {
-    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.api.ForgeIT";
+    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.domain.ForgeIT";
     private static final ClassName GENERATED_FEATURES =
             ClassName.get("com.sitionix.forgeit.core.generated", "ForgeITFeatures");
 
