@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.core;
 
+import com.sitionix.forgeit.core.examples.TestInterfaceDefinition;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
