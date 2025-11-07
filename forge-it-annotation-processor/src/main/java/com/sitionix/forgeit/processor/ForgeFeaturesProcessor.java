@@ -39,7 +39,7 @@ import java.util.Set;
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ForgeFeaturesProcessor extends AbstractProcessor {
-    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.domain.ForgeIT";
+    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.api.ForgeIT";
     private static final ClassName GENERATED_FEATURES =
             ClassName.get("com.sitionix.forgeit.core.generated", "ForgeITFeatures");
 
@@ -47,6 +47,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private Elements elements;
     private Types types;
     private final Set<String> aggregatedSupports = new LinkedHashSet<>();
+    private final Set<String> processedContracts = new LinkedHashSet<>();
     private boolean featuresGenerated;
     private String lastEmittedSignature = "";
 
@@ -95,12 +96,36 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                     continue;
                 }
 
-                this.aggregatedSupports.addAll(FeatureRegistry.resolveSupportInterfaces(featureElement.getQualifiedName().toString()));
+                collectFeatureContracts(featureElement, element);
             }
         }
 
         reconcileGeneratedInterface();
         return false;
+    }
+
+    private void collectFeatureContracts(TypeElement featureElement, Element sourceElement) {
+        if (featureElement.getKind() != ElementKind.INTERFACE) {
+            messager.printMessage(Kind.ERROR,
+                    "@ForgeFeatures values must be interfaces", sourceElement);
+            return;
+        }
+
+        String featureName = featureElement.getQualifiedName().toString();
+        if (!processedContracts.add(featureName)) {
+            return;
+        }
+
+        aggregatedSupports.add(featureName);
+
+        for (TypeMirror parentInterface : featureElement.getInterfaces()) {
+            TypeElement parentElement = asTypeElement(parentInterface);
+            if (parentElement != null) {
+                collectFeatureContracts(parentElement, sourceElement);
+            } else {
+                aggregatedSupports.add(parentInterface.toString());
+            }
+        }
     }
 
     private void reconcileGeneratedInterface() {
