@@ -95,9 +95,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                     continue;
                 }
 
-                for (String support : FeatureRegistry.resolveSupportInterfaces(featureElement.getQualifiedName().toString())) {
-                    aggregatedSupports.add(support);
-                }
+                this.aggregatedSupports.addAll(FeatureRegistry.resolveSupportInterfaces(featureElement.getQualifiedName().toString()));
             }
         }
 
@@ -158,9 +156,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         TypeMirror superclass = candidate.getSuperclass();
         if (superclass.getKind() != TypeKind.NONE) {
             Element element = types.asElement(superclass);
-            if (element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface)) {
-                return true;
-            }
+            return element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface);
         }
         return false;
     }
