@@ -213,7 +213,10 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         }
         classpathFeaturesLoaded = true;
 
-        ClassLoader classLoader = ForgeFeaturesProcessor.class.getClassLoader();
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader = ForgeFeaturesProcessor.class.getClassLoader();
+        }
         try {
             var resources = classLoader.getResources("META-INF/forge-it/features");
             while (resources.hasMoreElements()) {
