@@ -62,7 +62,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             return false;
         }
 
-        for (Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
+        for (final Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
             if (element.getKind() != ElementKind.INTERFACE) {
                 this.messager.printMessage(Kind.ERROR, "@ForgeFeatures can only be applied to interfaces", element);
                 continue;
@@ -73,48 +73,48 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                 continue;
             }
 
-            TypeElement interfaceElement = (TypeElement) element;
+            final TypeElement interfaceElement = (TypeElement) element;
             if (!extendsForgeIT(interfaceElement)) {
                 this.messager.printMessage(Kind.ERROR, "@ForgeFeatures interfaces must extend ForgeIT", element);
                 continue;
             }
 
-            ForgeFeatures forgeFeatures = interfaceElement.getAnnotation(ForgeFeatures.class);
-            Collection<? extends TypeMirror> featureTypes = extractFeatureTypes(forgeFeatures);
+            final ForgeFeatures forgeFeatures = interfaceElement.getAnnotation(ForgeFeatures.class);
+            final Collection<? extends TypeMirror> featureTypes = extractFeatureTypes(forgeFeatures);
             if (featureTypes.isEmpty()) {
                 this.messager.printMessage(Kind.ERROR, "@ForgeFeatures must declare at least one feature", element);
                 continue;
             }
 
-            for (TypeMirror featureMirror : featureTypes) {
-                TypeElement featureElement = asTypeElement(featureMirror);
+            for (final TypeMirror featureMirror : featureTypes) {
+                final TypeElement featureElement = asTypeElement(featureMirror);
                 if (featureElement == null) {
                     this.messager.printMessage(Kind.ERROR, "Unable to resolve feature type", element);
                     continue;
                 }
 
                 if (!isFeatureSupport(featureElement)) {
-                    messager.printMessage(Kind.ERROR,
+                    this.messager.printMessage(Kind.ERROR,
                             "Each entry in @ForgeFeatures must extend FeatureSupport: " + featureElement.getQualifiedName(), element);
                     continue;
                 }
-                if (!featureRegistry.isWhitelisted(featureElement)) {
-                    messager.printMessage(Kind.ERROR,
+                if (!this.featureRegistry.isWhitelisted(featureElement)) {
+                    this.messager.printMessage(Kind.ERROR,
                             "Feature is not registered. Add it to META-INF/forge-it/features: " + featureElement.getQualifiedName(), element);
                     continue;
                 }
 
-                featureContractCollector.collect(featureElement, element, this::asTypeElement);
+                this.featureContractCollector.collect(featureElement, element, this::asTypeElement);
             }
         }
 
-        generatedInterfaceEmitter.generateInterface(featureContractCollector.getAggregatedSupports());
+        this.generatedInterfaceEmitter.generateInterface(this.featureContractCollector.getAggregatedSupports());
         return false;
     }
 
     private boolean isFeatureSupport(TypeElement type) {
-        var featureSupport = elements.getTypeElement(FEATURE_SUPPORT_FQN);
-        return featureSupport != null && types.isAssignable(type.asType(), featureSupport.asType());
+        final TypeElement featureSupport = this.elements.getTypeElement(FEATURE_SUPPORT_FQN);
+        return featureSupport != null && this.types.isAssignable(type.asType(), featureSupport.asType());
     }
 
     private Collection<? extends TypeMirror> extractFeatureTypes(ForgeFeatures annotation) {
@@ -131,7 +131,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             return true;
         }
 
-        TypeElement forgeIt = this.elements.getTypeElement(FORGE_IT_FQN);
+        final TypeElement forgeIt = this.elements.getTypeElement(FORGE_IT_FQN);
         if (forgeIt == null) {
             this.messager.printMessage(Kind.ERROR, "ForgeIT type was not found on the compilation classpath");
             return false;
@@ -140,19 +140,19 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     }
 
     private boolean implementsInterface(TypeElement candidate, TypeMirror targetInterface) {
-        for (TypeMirror iface : candidate.getInterfaces()) {
+        for (final TypeMirror iface : candidate.getInterfaces()) {
             if (this.types.isSameType(iface, targetInterface)) {
                 return true;
             }
-            Element element = this.types.asElement(iface);
+            final Element element = this.types.asElement(iface);
             if (element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface)) {
                 return true;
             }
         }
 
-        TypeMirror superclass = candidate.getSuperclass();
+        final TypeMirror superclass = candidate.getSuperclass();
         if (superclass.getKind() != TypeKind.NONE) {
-            Element element = this.types.asElement(superclass);
+            final Element element = this.types.asElement(superclass);
             return element instanceof TypeElement typeElement && implementsInterface(typeElement, targetInterface);
         }
         return false;
@@ -160,7 +160,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
 
     private TypeElement asTypeElement(TypeMirror mirror) {
         if (mirror instanceof DeclaredType declaredType) {
-            Element element = declaredType.asElement();
+            final Element element = declaredType.asElement();
             if (element instanceof TypeElement typeElement) {
                 return typeElement;
             }

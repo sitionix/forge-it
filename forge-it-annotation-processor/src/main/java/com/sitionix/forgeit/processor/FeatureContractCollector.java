@@ -23,29 +23,29 @@ final class FeatureContractCollector {
 
     void collect(TypeElement featureElement, Element sourceElement, Function<TypeMirror, TypeElement> typeResolver) {
         if (featureElement.getKind() != ElementKind.INTERFACE) {
-            messager.printMessage(Diagnostic.Kind.ERROR,
+            this.messager.printMessage(Diagnostic.Kind.ERROR,
                     "@ForgeFeatures values must be interfaces", sourceElement);
             return;
         }
 
         final String featureName = featureElement.getQualifiedName().toString();
-        if (!processedContracts.add(featureName)) {
+        if (!this.processedContracts.add(featureName)) {
             return;
         }
 
-        aggregatedSupports.add(featureName);
+        this.aggregatedSupports.add(featureName);
 
-        for (TypeMirror parentInterface : featureElement.getInterfaces()) {
-            TypeElement parentElement = typeResolver.apply(parentInterface);
+        for (final TypeMirror parentInterface : featureElement.getInterfaces()) {
+            final TypeElement parentElement = typeResolver.apply(parentInterface);
             if (parentElement != null) {
                 collect(parentElement, sourceElement, typeResolver);
             } else {
-                aggregatedSupports.add(parentInterface.toString());
+                this.aggregatedSupports.add(parentInterface.toString());
             }
         }
     }
 
     Set<String> getAggregatedSupports() {
-        return Collections.unmodifiableSet(aggregatedSupports);
+        return Collections.unmodifiableSet(this.aggregatedSupports);
     }
 }
