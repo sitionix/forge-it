@@ -39,10 +39,16 @@ infrastructure live behind internal boundaries.
 2. **Core API ➜ Generated features** – The annotation processor produces the
    `com.sitionix.forgeit.core.generated.ForgeITFeatures` interface during
    compilation. `ForgeIT` extends this interface so every consumer implementation
-   inherits all requested features. The processor inspects the interfaces listed
-   in `@ForgeFeatures` directly, so no manual registry of feature names is
-   required, and it emits an empty contract when no features are present so the
-   core module continues to compile in isolation.
+   inherits all requested features. The processor aggregates two sources of
+   information:
+   - feature interfaces explicitly listed in `@ForgeFeatures` annotations;
+   - feature descriptors published on the compilation classpath via
+     `META-INF/forge-it/features` resources (each line lists the fully qualified
+     name of a support interface).
+
+   Thanks to this discovery, the core module can ship with WireMock support
+   pre-attached while still letting consumers extend the contract with their own
+   annotations.
 3. **Generated features ➜ Feature modules** – Each feature module (e.g. WireMock)
    contributes support interfaces under its own `api` package. Implementations live
    in matching `internal` packages and are invoked through default methods or

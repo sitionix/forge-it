@@ -29,8 +29,12 @@ import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -50,6 +54,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private final Set<String> processedContracts = new LinkedHashSet<>();
     private boolean featuresGenerated;
     private String lastEmittedSignature = "";
+    private boolean classpathFeaturesLoaded;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -64,6 +69,8 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
+
+        loadClasspathFeatures();
 
         for (Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
             if (element.getKind() != ElementKind.INTERFACE) {
@@ -198,6 +205,34 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
         }
         return null;
+    }
+
+    private void loadClasspathFeatures() {
+        if (classpathFeaturesLoaded) {
+            return;
+        }
+        classpathFeaturesLoaded = true;
+
+        ClassLoader classLoader = ForgeFeaturesProcessor.class.getClassLoader();
+        try {
+            var resources = classLoader.getResources("META-INF/forge-it/features");
+            while (resources.hasMoreElements()) {
+                try (InputStream stream = resources.nextElement().openStream()) {
+                    if (stream == null) {
+                        continue;
+                    }
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                        reader.lines()
+                                .map(String::trim)
+                                .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                                .forEach(aggregatedSupports::add);
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Failed to load ForgeIT feature declarations from the classpath: " + ex.getMessage());
+        }
     }
 
     private void emitGeneratedInterface(String signature) {
