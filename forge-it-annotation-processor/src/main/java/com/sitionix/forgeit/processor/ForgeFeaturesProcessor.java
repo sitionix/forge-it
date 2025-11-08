@@ -239,23 +239,54 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         }
         classpathFeaturesLoaded = true;
 
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        if (cl == null) cl = ForgeFeaturesProcessor.class.getClassLoader();
+        // The annotation processor runs in a dedicated class loader that is typically isolated
+        // from the compilation class path. For feature discovery we need to consult both the
+        // processor path and the compile class path resources.
+        loadFeaturesFromClassLoader(Thread.currentThread().getContextClassLoader());
+        loadFeaturesFromClassLoader(ForgeFeaturesProcessor.class.getClassLoader());
+        loadFeaturesFromLocation(StandardLocation.ANNOTATION_PROCESSOR_PATH);
+        loadFeaturesFromLocation(StandardLocation.CLASS_PATH);
+    }
+
+    private void loadFeaturesFromClassLoader(ClassLoader classLoader) {
+        if (classLoader == null) {
+            return;
+        }
         try {
-            var resources = cl.getResources("META-INF/forge-it/features");
+            var resources = classLoader.getResources("META-INF/forge-it/features");
             while (resources.hasMoreElements()) {
                 try (InputStream stream = resources.nextElement().openStream()) {
-                    if (stream == null) continue;
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                        reader.lines()
-                                .map(String::trim)
-                                .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                                .forEach(allowedFeatures::add);
+                    if (stream == null) {
+                        continue;
                     }
+                    readFeatureDeclarations(stream);
                 }
             }
         } catch (IOException ex) {
             messager.printMessage(Kind.WARNING, "Failed to load ForgeIT feature declarations: " + ex.getMessage());
+        }
+    }
+
+    private void loadFeaturesFromLocation(StandardLocation location) {
+        try {
+            var filer = this.processingEnv.getFiler();
+            var resource = filer.getResource(location, "", "META-INF/forge-it/features");
+            try (InputStream stream = resource.openInputStream()) {
+                readFeatureDeclarations(stream);
+            }
+        } catch (FilerException ex) {
+            // No declaration available at this location – ignore.
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING, "Failed to load ForgeIT feature declarations: " + ex.getMessage());
+        }
+    }
+
+    private void readFeatureDeclarations(InputStream stream) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            reader.lines()
+                    .map(String::trim)
+                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                    .forEach(allowedFeatures::add);
         }
     }
 
