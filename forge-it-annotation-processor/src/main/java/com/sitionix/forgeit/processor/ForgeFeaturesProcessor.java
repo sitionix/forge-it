@@ -37,6 +37,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
+import java.net.JarURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,6 +67,8 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private final Set<String> processedContracts = new LinkedHashSet<>();
 
     private final Set<String> allowedFeatures = new LinkedHashSet<>();
+    private final Set<Path> scannedFeatureDirectories = new LinkedHashSet<>();
+    private final Set<Path> scannedFeatureJars = new LinkedHashSet<>();
 
     private boolean featuresGenerated;
     private String lastEmittedSignature = "";
@@ -140,7 +146,13 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     }
 
     private boolean isWhitelisted(TypeElement type) {
-        return allowedFeatures.contains(type.getQualifiedName().toString());
+        String qualifiedName = type.getQualifiedName().toString();
+        if (allowedFeatures.contains(qualifiedName)) {
+            return true;
+        }
+
+        loadFeatureContainer(type);
+        return allowedFeatures.contains(qualifiedName);
     }
 
 
@@ -314,15 +326,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
 
             if (Files.isDirectory(path)) {
-                Path featureFile = path.resolve("META-INF/forge-it/features");
-                if (Files.isRegularFile(featureFile)) {
-                    try (InputStream stream = Files.newInputStream(featureFile)) {
-                        readFeatureDeclarations(stream);
-                    } catch (IOException ex) {
-                        messager.printMessage(Kind.WARNING,
-                                "Failed to read ForgeIT feature declarations from " + featureFile + ": " + ex.getMessage());
-                    }
-                }
+                loadFeaturesFromDirectory(path);
                 continue;
             }
 
@@ -335,18 +339,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                 continue;
             }
 
-            try (JarFile jarFile = new JarFile(path.toFile())) {
-                JarEntry featureEntry = jarFile.getJarEntry("META-INF/forge-it/features");
-                if (featureEntry == null) {
-                    continue;
-                }
-                try (InputStream stream = jarFile.getInputStream(featureEntry)) {
-                    readFeatureDeclarations(stream);
-                }
-            } catch (IOException ex) {
-                messager.printMessage(Kind.WARNING,
-                        "Failed to load ForgeIT feature declarations from " + path + ": " + ex.getMessage());
-            }
+            loadFeaturesFromJar(path);
         }
     }
 
@@ -357,6 +350,129 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                     .filter(line -> !line.isEmpty() && !line.startsWith("#"))
                     .forEach(allowedFeatures::add);
         }
+    }
+
+    private void loadFeatureContainer(TypeElement featureElement) {
+        String binaryName = elements.getBinaryName(featureElement).toString();
+        String resourceName = binaryName.replace('.', '/') + ".class";
+
+        FileObject classResource;
+        try {
+            classResource = processingEnv.getFiler()
+                    .getResource(StandardLocation.CLASS_PATH, "", resourceName);
+        } catch (FileNotFoundException ignored) {
+            return;
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Unable to resolve compiled class for " + binaryName + ": " + ex.getMessage());
+            return;
+        }
+
+        URI classUri = classResource.toUri();
+        if (classUri == null) {
+            return;
+        }
+
+        String scheme = classUri.getScheme();
+        try {
+            if (scheme != null && scheme.equalsIgnoreCase("jar")) {
+                URL url = classUri.toURL();
+                URLConnection connection = url.openConnection();
+                if (connection instanceof JarURLConnection jarConnection) {
+                    URL jarFileUrl = jarConnection.getJarFileURL();
+                    loadFeaturesFromJar(Path.of(jarFileUrl.toURI()));
+                }
+                return;
+            }
+
+            if (scheme != null && scheme.equalsIgnoreCase("file")) {
+                Path classFile = Path.of(classUri);
+                Path root = locateClassOutputRoot(classFile, resourceName);
+                if (root != null) {
+                    loadFeaturesFromDirectory(root);
+                }
+                return;
+            }
+
+            String uriString = classUri.toString();
+            if (uriString.startsWith("jar:")) {
+                URL url = new URL(uriString);
+                URLConnection connection = url.openConnection();
+                if (connection instanceof JarURLConnection jarConnection) {
+                    URL jarFileUrl = jarConnection.getJarFileURL();
+                    loadFeaturesFromJar(Path.of(jarFileUrl.toURI()));
+                }
+                return;
+            }
+
+            if (scheme == null) {
+                Path classFile = Path.of(classUri);
+                Path root = locateClassOutputRoot(classFile, resourceName);
+                if (root != null) {
+                    loadFeaturesFromDirectory(root);
+                }
+            }
+        } catch (Exception ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Failed to resolve feature declarations for " + binaryName + ": " + ex.getMessage());
+        }
+    }
+
+    private void loadFeaturesFromDirectory(Path directory) {
+        Path root;
+        try {
+            root = directory.toRealPath();
+        } catch (IOException ex) {
+            root = directory.toAbsolutePath().normalize();
+        }
+
+        if (!scannedFeatureDirectories.add(root)) {
+            return;
+        }
+
+        Path featureFile = root.resolve("META-INF/forge-it/features");
+        if (!Files.isRegularFile(featureFile)) {
+            return;
+        }
+
+        try (InputStream stream = Files.newInputStream(featureFile)) {
+            readFeatureDeclarations(stream);
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Failed to read ForgeIT feature declarations from " + featureFile + ": " + ex.getMessage());
+        }
+    }
+
+    private void loadFeaturesFromJar(Path jarPath) {
+        Path normalized = jarPath.toAbsolutePath().normalize();
+        if (!scannedFeatureJars.add(normalized)) {
+            return;
+        }
+
+        try (JarFile jarFile = new JarFile(normalized.toFile())) {
+            JarEntry featureEntry = jarFile.getJarEntry("META-INF/forge-it/features");
+            if (featureEntry == null) {
+                return;
+            }
+            try (InputStream stream = jarFile.getInputStream(featureEntry)) {
+                readFeatureDeclarations(stream);
+            }
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Failed to load ForgeIT feature declarations from " + normalized + ": " + ex.getMessage());
+        }
+    }
+
+    private Path locateClassOutputRoot(Path classFile, String resourceName) {
+        String[] segments = resourceName.split("/");
+        Path root = classFile;
+        for (String ignored : segments) {
+            if (root == null) {
+                return null;
+            }
+            root = root.getParent();
+        }
+        return root;
     }
 
 
