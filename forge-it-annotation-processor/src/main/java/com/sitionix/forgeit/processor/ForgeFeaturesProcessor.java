@@ -6,8 +6,6 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 
-import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.FilerException;
 import javax.annotation.processing.Messager;
@@ -30,11 +28,10 @@ import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.FileObject;
-import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
-import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -256,6 +253,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         loadFeaturesFromClassLoader(ForgeFeaturesProcessor.class.getClassLoader());
         loadFeaturesFromLocation(StandardLocation.ANNOTATION_PROCESSOR_PATH);
         loadFeaturesFromLocation(StandardLocation.CLASS_PATH);
+        loadFeaturesFromSystemClasspath();
     }
 
     private void loadFeaturesFromClassLoader(ClassLoader classLoader) {
@@ -279,7 +277,6 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
 
     private void loadFeaturesFromLocation(StandardLocation location) {
         loadFeaturesWithFiler(location);
-        loadFeaturesFromFileManager(location);
     }
 
     private void loadFeaturesWithFiler(StandardLocation location) {
@@ -296,25 +293,26 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         }
     }
 
-    private void loadFeaturesFromFileManager(StandardLocation location) {
-        if (!(this.processingEnv instanceof JavacProcessingEnvironment javacEnv)) {
+    private void loadFeaturesFromSystemClasspath() {
+        String classPath = System.getProperty("java.class.path");
+        if (classPath == null || classPath.isBlank()) {
             return;
         }
 
-        JavaFileManager fileManager = javacEnv.getContext().get(JavaFileManager.class);
-        if (!(fileManager instanceof StandardJavaFileManager standardFileManager)) {
-            return;
-        }
+        for (String entry : classPath.split(File.pathSeparator)) {
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
 
-        Iterable<Path> paths;
-        try {
-            paths = standardFileManager.getLocationAsPaths(location);
-        } catch (IOException ex) {
-            messager.printMessage(Kind.WARNING, "Failed to inspect classpath for ForgeIT features: " + ex.getMessage());
-            return;
-        }
+            Path path;
+            try {
+                path = Path.of(entry);
+            } catch (Exception ex) {
+                messager.printMessage(Kind.WARNING,
+                        "Failed to interpret classpath entry '" + entry + "': " + ex.getMessage());
+                continue;
+            }
 
-        for (Path path : paths) {
             if (Files.isDirectory(path)) {
                 Path featureFile = path.resolve("META-INF/forge-it/features");
                 if (Files.isRegularFile(featureFile)) {
@@ -329,6 +327,11 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
 
             if (!Files.isRegularFile(path)) {
+                continue;
+            }
+
+            String fileName = path.getFileName().toString();
+            if (!fileName.endsWith(".jar") && !fileName.endsWith(".JAR")) {
                 continue;
             }
 
