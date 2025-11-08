@@ -29,26 +29,35 @@ import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-@SupportedAnnotationTypes("com.sitionix.forgeit.core.annotation.ForgeFeatures")
+@SupportedAnnotationTypes("*")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public final class ForgeFeaturesProcessor extends AbstractProcessor {
-    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.domain.ForgeIT";
+    private static final String FORGE_IT_FQN = "com.sitionix.forgeit.core.api.ForgeIT";
     private static final ClassName GENERATED_FEATURES =
             ClassName.get("com.sitionix.forgeit.core.generated", "ForgeITFeatures");
+
+    private static final String FEATURES_RESOURCE_PATH = "META-INF/forge-it/features";
 
     private Messager messager;
     private Elements elements;
     private Types types;
     private final Set<String> aggregatedSupports = new LinkedHashSet<>();
+    private final Set<String> processedContracts = new LinkedHashSet<>();
+    private final Set<String> registeredFeatures = new LinkedHashSet<>();
     private boolean featuresGenerated;
     private String lastEmittedSignature = "";
+    private boolean classpathFeaturesLoaded;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -63,6 +72,8 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
+
+        loadClasspathFeatures();
 
         for (Element element : roundEnv.getElementsAnnotatedWith(ForgeFeatures.class)) {
             if (element.getKind() != ElementKind.INTERFACE) {
@@ -95,12 +106,43 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                     continue;
                 }
 
-                this.aggregatedSupports.addAll(FeatureRegistry.resolveSupportInterfaces(featureElement.getQualifiedName().toString()));
+                collectFeatureContracts(featureElement, element);
             }
         }
 
         reconcileGeneratedInterface();
         return false;
+    }
+
+    private void collectFeatureContracts(TypeElement featureElement, Element sourceElement) {
+        if (featureElement.getKind() != ElementKind.INTERFACE) {
+            messager.printMessage(Kind.ERROR,
+                    "@ForgeFeatures values must be interfaces", sourceElement);
+            return;
+        }
+
+        String featureName = featureElement.getQualifiedName().toString();
+        if (!processedContracts.add(featureName)) {
+            return;
+        }
+
+        if (!registeredFeatures.contains(featureName)) {
+            messager.printMessage(Kind.ERROR,
+                    "Feature is not registered. Add it to " + FEATURES_RESOURCE_PATH + ": " + featureName,
+                    sourceElement);
+            return;
+        }
+
+        aggregatedSupports.add(featureName);
+
+        for (TypeMirror parentInterface : featureElement.getInterfaces()) {
+            TypeElement parentElement = asTypeElement(parentInterface);
+            if (parentElement != null) {
+                collectFeatureContracts(parentElement, sourceElement);
+            } else {
+                aggregatedSupports.add(parentInterface.toString());
+            }
+        }
     }
 
     private void reconcileGeneratedInterface() {
@@ -134,6 +176,10 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     }
 
     private boolean extendsForgeIT(TypeElement candidate) {
+        if (candidate.getQualifiedName().contentEquals(FORGE_IT_FQN)) {
+            return true;
+        }
+
         TypeElement forgeIt = elements.getTypeElement(FORGE_IT_FQN);
         if (forgeIt == null) {
             messager.printMessage(Kind.ERROR, "ForgeIT type was not found on the compilation classpath");
@@ -169,6 +215,37 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
         }
         return null;
+    }
+
+    private void loadClasspathFeatures() {
+        if (classpathFeaturesLoaded) {
+            return;
+        }
+        classpathFeaturesLoaded = true;
+
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        if (classLoader == null) {
+            classLoader = ForgeFeaturesProcessor.class.getClassLoader();
+        }
+        try {
+            var resources = classLoader.getResources(FEATURES_RESOURCE_PATH);
+            while (resources.hasMoreElements()) {
+                try (InputStream stream = resources.nextElement().openStream()) {
+                    if (stream == null) {
+                        continue;
+                    }
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                        reader.lines()
+                                .map(String::trim)
+                                .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                                .forEach(registeredFeatures::add);
+                    }
+                }
+            }
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING,
+                    "Failed to load ForgeIT feature declarations from the classpath: " + ex.getMessage());
+        }
     }
 
     private void emitGeneratedInterface(String signature) {
