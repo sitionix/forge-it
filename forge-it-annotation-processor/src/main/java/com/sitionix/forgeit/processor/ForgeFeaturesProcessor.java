@@ -22,7 +22,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import java.util.Collection;
 import java.util.Set;

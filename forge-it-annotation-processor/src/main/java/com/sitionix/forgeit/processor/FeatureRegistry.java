@@ -214,7 +214,7 @@ final class FeatureRegistry {
     }
 
     private void loadFeaturesFromDirectory(Path directory) {
-        final Path root;
+        Path root;
         try {
             root = directory.toRealPath();
         } catch (IOException ex) {
