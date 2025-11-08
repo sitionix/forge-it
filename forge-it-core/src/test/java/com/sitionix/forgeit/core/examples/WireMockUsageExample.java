@@ -1,7 +1,7 @@
 package com.sitionix.forgeit.core.examples;
 
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
-import com.sitionix.forgeit.core.domain.ForgeIT;
+import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 
 /**
@@ -10,9 +10,10 @@ import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 public final class WireMockUsageExample {
 
     /**
-     * The consumer annotates their Forge entry point directly. After compilation,
-     * {@link ForgeIT} inherits {@link WireMockSupport}, so any extension of ForgeIT
-     * gains WireMock helpers automatically.
+     * Consumers can still annotate their own entry points to opt into additional
+     * features. The built-in {@link ForgeIT} contract already carries
+     * {@link WireMockSupport}, so the helper becomes available on the generated
+     * interface as soon as compilation completes.
      */
     @ForgeFeatures(WireMockSupport.class)
     public interface UserForgeTests extends ForgeIT {
