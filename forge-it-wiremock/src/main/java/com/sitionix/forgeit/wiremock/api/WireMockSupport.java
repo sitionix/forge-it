@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.wiremock.api;
 
+import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge;
 
 /**
@@ -8,7 +9,7 @@ import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge;
  * All behaviour is funneled through internal bridges so that consumers remain
  * isolated from infrastructure details.
  */
-public interface WireMockSupport {
+public interface WireMockSupport extends FeatureSupport {
 
     default String wiremock() {
         return WireMockSupportBridge.wiremock();
