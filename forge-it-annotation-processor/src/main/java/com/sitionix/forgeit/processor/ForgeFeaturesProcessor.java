@@ -336,11 +336,11 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
 
             try (JarFile jarFile = new JarFile(path.toFile())) {
-                JarEntry entry = jarFile.getJarEntry("META-INF/forge-it/features");
-                if (entry == null) {
+                JarEntry featureEntry = jarFile.getJarEntry("META-INF/forge-it/features");
+                if (featureEntry == null) {
                     continue;
                 }
-                try (InputStream stream = jarFile.getInputStream(entry)) {
+                try (InputStream stream = jarFile.getInputStream(featureEntry)) {
                     readFeatureDeclarations(stream);
                 }
             } catch (IOException ex) {
