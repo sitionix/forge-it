@@ -6,6 +6,8 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
 
+import com.sun.tools.javac.processing.JavacProcessingEnvironment;
+
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.FilerException;
 import javax.annotation.processing.Messager;
@@ -27,17 +29,25 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
+import javax.tools.FileObject;
+import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 @SupportedAnnotationTypes("*")
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
@@ -268,16 +278,72 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     }
 
     private void loadFeaturesFromLocation(StandardLocation location) {
+        loadFeaturesWithFiler(location);
+        loadFeaturesFromFileManager(location);
+    }
+
+    private void loadFeaturesWithFiler(StandardLocation location) {
         try {
             var filer = this.processingEnv.getFiler();
-            var resource = filer.getResource(location, "", "META-INF/forge-it/features");
+            FileObject resource = filer.getResource(location, "", "META-INF/forge-it/features");
             try (InputStream stream = resource.openInputStream()) {
                 readFeatureDeclarations(stream);
             }
-        } catch (FilerException ex) {
-            // No declaration available at this location – ignore.
+        } catch (FilerException | FileNotFoundException ex) {
+            // No declaration available at this location – ignore quietly.
         } catch (IOException ex) {
             messager.printMessage(Kind.WARNING, "Failed to load ForgeIT feature declarations: " + ex.getMessage());
+        }
+    }
+
+    private void loadFeaturesFromFileManager(StandardLocation location) {
+        if (!(this.processingEnv instanceof JavacProcessingEnvironment javacEnv)) {
+            return;
+        }
+
+        JavaFileManager fileManager = javacEnv.getContext().get(JavaFileManager.class);
+        if (!(fileManager instanceof StandardJavaFileManager standardFileManager)) {
+            return;
+        }
+
+        Iterable<Path> paths;
+        try {
+            paths = standardFileManager.getLocationAsPaths(location);
+        } catch (IOException ex) {
+            messager.printMessage(Kind.WARNING, "Failed to inspect classpath for ForgeIT features: " + ex.getMessage());
+            return;
+        }
+
+        for (Path path : paths) {
+            if (Files.isDirectory(path)) {
+                Path featureFile = path.resolve("META-INF/forge-it/features");
+                if (Files.isRegularFile(featureFile)) {
+                    try (InputStream stream = Files.newInputStream(featureFile)) {
+                        readFeatureDeclarations(stream);
+                    } catch (IOException ex) {
+                        messager.printMessage(Kind.WARNING,
+                                "Failed to read ForgeIT feature declarations from " + featureFile + ": " + ex.getMessage());
+                    }
+                }
+                continue;
+            }
+
+            if (!Files.isRegularFile(path)) {
+                continue;
+            }
+
+            try (JarFile jarFile = new JarFile(path.toFile())) {
+                JarEntry entry = jarFile.getJarEntry("META-INF/forge-it/features");
+                if (entry == null) {
+                    continue;
+                }
+                try (InputStream stream = jarFile.getInputStream(entry)) {
+                    readFeatureDeclarations(stream);
+                }
+            } catch (IOException ex) {
+                messager.printMessage(Kind.WARNING,
+                        "Failed to load ForgeIT feature declarations from " + path + ": " + ex.getMessage());
+            }
         }
     }
 
