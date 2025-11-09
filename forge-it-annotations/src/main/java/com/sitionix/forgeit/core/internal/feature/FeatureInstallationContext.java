@@ -1,8 +1,8 @@
 package com.sitionix.forgeit.core.internal.feature;
 
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 /**
  * Shared context passed to feature installers to expose the Spring infrastructure
