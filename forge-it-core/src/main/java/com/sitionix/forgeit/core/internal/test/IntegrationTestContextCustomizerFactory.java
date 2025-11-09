@@ -11,6 +11,7 @@ import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -68,7 +69,8 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
             }
         }
         for (Class<?> parent : type.getInterfaces()) {
-            if (FeatureSupport.class.isAssignableFrom(parent)) {
+            if (FeatureSupport.class.isAssignableFrom(parent)
+                    && Arrays.asList(parent.getInterfaces()).contains(FeatureSupport.class)) {
                 features.add((Class<? extends FeatureSupport>) parent);
             }
             collectFeatures(parent, features, visited);

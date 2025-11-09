@@ -5,7 +5,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -58,16 +58,12 @@ public final class ContractProxyFactory {
 
         private Object invokeDefaultMethod(Object proxy, Method method, Object[] args) throws Throwable {
             final Class<?> declaringClass = method.getDeclaringClass();
-            final Constructor<MethodHandles.Lookup> constructor = MethodHandles.Lookup.class
-                    .getDeclaredConstructor(Class.class, int.class);
-            if (!constructor.canAccess(null)) {
-                constructor.setAccessible(true);
-            }
-            final int allModes = MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
-                    | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC;
-            final MethodHandles.Lookup lookup = constructor.newInstance(declaringClass, allModes)
-                    .in(declaringClass);
-            final MethodHandle handle = lookup.unreflectSpecial(method, declaringClass)
+            final MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(declaringClass, MethodHandles.lookup());
+            final MethodHandle handle = lookup.findSpecial(
+                    declaringClass,
+                    method.getName(),
+                    MethodType.methodType(method.getReturnType(), method.getParameterTypes()),
+                    declaringClass)
                     .bindTo(proxy);
             return handle.invokeWithArguments(args == null ? new Object[0] : args);
         }
