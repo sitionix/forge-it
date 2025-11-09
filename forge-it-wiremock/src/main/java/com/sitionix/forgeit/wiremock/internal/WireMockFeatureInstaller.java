@@ -1,8 +1,9 @@
-package com.sitionix.forgeit.core.internal.feature;
+package com.sitionix.forgeit.wiremock.internal;
 
+import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
+import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
-import com.sitionix.forgeit.wiremock.internal.WireMockFacade;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
