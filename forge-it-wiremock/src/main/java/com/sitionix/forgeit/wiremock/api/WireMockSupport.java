@@ -11,7 +11,7 @@ import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge;
  */
 public interface WireMockSupport extends FeatureSupport {
 
-    default WireMockTool wiremock() {
+    default String wiremock() {
         return WireMockSupportBridge.wiremock();
     }
 }
