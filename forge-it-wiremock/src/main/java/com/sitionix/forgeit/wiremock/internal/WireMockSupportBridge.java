@@ -1,5 +1,7 @@
 package com.sitionix.forgeit.wiremock.internal;
 
+import com.sitionix.forgeit.wiremock.api.WireMockTool;
+
 import java.util.Objects;
 
 /**
@@ -25,7 +27,7 @@ public final class WireMockSupportBridge {
     private WireMockSupportBridge() {
     }
 
-    public static String wiremock() {
+    public static WireMockTool wiremock() {
         return delegate.wiremock();
     }
 
@@ -39,6 +41,6 @@ public final class WireMockSupportBridge {
 
     @FunctionalInterface
     public interface WireMockDelegate {
-        String wiremock();
+        WireMockTool wiremock();
     }
 }

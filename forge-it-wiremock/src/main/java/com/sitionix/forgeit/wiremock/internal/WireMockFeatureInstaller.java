@@ -23,6 +23,7 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         if (!registry.containsBeanDefinition(WireMockFacade.BEAN_NAME)) {
             final BeanDefinition beanDefinition = BeanDefinitionBuilder
                     .genericBeanDefinition(WireMockFacade.class)
+                    .addConstructorArgValue(context.environment())
                     .getBeanDefinition();
             registry.registerBeanDefinition(WireMockFacade.BEAN_NAME, beanDefinition);
         }
