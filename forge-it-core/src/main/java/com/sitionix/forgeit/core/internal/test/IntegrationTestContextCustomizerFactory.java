@@ -18,6 +18,8 @@ import java.util.Set;
 
 public final class IntegrationTestContextCustomizerFactory implements ContextCustomizerFactory {
 
+    private static final String GENERATED_FEATURES_PACKAGE = "com.sitionix.forgeit.core.generated";
+
     @Override
     public ContextCustomizer createContextCustomizer(Class<?> testClass,
                                                      List<ContextConfigurationAttributes> configAttributes) {
@@ -70,6 +72,8 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         }
         for (Class<?> parent : type.getInterfaces()) {
             if (FeatureSupport.class.isAssignableFrom(parent)
+                    && parent != FeatureSupport.class
+                    && !GENERATED_FEATURES_PACKAGE.equals(parent.getPackageName())
                     && Arrays.asList(parent.getInterfaces()).contains(FeatureSupport.class)) {
                 features.add((Class<? extends FeatureSupport>) parent);
             }
