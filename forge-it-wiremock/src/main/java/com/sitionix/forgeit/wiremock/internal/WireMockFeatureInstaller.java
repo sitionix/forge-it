@@ -1,0 +1,52 @@
+package com.sitionix.forgeit.wiremock.internal;
+
+import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
+import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
+import com.sitionix.forgeit.core.marker.FeatureSupport;
+import com.sitionix.forgeit.wiremock.api.WireMockSupport;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+
+/**
+ * Registers the WireMock infrastructure components when the feature is
+ * requested by a ForgeIT integration test contract.
+ */
+public final class WireMockFeatureInstaller implements FeatureInstaller {
+
+    @Override
+    public Class<? extends FeatureSupport> featureType() {
+        return WireMockSupport.class;
+    }
+
+    @Override
+    public void install(FeatureInstallationContext context) {
+        if (!(context.beanFactory() instanceof BeanDefinitionRegistry registry)) {
+            throw new IllegalStateException("ForgeIT requires a BeanDefinitionRegistry-backed context");
+        }
+        registerContainerManager(context, registry);
+        registerFacade(registry);
+    }
+
+    private void registerContainerManager(FeatureInstallationContext context, BeanDefinitionRegistry registry) {
+        if (registry.containsBeanDefinition(WireMockContainerManager.BEAN_NAME)) {
+            return;
+        }
+        final BeanDefinition beanDefinition = BeanDefinitionBuilder
+                .genericBeanDefinition(WireMockContainerManager.class)
+                .addConstructorArgValue(context.environment())
+                .getBeanDefinition();
+        registry.registerBeanDefinition(WireMockContainerManager.BEAN_NAME, beanDefinition);
+    }
+
+    private void registerFacade(BeanDefinitionRegistry registry) {
+        if (registry.containsBeanDefinition(WireMockFacade.BEAN_NAME)) {
+            return;
+        }
+        final BeanDefinition beanDefinition = BeanDefinitionBuilder
+                .genericBeanDefinition(WireMockFacade.class)
+                .addConstructorArgReference(WireMockContainerManager.BEAN_NAME)
+                .getBeanDefinition();
+        registry.registerBeanDefinition(WireMockFacade.BEAN_NAME, beanDefinition);
+    }
+}
