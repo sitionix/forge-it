@@ -24,7 +24,6 @@ class ForgeItIntegrationTest {
     @Test
     void shouldExposeWireMockFeature() throws Exception {
         final var wireMock = tools.wiremock();
-        wireMock.resetAll();
         wireMock.stubFor(get(urlEqualTo("/greeting"))
                 .willReturn(aResponse().withStatus(200).withBody("hello")));
 

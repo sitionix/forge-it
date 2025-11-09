@@ -15,7 +15,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 
-final class WireMockFacade implements InitializingBean, DisposableBean, WireMockSupportBridge.WireMockDelegate {
+public final class WireMockFacade implements InitializingBean, DisposableBean, WireMockSupportBridge.WireMockDelegate {
 
     static final String BEAN_NAME = "forgeItWireMockFacade";
     private static final String PROPERTY_SOURCE_NAME = "forgeItWireMock";
@@ -26,7 +26,7 @@ final class WireMockFacade implements InitializingBean, DisposableBean, WireMock
     private GenericContainer<?> container;
     private WireMockTool tool;
 
-    WireMockFacade(ConfigurableEnvironment environment) {
+    public WireMockFacade(ConfigurableEnvironment environment) {
         this.environment = environment;
     }
 

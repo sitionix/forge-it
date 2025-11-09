@@ -43,10 +43,4 @@ public final class WireMockTool {
         this.client.register(Objects.requireNonNull(mappingBuilder, "mappingBuilder"));
     }
 
-    /**
-     * Clears all mappings and scenarios from the managed WireMock instance.
-     */
-    public void resetAll() {
-        this.client.resetAll();
-    }
 }

@@ -1,2 +1,4 @@
 org.springframework.test.context.ContextCustomizerFactory=\
 com.sitionix.forgeit.core.internal.test.IntegrationTestContextCustomizerFactory
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.core.internal.feature.WireMockFeatureInstaller

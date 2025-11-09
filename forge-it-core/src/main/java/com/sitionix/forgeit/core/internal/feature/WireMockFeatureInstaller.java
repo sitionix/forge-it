@@ -1,13 +1,16 @@
-package com.sitionix.forgeit.wiremock.internal;
+package com.sitionix.forgeit.core.internal.feature;
 
-import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
-import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
+import com.sitionix.forgeit.wiremock.internal.WireMockFacade;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 
+/**
+ * Registers the WireMock infrastructure components when the feature is
+ * requested by a ForgeIT integration test contract.
+ */
 public final class WireMockFeatureInstaller implements FeatureInstaller {
 
     @Override
