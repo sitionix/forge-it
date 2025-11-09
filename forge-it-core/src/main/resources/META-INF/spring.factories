@@ -1,0 +1,2 @@
+org.springframework.test.context.ContextCustomizerFactory=\
+com.sitionix.forgeit.core.internal.test.IntegrationTestContextCustomizerFactory

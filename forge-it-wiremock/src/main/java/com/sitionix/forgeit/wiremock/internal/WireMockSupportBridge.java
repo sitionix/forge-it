@@ -1,5 +1,7 @@
 package com.sitionix.forgeit.wiremock.internal;
 
+import java.util.Objects;
+
 /**
  * Internal delegation point for WireMock infrastructure interactions.
  * <p>
@@ -10,10 +12,33 @@ package com.sitionix.forgeit.wiremock.internal;
  */
 public final class WireMockSupportBridge {
 
+    private static final WireMockDelegate UNINITIALISED = () -> {
+        throw new IllegalStateException("WireMock feature has not been initialised");
+    };
+
+    private static final WireMockDelegate SHUTDOWN = () -> {
+        throw new IllegalStateException("WireMock feature has been shut down");
+    };
+
+    private static volatile WireMockDelegate delegate = UNINITIALISED;
+
     private WireMockSupportBridge() {
     }
 
     public static String wiremock() {
-        return "wiremock";
+        return delegate.wiremock();
+    }
+
+    public static void setDelegate(WireMockDelegate delegate) {
+        WireMockSupportBridge.delegate = Objects.requireNonNull(delegate, "delegate");
+    }
+
+    public static void clearDelegate() {
+        WireMockSupportBridge.delegate = SHUTDOWN;
+    }
+
+    @FunctionalInterface
+    public interface WireMockDelegate {
+        String wiremock();
     }
 }
