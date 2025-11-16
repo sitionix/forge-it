@@ -1,0 +1,11 @@
+forge-it:
+  modules:
+    wiremock:
+      enabled: true
+      mode: internal
+      host: localhost
+      port: 8089
+      record:
+        enabled: false
+        targetBaseUrl: http://real-service:8080
+        persistMappings: true
