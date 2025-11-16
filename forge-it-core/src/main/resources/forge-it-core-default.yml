@@ -1,0 +1,10 @@
+forge-it:
+  core:
+    enabled: true
+    profile: it
+    reuseContainers: true
+    containersEnabled: true
+  resources:
+    expectedBasePath: json/expected
+    requestBasePath: json/requests
+    responseBasePath: json/responses
