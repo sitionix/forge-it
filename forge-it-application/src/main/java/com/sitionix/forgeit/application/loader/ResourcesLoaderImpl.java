@@ -11,7 +11,7 @@ import java.io.IOException;
 import static com.sitionix.forgeit.application.loader.JsonLoader.load;
 
 @Component
-public abstract class ResourcesLoaderImpl implements ResourcesLoader {
+public class ResourcesLoaderImpl implements ResourcesLoader {
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -23,6 +23,11 @@ public abstract class ResourcesLoaderImpl implements ResourcesLoader {
     public <T> T getFromFile(String fileName, Class<T> tClass) {
         final String file = this.loadResource(fileName);
         return this.getResourceAsObject(file, tClass);
+    }
+
+    @Override
+    public String getFromFile(String fileName) {
+        return this.loadResource(fileName);
     }
 
     private <T> T getResourceAsObject(final String jsonResource, final Class<T> tClass) {
