@@ -24,8 +24,19 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         if (!(context.beanFactory() instanceof BeanDefinitionRegistry registry)) {
             throw new IllegalStateException("ForgeIT requires a BeanDefinitionRegistry-backed context");
         }
+        registerProperties(context, registry);
         registerContainerManager(context, registry);
         registerFacade(registry);
+    }
+
+    private void registerProperties(FeatureInstallationContext context, BeanDefinitionRegistry registry) {
+        if (registry.containsBeanDefinition(WireMockProperties.BEAN_NAME)) {
+            return;
+        }
+        final BeanDefinition beanDefinition = BeanDefinitionBuilder
+                .genericBeanDefinition(WireMockProperties.class)
+                .getBeanDefinition();
+        registry.registerBeanDefinition(WireMockProperties.BEAN_NAME, beanDefinition);
     }
 
     private void registerContainerManager(FeatureInstallationContext context, BeanDefinitionRegistry registry) {
@@ -35,6 +46,7 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         final BeanDefinition beanDefinition = BeanDefinitionBuilder
                 .genericBeanDefinition(WireMockContainerManager.class)
                 .addConstructorArgValue(context.environment())
+                .addConstructorArgReference(WireMockProperties.BEAN_NAME)
                 .getBeanDefinition();
         registry.registerBeanDefinition(WireMockContainerManager.BEAN_NAME, beanDefinition);
     }
