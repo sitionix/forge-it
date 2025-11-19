@@ -10,7 +10,16 @@ public abstract class ScopedResourcesLoader {
 
     protected abstract String getResourcePath();
 
-    public <T> T getFromFile(String fileName, Class<T> tClass) {
-        return resourcesLoader.getFromFile(this.getResourcePath(), tClass);
+    public <T> T getFromFile(final String fileName, final Class<T> tClass) {
+        return resourcesLoader.getFromFile(this.getFullPath(fileName), tClass);
     }
+
+    public String getFromFile(final String fileName) {
+        return resourcesLoader.getFromFile(this.getFullPath(fileName));
+    }
+
+    private String getFullPath(final String fileName) {
+        return String.format("%s/%s", this.getResourcePath(), fileName);
+    }
+
 }
