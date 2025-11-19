@@ -5,7 +5,6 @@ forge-it:
       mode: internal
       host: localhost
       port: 8089
-      record:
-        enabled: false
-        targetBaseUrl: http://real-service:8080
-        persistMappings: true
+      mapping:
+        request: /mappings/requests
+        response: /mappings/responses
