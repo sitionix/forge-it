@@ -5,13 +5,24 @@ import com.sitionix.forgeit.domain.loader.ResourcesLoader;
 import com.sitionix.forgeit.wiremock.internal.WireMockProperties;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.BindException;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 class ResponseMappingResourcesIntegrationTest {
 
@@ -20,7 +31,7 @@ class ResponseMappingResourcesIntegrationTest {
     @Test
     void shouldLoadResponseMappingUsingApplicationResourcesLoader() throws Exception {
         final ResourcesLoader resourcesLoader = loadApplicationResourcesLoader();
-        final WireMockProperties properties = createWireMockProperties();
+        final WireMockProperties properties = loadDefaultWireMockProperties();
 
         final ResponseMappingResources responseMappingResources = new ResponseMappingResources(resourcesLoader, properties);
 
@@ -46,18 +57,24 @@ class ResponseMappingResourcesIntegrationTest {
         objectMapper.set(instance, new ObjectMapper());
 
         final Method setResourcePath = implClass.getMethod("setResourcePath", String.class);
-        setResourcePath.invoke(instance, "/mappings/responses/%s");
+        setResourcePath.invoke(instance, "/%s");
 
         return (ResourcesLoader) ResourcesLoader.class.cast(instance);
     }
 
-    private static WireMockProperties createWireMockProperties() {
-        final WireMockProperties.Mapping mapping = new WireMockProperties.Mapping();
-        mapping.setResponse("/mappings/responses/%s");
+    private static WireMockProperties loadDefaultWireMockProperties() throws IOException {
+        final Resource defaults = new ClassPathResource("forge-it-wiremock-default.yml");
+        final List<PropertySource<?>> propertySources = new YamlPropertySourceLoader().load("wiremock-defaults", defaults);
 
-        final WireMockProperties properties = new WireMockProperties();
-        properties.setMapping(mapping);
+        final MutablePropertySources sources = new MutablePropertySources();
+        propertySources.forEach(sources::addLast);
 
-        return properties;
+        try {
+            return new Binder(ConfigurationPropertySources.from(sources))
+                    .bind(WireMockProperties.PROPERTY_PREFIX, Bindable.of(WireMockProperties.class))
+                    .orElseThrow(() -> new IllegalStateException("WireMock defaults are missing"));
+        } catch (BindException ex) {
+            throw new IllegalStateException("Failed to bind WireMock default properties", ex);
+        }
     }
 }
