@@ -17,7 +17,7 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     private ObjectMapper objectMapper;
 
     @Setter
-    private String resourcePath;
+    private String resourcePath = "/%s";
 
     @Override
     public <T> T getFromFile(String fileName, Class<T> tClass) {

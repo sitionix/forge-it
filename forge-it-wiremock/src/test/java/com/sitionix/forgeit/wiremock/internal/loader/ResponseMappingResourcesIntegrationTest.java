@@ -17,7 +17,6 @@ import org.springframework.core.io.Resource;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -55,9 +54,6 @@ class ResponseMappingResourcesIntegrationTest {
         final Field objectMapper = implClass.getDeclaredField("objectMapper");
         objectMapper.setAccessible(true);
         objectMapper.set(instance, new ObjectMapper());
-
-        final Method setResourcePath = implClass.getMethod("setResourcePath", String.class);
-        setResourcePath.invoke(instance, "/%s");
 
         return (ResourcesLoader) ResourcesLoader.class.cast(instance);
     }
