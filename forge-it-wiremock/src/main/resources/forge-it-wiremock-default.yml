@@ -8,3 +8,4 @@ forge-it:
       mapping:
         request: /mappings/requests
         response: /mappings/responses
+
