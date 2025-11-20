@@ -18,8 +18,8 @@ import org.springframework.boot.env.YamlPropertySourceLoader;
 public class ForgeItDefaultsEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     private static final String[] DEFAULT_YAML_RESOURCES = {
-        "forge-it-core-default.yml",
-        "forge-it-wiremock-default.yml"
+            "forge-it-core-default.yml",
+            "forge-it-wiremock-default.yml"
     };
 
     private final YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
