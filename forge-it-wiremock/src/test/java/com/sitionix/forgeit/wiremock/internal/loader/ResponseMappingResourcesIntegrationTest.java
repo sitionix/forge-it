@@ -55,7 +55,7 @@ class ResponseMappingResourcesIntegrationTest {
         objectMapper.setAccessible(true);
         objectMapper.set(instance, new ObjectMapper());
 
-        return (ResourcesLoader) ResourcesLoader.class.cast(instance);
+        return ResourcesLoader.class.cast(instance);
     }
 
     private static WireMockProperties loadDefaultWireMockProperties() throws IOException {
@@ -67,7 +67,7 @@ class ResponseMappingResourcesIntegrationTest {
 
         try {
             return new Binder(ConfigurationPropertySources.from(sources))
-                    .bind(WireMockProperties.PROPERTY_PREFIX, Bindable.of(WireMockProperties.class))
+                    .bind("forge-it.modules.wiremock", Bindable.of(WireMockProperties.class))
                     .orElseThrow(() -> new IllegalStateException("WireMock defaults are missing"));
         } catch (BindException ex) {
             throw new IllegalStateException("Failed to bind WireMock default properties", ex);
