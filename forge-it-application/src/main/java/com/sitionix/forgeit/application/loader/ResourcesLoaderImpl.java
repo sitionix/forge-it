@@ -2,7 +2,6 @@ package com.sitionix.forgeit.application.loader;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +14,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Setter
-    private String resourcePath;
 
     @Override
     public <T> T getFromFile(String fileName, Class<T> tClass) {
@@ -39,6 +35,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     }
 
     private String loadResource(final String fileName) {
-        return load(this.resourcePath, fileName);
+        return load(fileName);
     }
 }
