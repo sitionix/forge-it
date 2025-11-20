@@ -1,23 +1,23 @@
-package com.sitionix.forgeit.application.loader;
+package com.sitionix.forgeit.wiremock.internal.loader;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-import static com.sitionix.forgeit.application.loader.JsonLoader.load;
+import static com.sitionix.forgeit.wiremock.internal.loader.JsonLoader.load;
 
 @Component
 public class ResourcesLoaderImpl implements ResourcesLoader {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    @Setter
-    private String resourcePath;
+    @Autowired
+    public ResourcesLoaderImpl(final ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public <T> T getFromFile(String fileName, Class<T> tClass) {
@@ -39,6 +39,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     }
 
     private String loadResource(final String fileName) {
-        return load(this.resourcePath, fileName);
+        return load(fileName);
     }
 }
