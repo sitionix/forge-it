@@ -34,7 +34,7 @@
             <version>${javapoet.version}</version>
         </dependency>
 
-        <!-- Аннотація @AutoService (compile-time only) -->
+        <!-- @AutoService annotation (compile-time only) -->
         <dependency>
             <groupId>com.google.auto.service</groupId>
             <artifactId>auto-service-annotations</artifactId>

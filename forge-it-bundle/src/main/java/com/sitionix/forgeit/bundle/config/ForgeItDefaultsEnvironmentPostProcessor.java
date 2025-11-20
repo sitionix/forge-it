@@ -40,8 +40,7 @@ public class ForgeItDefaultsEnvironmentPostProcessor implements EnvironmentPostP
             List<PropertySource<?>> propertySources = loader.load(resourcePath, resource);
             propertySources.forEach(ps -> environment.getPropertySources().addLast(ps));
         } catch (IOException ex) {
-            throw new IllegalStateException("Не вдалося завантажити ForgeIT дефолтний файл " + resourcePath, ex);
-        }
+            throw new IllegalStateException("Failed to load ForgeIT default file " + resourcePath, ex);
     }
 
     @Override
