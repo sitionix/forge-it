@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sitionix.forgeit</groupId>
   <artifactId>forgeit</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>ForgeIT Bundle</name>
   <description>Single distributable artifact containing all ForgeIT modules.</description>
   <url>https://spring.io/projects/spring-boot/forgeit-parent/forgeit</url>
@@ -39,19 +39,19 @@
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-core</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-wiremock</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-annotation-processor</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
