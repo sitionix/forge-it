@@ -9,6 +9,7 @@ import java.lang.annotation.Target;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.context.annotation.Import;
 
 @Documented
 @Target(ElementType.TYPE)
@@ -16,5 +17,6 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles(ActiveProfile.IT)
 @AutoConfigureMockMvc
+@Import(ForgeItTestAutoConfiguration.class)
 public @interface IntegrationTest {
 }
