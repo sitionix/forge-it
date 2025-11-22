@@ -1,6 +1,5 @@
 package com.sitionix.forgeit.core.internal.test;
 
-import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
@@ -35,9 +34,10 @@ public final class ForgeItTestRegistrar implements ImportBeanDefinitionRegistrar
     }
 
     private Class<?> resolveContractType(Class<?> testClass) {
+        final Class<?> forgeItType = resolveForgeItType();
         final Set<Class<?>> candidates = new LinkedHashSet<>();
         ReflectionUtils.doWithFields(testClass, field -> {
-            if (!Modifier.isStatic(field.getModifiers()) && ForgeIT.class.isAssignableFrom(field.getType())) {
+            if (!Modifier.isStatic(field.getModifiers()) && forgeItType.isAssignableFrom(field.getType())) {
                 candidates.add(field.getType());
             }
         });
@@ -52,6 +52,14 @@ public final class ForgeItTestRegistrar implements ImportBeanDefinitionRegistrar
             throw new IllegalStateException("ForgeIT contracts must be interfaces: " + contract.getName());
         }
         return contract;
+    }
+
+    private Class<?> resolveForgeItType() {
+        try {
+            return ClassUtils.forName("com.sitionix.forgeit.core.api.ForgeIT", ClassUtils.getDefaultClassLoader());
+        } catch (ClassNotFoundException ex) {
+            throw new IllegalStateException("ForgeIT type not found on classpath", ex);
+        }
     }
 
     @SuppressWarnings("unchecked")

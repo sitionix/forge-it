@@ -7,6 +7,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.List;
 
 public final class ForgeItTestInitializer implements SmartInitializingSingleton, ApplicationContextAware {
@@ -46,7 +47,7 @@ public final class ForgeItTestInitializer implements SmartInitializingSingleton,
             final Object installationContext = contextConstructor.newInstance(this.context);
 
             final Method installFeatures = installationServiceType.getMethod(
-                    "installFeatures", List.class, installationContextType);
+                    "installFeatures", Collection.class, installationContextType);
             installFeatures.invoke(installationService, this.features, installationContext);
 
             final Class<?> contractProxyFactory = classLoader.loadClass(
