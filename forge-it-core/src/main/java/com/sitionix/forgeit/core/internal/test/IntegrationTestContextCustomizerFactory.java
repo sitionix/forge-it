@@ -3,18 +3,18 @@ package com.sitionix.forgeit.core.internal.test;
 import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
-import com.sitionix.forgeit.core.test.IntegrationTest;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.util.ReflectionUtils;
-
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public final class IntegrationTestContextCustomizerFactory implements ContextCustomizerFactory {
 
@@ -23,15 +23,15 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
     @Override
     public ContextCustomizer createContextCustomizer(Class<?> testClass,
                                                      List<ContextConfigurationAttributes> configAttributes) {
-        if (!AnnotatedElementUtils.hasAnnotation(testClass, IntegrationTest.class)) {
+        final Optional<Class<?>> contractType = findContractType(testClass);
+        if (contractType.isEmpty()) {
             return null;
         }
-        final Class<?> contractType = resolveContractType(testClass);
-        final List<Class<? extends FeatureSupport>> features = List.copyOf(resolveFeatures(contractType));
-        return new ForgeIntegrationTestContextCustomizer(contractType, features);
+        final List<Class<? extends FeatureSupport>> features = List.copyOf(resolveFeatures(contractType.get()));
+        return new ForgeIntegrationTestContextCustomizer(contractType.get(), features);
     }
 
-    private Class<?> resolveContractType(Class<?> testClass) {
+    private Optional<Class<?>> findContractType(Class<?> testClass) {
         final Set<Class<?>> candidates = new LinkedHashSet<>();
         ReflectionUtils.doWithFields(testClass, field -> {
             if (!Modifier.isStatic(field.getModifiers()) && ForgeIT.class.isAssignableFrom(field.getType())) {
@@ -39,7 +39,7 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
             }
         });
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("No ForgeIT contract found on test class " + testClass.getName());
+            return Optional.empty();
         }
         if (candidates.size() > 1) {
             throw new IllegalStateException("Multiple ForgeIT contracts detected on test class " + testClass.getName());
@@ -48,7 +48,7 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         if (!contract.isInterface()) {
             throw new IllegalStateException("ForgeIT contracts must be interfaces: " + contract.getName());
         }
-        return contract;
+        return Optional.of(contract);
     }
 
     @SuppressWarnings("unchecked")
