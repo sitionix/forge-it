@@ -21,9 +21,15 @@ public final class ContractProxyFactory {
         if (beanFactory.containsSingleton(beanName)) {
             return;
         }
-        final Object proxy = Proxy.newProxyInstance(contractType.getClassLoader(),
-                new Class<?>[]{contractType}, new ContractInvocationHandler(contractType));
+        final Object proxy = createContractProxy(context, contractType);
         beanFactory.registerSingleton(beanName, proxy);
+        beanFactory.registerResolvableDependency(contractType, proxy);
+    }
+
+    private static Object createContractProxy(ConfigurableApplicationContext context, Class<?> contractType) {
+        final ClassLoader classLoader = context.getClassLoader();
+        return Proxy.newProxyInstance(classLoader, new Class<?>[]{contractType},
+                new ContractInvocationHandler(contractType));
     }
 
     private static final class ContractInvocationHandler implements InvocationHandler {
