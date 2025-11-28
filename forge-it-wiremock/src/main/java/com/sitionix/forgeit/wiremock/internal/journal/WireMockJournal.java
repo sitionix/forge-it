@@ -3,6 +3,7 @@ package com.sitionix.forgeit.wiremock.internal.journal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.wiremock.internal.domain.WireMockMappingBuilder;
+import com.sitionix.forgeit.wiremock.internal.configs.WireMockContainerManager;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,8 +16,10 @@ public class WireMockJournal {
 
     private final WireMockLoaderResources loaderResources;
     private final ObjectMapper objectMapper;
+    private final WireMockContainerManager containerManager;
 
     public <Req, Res> WireMockMappingBuilder<Req, Res> createMapping(final Endpoint<Req, Res> endpoint) {
-        return new WireMockMappingBuilder<>(endpoint, this.loaderResources, this.objectMapper);
+        return new WireMockMappingBuilder<>(endpoint, this.loaderResources, this.objectMapper,
+                this.containerManager.getClient());
     }
 }
