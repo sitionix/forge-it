@@ -50,13 +50,8 @@ public final class ForgeItTestInitializer implements SmartInitializingSingleton,
                     "installFeatures", Collection.class, installationContextType);
             installFeatures.invoke(installationService, this.features, installationContext);
 
-            final Class<?> contractProxyFactory = classLoader.loadClass(
-                    "com.sitionix.forgeit.core.internal.proxy.ContractProxyFactory");
-            final Method registerProxy = contractProxyFactory.getMethod(
-                    "registerContractProxy", ConfigurableApplicationContext.class, Class.class);
-            registerProxy.invoke(null, this.context, this.contractType);
         } catch (Exception ex) {
-            throw new IllegalStateException("Failed to initialize ForgeIT contract proxy", ex);
+            throw new IllegalStateException("Failed to initialize ForgeIT test context", ex);
         }
     }
 }

@@ -2,7 +2,6 @@ package com.sitionix.forgeit.core.internal.test;
 
 import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstallationService;
-import com.sitionix.forgeit.core.internal.proxy.ContractProxyFactory;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextCustomizer;
@@ -27,7 +26,6 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         final FeatureInstallationService installationService =
                 new FeatureInstallationService(context.getClassLoader());
         installationService.installFeatures(this.features, new FeatureInstallationContext(context));
-        ContractProxyFactory.registerContractProxy(context, this.contractType);
     }
 
     @Override
