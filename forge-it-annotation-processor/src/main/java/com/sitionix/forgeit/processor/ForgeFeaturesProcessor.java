@@ -43,7 +43,6 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private FeatureRegistry featureRegistry;
     private FeatureContractCollector featureContractCollector;
     private GeneratedInterfaceEmitter generatedInterfaceEmitter;
-    private GeneratedApiImplEmitter generatedApiImplEmitter;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -54,7 +53,6 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         this.featureRegistry = new FeatureRegistry(processingEnv, messager, elements);
         this.featureContractCollector = new FeatureContractCollector(messager);
         this.generatedInterfaceEmitter = new GeneratedInterfaceEmitter(processingEnv, messager, GENERATED_FEATURES);
-        this.generatedApiImplEmitter = new GeneratedApiImplEmitter(processingEnv, messager);
     }
 
     @Override
@@ -111,9 +109,6 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                 this.featureContractCollector.collect(featureElement, element, this::asTypeElement);
             }
 
-            if (!hasError) {
-                this.generatedApiImplEmitter.generateImplementation(interfaceElement);
-            }
         }
 
         this.generatedInterfaceEmitter.generateInterface(this.featureContractCollector.getAggregatedSupports());
