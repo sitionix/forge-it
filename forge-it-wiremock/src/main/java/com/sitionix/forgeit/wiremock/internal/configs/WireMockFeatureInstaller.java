@@ -4,9 +4,12 @@ import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
+import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+
+import static com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal.BEAN_NAME;
 
 /**
  * Registers the WireMock infrastructure components when the feature is
@@ -57,7 +60,7 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         }
         final BeanDefinition beanDefinition = BeanDefinitionBuilder
                 .genericBeanDefinition(WireMockFacade.class)
-                .addConstructorArgReference(WireMockContainerManager.BEAN_NAME)
+                .addConstructorArgReference(BEAN_NAME)
                 .getBeanDefinition();
         registry.registerBeanDefinition(WireMockFacade.BEAN_NAME, beanDefinition);
     }
