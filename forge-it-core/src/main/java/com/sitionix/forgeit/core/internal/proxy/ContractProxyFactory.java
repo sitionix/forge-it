@@ -26,7 +26,10 @@ public final class ContractProxyFactory {
     }
 
     private static Object createContractProxy(ConfigurableApplicationContext context, Class<?> contractType) {
-        final ClassLoader classLoader = context.getClassLoader();
+        return createContractProxy(context.getClassLoader(), contractType);
+    }
+
+    public static Object createContractProxy(ClassLoader classLoader, Class<?> contractType) {
         return Proxy.newProxyInstance(classLoader, new Class<?>[]{contractType},
                 new ContractInvocationHandler(contractType));
     }

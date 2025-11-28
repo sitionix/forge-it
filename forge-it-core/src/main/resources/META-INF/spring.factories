@@ -1,2 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.sitionix.forgeit.core.autoconfigure.ForgeItAutoConfiguration
 org.springframework.test.context.ContextCustomizerFactory=\
 com.sitionix.forgeit.core.internal.test.IntegrationTestContextCustomizerFactory

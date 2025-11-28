@@ -1,24 +1,20 @@
 package com.sitionix.forgeit.core.internal.test;
 
 import com.sitionix.forgeit.core.api.ForgeIT;
-import com.sitionix.forgeit.core.annotation.ForgeFeatures;
+import com.sitionix.forgeit.core.internal.feature.ForgeFeaturesResolver;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.util.ReflectionUtils;
 
 public final class IntegrationTestContextCustomizerFactory implements ContextCustomizerFactory {
-
-    private static final String GENERATED_FEATURES_PACKAGE = "com.sitionix.forgeit.core.generated";
 
     @Override
     public ContextCustomizer createContextCustomizer(Class<?> testClass,
@@ -27,7 +23,7 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         if (contractType.isEmpty()) {
             return null;
         }
-        final List<Class<? extends FeatureSupport>> features = List.copyOf(resolveFeatures(contractType.get()));
+        final List<Class<? extends FeatureSupport>> features = ForgeFeaturesResolver.resolveFeatures(contractType.get());
         return new ForgeIntegrationTestContextCustomizer(contractType.get(), features);
     }
 
@@ -49,35 +45,5 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
             throw new IllegalStateException("ForgeIT contracts must be interfaces: " + contract.getName());
         }
         return Optional.of(contract);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Set<Class<? extends FeatureSupport>> resolveFeatures(Class<?> contractType) {
-        final Set<Class<? extends FeatureSupport>> features = new LinkedHashSet<>();
-        collectFeatures(contractType, features, new LinkedHashSet<>());
-        return features;
-    }
-
-    private void collectFeatures(Class<?> type,
-                                 Set<Class<? extends FeatureSupport>> features,
-                                 Set<Class<?>> visited) {
-        if (!visited.add(type)) {
-            return;
-        }
-        final ForgeFeatures annotation = AnnotatedElementUtils.findMergedAnnotation(type, ForgeFeatures.class);
-        if (annotation != null) {
-            for (Class<? extends FeatureSupport> feature : annotation.value()) {
-                features.add(feature);
-            }
-        }
-        for (Class<?> parent : type.getInterfaces()) {
-            if (FeatureSupport.class.isAssignableFrom(parent)
-                    && parent != FeatureSupport.class
-                    && !GENERATED_FEATURES_PACKAGE.equals(parent.getPackageName())
-                    && Arrays.asList(parent.getInterfaces()).contains(FeatureSupport.class)) {
-                features.add((Class<? extends FeatureSupport>) parent);
-            }
-            collectFeatures(parent, features, visited);
-        }
     }
 }
