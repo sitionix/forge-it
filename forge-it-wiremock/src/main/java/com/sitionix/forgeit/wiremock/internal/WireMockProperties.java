@@ -23,6 +23,8 @@ public final class WireMockProperties {
     public static class Mapping {
         private String request;
         private String response;
+        private String defaultRequest;
+        private String defaultResponse;
     }
 
     public enum Mode {

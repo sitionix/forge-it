@@ -4,25 +4,17 @@ import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge.WireMockDele
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.stereotype.Service;
 
 import java.net.URI;
 
 @RequiredArgsConstructor
-public final class WireMockFacade implements InitializingBean, DisposableBean, WireMockDelegate {
+@Service(value = WireMockFacade.BEAN_NAME)
+public final class WireMockFacade implements WireMockDelegate {
 
     static final String BEAN_NAME = "forgeItWireMockFacade";
 
     private final WireMockContainerManager containerManager;
-
-    @Override
-    public void afterPropertiesSet() {
-        WireMockSupportBridge.setDelegate(this);
-    }
-
-    @Override
-    public void destroy() {
-        WireMockSupportBridge.clearDelegate();
-    }
 
     @Override
     public String wiremock() {

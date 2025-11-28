@@ -6,6 +6,8 @@ forge-it:
       host: localhost
       port: 8089
       mapping:
-        request: /mappings/requests
-        response: /mappings/responses
+        request: /mappings/request
+        response: /mappings/response
+        default-request: /default/request
+        default-response: /default/response
 
