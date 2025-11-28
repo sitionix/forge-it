@@ -5,9 +5,11 @@ import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
+import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.RootBeanDefinition;
 
 import static com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal.BEAN_NAME;
 
@@ -29,6 +31,7 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         }
         registerProperties(context, registry);
         registerContainerManager(context, registry);
+        registerLoaderResources(registry);
         registerJournal(registry);
         registerFacade(registry);
     }
@@ -53,6 +56,17 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
                 .addConstructorArgReference(WireMockProperties.BEAN_NAME)
                 .getBeanDefinition();
         registry.registerBeanDefinition(WireMockContainerManager.BEAN_NAME, beanDefinition);
+    }
+
+    private void registerLoaderResources(BeanDefinitionRegistry registry) {
+        if (registry.containsBeanDefinition(WireMockLoaderResources.class.getName())) {
+            return;
+        }
+        final RootBeanDefinition beanDefinition = BeanDefinitionBuilder
+                .rootBeanDefinition(WireMockLoaderResources.class)
+                .getBeanDefinition();
+        beanDefinition.setAutowireMode(RootBeanDefinition.AUTOWIRE_CONSTRUCTOR);
+        registry.registerBeanDefinition(WireMockLoaderResources.class.getName(), beanDefinition);
     }
 
     private void registerJournal(BeanDefinitionRegistry registry) {
