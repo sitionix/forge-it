@@ -43,6 +43,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
     private FeatureRegistry featureRegistry;
     private FeatureContractCollector featureContractCollector;
     private GeneratedInterfaceEmitter generatedInterfaceEmitter;
+    private GeneratedApiImplEmitter generatedApiImplEmitter;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -53,6 +54,7 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
         this.featureRegistry = new FeatureRegistry(processingEnv, messager, elements);
         this.featureContractCollector = new FeatureContractCollector(messager);
         this.generatedInterfaceEmitter = new GeneratedInterfaceEmitter(processingEnv, messager, GENERATED_FEATURES);
+        this.generatedApiImplEmitter = new GeneratedApiImplEmitter(processingEnv, messager);
     }
 
     @Override
@@ -84,26 +86,33 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
                 this.messager.printMessage(Kind.ERROR, "@ForgeFeatures must declare at least one feature", element);
                 continue;
             }
-
+            boolean hasError = false;
             for (final TypeMirror featureMirror : featureTypes) {
                 final TypeElement featureElement = asTypeElement(featureMirror);
                 if (featureElement == null) {
                     this.messager.printMessage(Kind.ERROR, "Unable to resolve feature type", element);
+                    hasError = true;
                     continue;
                 }
 
                 if (!isFeatureSupport(featureElement)) {
                     this.messager.printMessage(Kind.ERROR,
                             "Each entry in @ForgeFeatures must extend FeatureSupport: " + featureElement.getQualifiedName(), element);
+                    hasError = true;
                     continue;
                 }
                 if (!this.featureRegistry.isWhitelisted(featureElement)) {
                     this.messager.printMessage(Kind.ERROR,
                             "Feature is not registered. Add it to META-INF/forge-it/features: " + featureElement.getQualifiedName(), element);
+                    hasError = true;
                     continue;
                 }
 
                 this.featureContractCollector.collect(featureElement, element, this::asTypeElement);
+            }
+
+            if (!hasError) {
+                this.generatedApiImplEmitter.generateImplementation(interfaceElement);
             }
         }
 
