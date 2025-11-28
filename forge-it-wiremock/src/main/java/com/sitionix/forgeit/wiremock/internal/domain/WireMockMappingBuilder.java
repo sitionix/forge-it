@@ -1,5 +1,10 @@
 package com.sitionix.forgeit.wiremock.internal.domain;
 
+import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
+import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
@@ -17,6 +22,7 @@ public class WireMockMappingBuilder<Req, Res> {
     private final Endpoint<Req, Res> endpoint;
     private final WireMockLoaderResources loaderResources;
     private final ObjectMapper objectMapper;
+    private final WireMock wireMockClient;
 
     private HttpMethod method;
     private String requestJsonName;
@@ -38,10 +44,12 @@ public class WireMockMappingBuilder<Req, Res> {
 
     public WireMockMappingBuilder(final Endpoint<Req, Res> endpoint,
             final WireMockLoaderResources loaderResources,
-            final ObjectMapper objectMapper) {
+            final ObjectMapper objectMapper,
+            final WireMock wireMockClient) {
         this.endpoint = endpoint;
         this.loaderResources = loaderResources;
         this.objectMapper = objectMapper;
+        this.wireMockClient = wireMockClient;
         this.defaultContext = new DefaultContext();
         this.defaultMutationContext = new DefaultMutationContext<>();
     }
@@ -237,6 +245,82 @@ public class WireMockMappingBuilder<Req, Res> {
                 WireMockMappingBuilder.this.defaultResponseMutator = mutator;
             }
             return this;
+        }
+    }
+
+    public final class RequestBuilder {
+
+        public RequestBuilder() {
+        }
+
+        public com.github.tomakehurst.wiremock.stubbing.StubMapping build() {
+            final MappingBuilder mappingBuilder = this.buildMappingBuilder();
+            WireMockMappingBuilder.this.wireMockClient.register(mappingBuilder);
+            return mappingBuilder.build();
+        }
+
+        private MappingBuilder buildMappingBuilder() {
+            final RequestMethod requestMethod = RequestMethod.fromString(requireMethod());
+            final MappingBuilder mappingBuilder = WireMock.request(requestMethod, requireUrlPattern());
+
+            if (WireMockMappingBuilder.this.requestJson != null) {
+                mappingBuilder.withRequestBody(WireMock.equalToJson(WireMockMappingBuilder.this.requestJson));
+            }
+
+            if (WireMockMappingBuilder.this.queryParameters != null) {
+                WireMockMappingBuilder.this.queryParameters.forEach((key, value) ->
+                        mappingBuilder.withQueryParam(key, WireMock.equalTo(value)));
+            }
+
+            if (WireMockMappingBuilder.this.pathParameters != null) {
+                WireMockMappingBuilder.this.pathParameters.forEach((key, value) ->
+                        mappingBuilder.withPathParam(key, WireMock.equalTo(String.valueOf(value))));
+            }
+
+            mappingBuilder.willReturn(buildResponseDefinition());
+
+            return mappingBuilder;
+        }
+
+        private ResponseDefinitionBuilder buildResponseDefinition() {
+            final ResponseDefinitionBuilder responseBuilder = WireMock.aResponse();
+
+            if (WireMockMappingBuilder.this.responseStatus != null) {
+                responseBuilder.withStatus(WireMockMappingBuilder.this.responseStatus.value());
+            }
+
+            if (WireMockMappingBuilder.this.responseJson != null) {
+                responseBuilder.withBody(WireMockMappingBuilder.this.responseJson);
+            }
+
+            if (WireMockMappingBuilder.this.responseDelayMilliseconds != null) {
+                responseBuilder.withFixedDelay(WireMockMappingBuilder.this.responseDelayMilliseconds.intValue());
+            }
+
+            return responseBuilder;
+        }
+
+        private String requireMethod() {
+            if (WireMockMappingBuilder.this.method == null) {
+                throw new IllegalStateException("HTTP method must be specified");
+            }
+            return WireMockMappingBuilder.this.method.name();
+        }
+
+        private UrlPattern requireUrlPattern() {
+            if (WireMockMappingBuilder.this.url != null) {
+                return WireMock.urlEqualTo(WireMockMappingBuilder.this.url);
+            }
+
+            if (WireMockMappingBuilder.this.urlPath != null) {
+                return WireMock.urlPathEqualTo(WireMockMappingBuilder.this.urlPath);
+            }
+
+            if (WireMockMappingBuilder.this.urlPathPattern != null) {
+                return WireMock.urlPathMatching(WireMockMappingBuilder.this.urlPathPattern);
+            }
+
+            throw new IllegalStateException("URL pattern must be specified");
         }
     }
 }
