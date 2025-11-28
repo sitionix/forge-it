@@ -1,7 +1,8 @@
 package com.sitionix.forgeit.wiremock.api;
 
 import com.sitionix.forgeit.core.marker.FeatureSupport;
-import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge;
+import com.sitionix.forgeit.wiremock.internal.configs.WireMockSupportBridge;
+import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 
 /**
  * Public contract describing WireMock capabilities exposed to ForgeIT clients.
@@ -11,7 +12,7 @@ import com.sitionix.forgeit.wiremock.internal.WireMockSupportBridge;
  */
 public interface WireMockSupport extends FeatureSupport {
 
-    default String wiremock() {
+    default WireMockJournal wiremock() {
         return WireMockSupportBridge.wiremock();
     }
 }

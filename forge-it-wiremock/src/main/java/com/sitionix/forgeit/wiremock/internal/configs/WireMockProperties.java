@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal;
+package com.sitionix.forgeit.wiremock.internal.configs;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

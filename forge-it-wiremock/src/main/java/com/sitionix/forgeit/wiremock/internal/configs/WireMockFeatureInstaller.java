@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal;
+package com.sitionix.forgeit.wiremock.internal.configs;
 
 import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;

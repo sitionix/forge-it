@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal;
+package com.sitionix.forgeit.wiremock.internal.configs;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import lombok.RequiredArgsConstructor;

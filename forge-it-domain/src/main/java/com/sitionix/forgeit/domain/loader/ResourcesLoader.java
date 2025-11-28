@@ -5,4 +5,6 @@ public interface ResourcesLoader {
     <T> T getFromFile(String fileName, Class<T> tClass);
 
     String getFromFile(String fileName);
+
+    void setBasePath(String basePath);
 }
