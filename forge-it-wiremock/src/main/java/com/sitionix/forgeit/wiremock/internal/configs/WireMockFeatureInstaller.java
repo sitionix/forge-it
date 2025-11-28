@@ -29,6 +29,7 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
         }
         registerProperties(context, registry);
         registerContainerManager(context, registry);
+        registerJournal(registry);
         registerFacade(registry);
     }
 
@@ -52,6 +53,16 @@ public final class WireMockFeatureInstaller implements FeatureInstaller {
                 .addConstructorArgReference(WireMockProperties.BEAN_NAME)
                 .getBeanDefinition();
         registry.registerBeanDefinition(WireMockContainerManager.BEAN_NAME, beanDefinition);
+    }
+
+    private void registerJournal(BeanDefinitionRegistry registry) {
+        if (registry.containsBeanDefinition(BEAN_NAME)) {
+            return;
+        }
+        final BeanDefinition beanDefinition = BeanDefinitionBuilder
+                .genericBeanDefinition(WireMockJournal.class)
+                .getBeanDefinition();
+        registry.registerBeanDefinition(BEAN_NAME, beanDefinition);
     }
 
     private void registerFacade(BeanDefinitionRegistry registry) {
