@@ -5,7 +5,7 @@ import java.io.InputStream;
 
 public class JsonLoader {
 
-    private static final String PATH_EXPECTED = "json%s";
+    private static final String PATH_EXPECTED = "forge-it%s";
 
     public static String load(final String fileName) {
         final String filePath = String.format(PATH_EXPECTED, fileName);

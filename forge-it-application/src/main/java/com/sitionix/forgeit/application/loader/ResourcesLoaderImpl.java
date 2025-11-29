@@ -42,6 +42,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     }
 
     private String loadResource(final String fileName) {
-        return load(fileName);
+        return load(this.basePath + "/" +fileName);
     }
 }
