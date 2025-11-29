@@ -117,7 +117,12 @@ public final class ForgeFeaturesProcessor extends AbstractProcessor {
             }
         }
 
-        this.generatedInterfaceEmitter.generateInterface(this.featureContractCollector.getAggregatedSupports());
+        final Set<String> aggregatedSupports = this.featureContractCollector.getAggregatedSupports();
+        if (aggregatedSupports.isEmpty()) {
+            return false;
+        }
+
+        this.generatedInterfaceEmitter.generateInterface(aggregatedSupports);
         return false;
     }
 
