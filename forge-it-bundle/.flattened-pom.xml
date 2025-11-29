@@ -39,25 +39,25 @@
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-core</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.0.3-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-wiremock</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.0.3-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-application</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.0.3-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-annotation-processor</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>0.0.3-SNAPSHOT</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
