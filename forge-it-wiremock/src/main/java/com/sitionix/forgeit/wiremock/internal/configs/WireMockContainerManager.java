@@ -17,10 +17,9 @@ import java.time.Duration;
 import java.util.Map;
 
 @RequiredArgsConstructor
-@Component(WireMockContainerManager.BEAN_NAME)
+@Component
 public final class WireMockContainerManager implements InitializingBean, DisposableBean {
 
-    static final String BEAN_NAME = "forgeItWireMockContainerManager";
     private static final String PROPERTY_SOURCE_NAME = "forgeItWireMock";
     private static final int WIREMOCK_PORT = 8080;
     private static final DockerImageName WIREMOCK_IMAGE = DockerImageName.parse("wiremock/wiremock:3.6.0");

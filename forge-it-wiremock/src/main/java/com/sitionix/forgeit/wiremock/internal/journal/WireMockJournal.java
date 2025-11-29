@@ -8,11 +8,9 @@ import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-@Service(WireMockJournal.BEAN_NAME)
+@Service
 @RequiredArgsConstructor
 public class WireMockJournal {
-
-    public static final String BEAN_NAME = "forgeItWireMockJournal";
 
     private final WireMockLoaderResources loaderResources;
     private final ObjectMapper objectMapper;

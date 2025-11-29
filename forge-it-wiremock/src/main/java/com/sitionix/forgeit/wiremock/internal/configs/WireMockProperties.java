@@ -9,11 +9,9 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @ConfigurationProperties(prefix = WireMockProperties.PROPERTY_PREFIX)
-@Component(WireMockProperties.BEAN_NAME)
 public final class WireMockProperties {
 
     static final String PROPERTY_PREFIX = "forge-it.modules.wiremock";
-    static final String BEAN_NAME = "forgeItWireMockProperties";
 
     private Boolean enabled;
     private String host;
