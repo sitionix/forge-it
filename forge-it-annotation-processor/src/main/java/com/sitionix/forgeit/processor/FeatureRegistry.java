@@ -35,6 +35,7 @@ final class FeatureRegistry {
     private final Set<String> allowedFeatures = new LinkedHashSet<>();
     private final Set<Path> scannedFeatureDirectories = new LinkedHashSet<>();
     private final Set<Path> scannedFeatureJars = new LinkedHashSet<>();
+    private final Set<String> implicitlyRegisteredFeatures = new LinkedHashSet<>();
 
     private boolean classpathFeaturesLoaded;
 
@@ -51,7 +52,17 @@ final class FeatureRegistry {
             return true;
         }
         loadFeatureContainer(typeElement);
-        return this.allowedFeatures.contains(qualifiedName);
+        if (this.allowedFeatures.contains(qualifiedName)) {
+            return true;
+        }
+
+        if (this.implicitlyRegisteredFeatures.add(qualifiedName)) {
+            this.allowedFeatures.add(qualifiedName);
+            this.messager.printMessage(Diagnostic.Kind.WARNING,
+                    "ForgeIT feature '" + qualifiedName
+                            + "' has no META-INF/forge-it/features declaration; registering implicitly.");
+        }
+        return true;
     }
 
     private void ensureClasspathFeaturesLoaded() {
