@@ -15,6 +15,8 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private String basePath;
+
     @Override
     public <T> T getFromFile(String fileName, Class<T> tClass) {
         final String file = this.loadResource(fileName);
@@ -24,6 +26,11 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     @Override
     public String getFromFile(String fileName) {
         return this.loadResource(fileName);
+    }
+
+    @Override
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
     }
 
     private <T> T getResourceAsObject(final String jsonResource, final Class<T> tClass) {

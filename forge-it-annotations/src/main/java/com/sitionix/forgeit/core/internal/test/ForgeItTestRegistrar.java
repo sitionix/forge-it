@@ -13,7 +13,6 @@ import org.springframework.util.ReflectionUtils;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 public final class ForgeItTestRegistrar implements ImportBeanDefinitionRegistrar {
@@ -25,11 +24,9 @@ public final class ForgeItTestRegistrar implements ImportBeanDefinitionRegistrar
         final Class<?> testClass = ClassUtils.resolveClassName(
                 importingClassMetadata.getClassName(), ClassUtils.getDefaultClassLoader());
         final Class<?> contractType = resolveContractType(testClass);
-        final List<Class<? extends FeatureSupport>> features = List.copyOf(resolveFeatures(contractType));
+        resolveFeatures(contractType);
 
         final RootBeanDefinition initializerDefinition = new RootBeanDefinition(ForgeItTestInitializer.class);
-        initializerDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, contractType);
-        initializerDefinition.getConstructorArgumentValues().addIndexedArgumentValue(1, features);
         registry.registerBeanDefinition("forgeItTestInitializer", initializerDefinition);
     }
 

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.sitionix.forgeit</groupId>
         <artifactId>forgeit-parent</artifactId>
-        <version>0.5.0-SNAPSHOT</version>
+        <version>5.1.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -68,6 +68,16 @@
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-test</artifactId>
           <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
         </dependency>
     </dependencies>
 

@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal;
+package com.sitionix.forgeit.wiremock.internal.configs;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
+import org.springframework.stereotype.Component;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -16,9 +17,9 @@ import java.time.Duration;
 import java.util.Map;
 
 @RequiredArgsConstructor
+@Component
 public final class WireMockContainerManager implements InitializingBean, DisposableBean {
 
-    static final String BEAN_NAME = "forgeItWireMockContainerManager";
     private static final String PROPERTY_SOURCE_NAME = "forgeItWireMock";
     private static final int WIREMOCK_PORT = 8080;
     private static final DockerImageName WIREMOCK_IMAGE = DockerImageName.parse("wiremock/wiremock:3.6.0");
