@@ -1,6 +1,8 @@
 package com.sitionix.forgeit.wiremock.internal;
 
 import com.sitionix.forgeit.testing.MockExtension;
+import com.sitionix.forgeit.wiremock.internal.configs.WireMockContainerManager;
+import com.sitionix.forgeit.wiremock.internal.configs.WireMockProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 
