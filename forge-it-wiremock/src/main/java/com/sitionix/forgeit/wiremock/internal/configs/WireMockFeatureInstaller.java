@@ -3,12 +3,12 @@ package com.sitionix.forgeit.wiremock.internal.configs;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
-import org.springframework.beans.factory.support.AnnotatedBeanDefinitionReader;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.AnnotatedBeanDefinitionReader;
 
 /**
  * Registers the WireMock feature infrastructure into the test application context.
