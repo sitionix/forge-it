@@ -1,4 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
 com.sitionix.forgeit.wiremock.config.WireMockDefaultsEnvironmentPostProcessor
-com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
-com.sitionix.forgeit.wiremock.internal.configs.WireMockFeatureInstaller

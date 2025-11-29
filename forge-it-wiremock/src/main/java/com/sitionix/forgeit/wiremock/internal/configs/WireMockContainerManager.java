@@ -7,6 +7,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
+import org.springframework.stereotype.Component;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -16,6 +17,7 @@ import java.time.Duration;
 import java.util.Map;
 
 @RequiredArgsConstructor
+@Component(WireMockContainerManager.BEAN_NAME)
 public final class WireMockContainerManager implements InitializingBean, DisposableBean {
 
     static final String BEAN_NAME = "forgeItWireMockContainerManager";
