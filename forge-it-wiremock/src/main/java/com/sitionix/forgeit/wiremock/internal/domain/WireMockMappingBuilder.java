@@ -3,7 +3,6 @@ package com.sitionix.forgeit.wiremock.internal.domain;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -260,7 +259,7 @@ public class WireMockMappingBuilder<Req, Res> {
         }
 
         private MappingBuilder buildMappingBuilder() {
-            final RequestMethod requestMethod = RequestMethod.fromString(requireMethod());
+            final String requestMethod = requireMethod();
             final MappingBuilder mappingBuilder = WireMock.request(requestMethod, requireUrlPattern());
 
             if (WireMockMappingBuilder.this.requestJson != null) {
