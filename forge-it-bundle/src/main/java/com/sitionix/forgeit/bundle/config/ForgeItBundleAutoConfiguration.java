@@ -10,6 +10,6 @@ import org.springframework.context.annotation.ComponentScan;
  * component scanning.
  */
 @AutoConfiguration
-@ComponentScan(basePackages = "com.sitionix.forgeit.application")
+@ComponentScan(basePackages = "com.sitionix.forgeit")
 public class ForgeItBundleAutoConfiguration {
 }
