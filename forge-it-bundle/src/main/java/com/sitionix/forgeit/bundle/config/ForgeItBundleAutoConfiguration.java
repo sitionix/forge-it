@@ -1,7 +1,7 @@
 package com.sitionix.forgeit.bundle.config;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Auto-configuration that exposes ForgeIT application-level components when the bundle
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
  * from concrete implementations while ensuring Spring can discover them through
  * component scanning.
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
 @ComponentScan(basePackages = "com.sitionix.forgeit.application")
 public class ForgeItBundleAutoConfiguration {
 }

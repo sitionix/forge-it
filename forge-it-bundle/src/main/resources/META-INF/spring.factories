@@ -1,2 +1,2 @@
-org.springframework.boot.env.EnvironmentPostProcessor=\
-com.sitionix.forgeit.bundle.config.ForgeItDefaultsEnvironmentPostProcessor
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.sitionix.forgeit.bundle.config.ForgeItBundleAutoConfiguration
