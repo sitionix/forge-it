@@ -26,6 +26,7 @@
         <module>forge-it-annotation-processor</module>
         <module>forge-it-core</module>
         <module>forge-it-bundle</module>
+        <module>forge-it-consumer-it</module>
     </modules>
 
     <properties>
