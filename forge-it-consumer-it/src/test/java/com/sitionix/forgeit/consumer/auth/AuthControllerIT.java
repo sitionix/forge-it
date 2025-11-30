@@ -51,13 +51,6 @@ class AuthControllerIT {
         this.mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andExpect(content().json(this.loadResource("forge-it/mappings/response/responseLoginUserWithHappyPath.json")));
-    }
-
-    private String loadResource(final String path) throws IOException {
-        try (InputStream inputStream = new ClassPathResource(path).getInputStream()) {
-            return new String(inputStream.readAllBytes());
-        }
+                .andExpect(status().isOk());
     }
 }

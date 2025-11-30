@@ -61,8 +61,7 @@ class WireMockMappingBuilderTests extends MockExtension {
                 .responseBody("response.json")
                 .responseStatus(HttpStatus.ACCEPTED)
                 .plainUrl()
-                .create()
-                .build();
+                .create();
 
         final ArgumentCaptor<MappingBuilder> mappingCaptor = ArgumentCaptor.forClass(MappingBuilder.class);
         verify(this.wireMockClient).register(mappingCaptor.capture());

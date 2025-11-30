@@ -9,15 +9,18 @@ import org.springframework.web.client.RestTemplate;
 public class AuthClient {
 
     private final RestTemplate restTemplate;
-    private final String externalBaseUrl;
+    private final String baseUrl;
 
-    public AuthClient(final RestTemplate restTemplate,
-                      @Value("${auth.external.base-url:http://localhost:8089}") final String externalBaseUrl) {
+    public AuthClient(
+            RestTemplate restTemplate,
+            @Value("${forgeit.wiremock.host}") String host,
+            @Value("${forgeit.wiremock.port}") int port
+    ) {
         this.restTemplate = restTemplate;
-        this.externalBaseUrl = externalBaseUrl;
+        this.baseUrl = "http://" + host + ":" + port;
     }
 
     public ResponseEntity<LoginResponse> login(final LoginRequest request) {
-        return this.restTemplate.postForEntity(this.externalBaseUrl + "/external/auth/login", request, LoginResponse.class);
+        return this.restTemplate.postForEntity(this.baseUrl + "/external/auth/login", request, LoginResponse.class);
     }
 }

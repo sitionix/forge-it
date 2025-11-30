@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
@@ -13,7 +14,9 @@ import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.Getter;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 
 @Getter
 public class WireMockMappingBuilder<Req, Res> {
@@ -172,6 +175,14 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
+    private String writeValueAsString(final Object obj) {
+        try {
+            return this.objectMapper.writeValueAsString(obj);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize object to JSON", e);
+        }
+    }
+
     public WireMockMappingBuilder<Req, Res> delayForResponse(final long milliseconds) {
         this.responseDelayMilliseconds = milliseconds;
         return this;
@@ -195,16 +206,77 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public RequestBuilder create() {
-        return new RequestBuilder();
+    public StubMapping create() {
+        final MappingBuilder mappingBuilder = this.buildMappingBuilder();
+        final StubMapping stubMapping = mappingBuilder.build();
+        this.wireMockClient.register(stubMapping);
+        return stubMapping;
     }
 
-    private String writeValueAsString(final Object object) {
-        try {
-            return this.objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to convert object to json", e);
+    private MappingBuilder buildMappingBuilder() {
+        final String requestMethod = requireMethod();
+        final MappingBuilder mappingBuilder = WireMock.request(requestMethod, requireUrlPattern());
+
+        if (WireMockMappingBuilder.this.requestJson != null) {
+            mappingBuilder.withRequestBody(WireMock.equalToJson(WireMockMappingBuilder.this.requestJson));
         }
+
+        if (WireMockMappingBuilder.this.queryParameters != null) {
+            WireMockMappingBuilder.this.queryParameters.forEach((key, value) ->
+                    mappingBuilder.withQueryParam(key, WireMock.equalTo(value)));
+        }
+
+        if (WireMockMappingBuilder.this.pathParameters != null) {
+            WireMockMappingBuilder.this.pathParameters.forEach((key, value) ->
+                    mappingBuilder.withPathParam(key, WireMock.equalTo(String.valueOf(value))));
+        }
+
+        mappingBuilder.willReturn(buildResponseDefinition());
+
+        return mappingBuilder;
+    }
+
+    private UrlPattern requireUrlPattern() {
+        if (WireMockMappingBuilder.this.url != null) {
+            return WireMock.urlEqualTo(WireMockMappingBuilder.this.url);
+        }
+
+        if (WireMockMappingBuilder.this.urlPath != null) {
+            return WireMock.urlPathEqualTo(WireMockMappingBuilder.this.urlPath);
+        }
+
+        if (WireMockMappingBuilder.this.urlPathPattern != null) {
+            return WireMock.urlPathMatching(WireMockMappingBuilder.this.urlPathPattern);
+        }
+
+        throw new IllegalStateException("URL pattern must be specified");
+    }
+
+    private String requireMethod() {
+        if (WireMockMappingBuilder.this.method == null) {
+            throw new IllegalStateException("HTTP method must be specified");
+        }
+        return WireMockMappingBuilder.this.method.name();
+    }
+
+    private ResponseDefinitionBuilder buildResponseDefinition() {
+        final ResponseDefinitionBuilder responseBuilder = WireMock.aResponse();
+
+        if (WireMockMappingBuilder.this.responseStatus != null) {
+            responseBuilder.withStatus(WireMockMappingBuilder.this.responseStatus.value());
+        }
+
+        if (this.responseJson != null) {
+            responseBuilder
+                    .withBody(this.responseJson)
+                    .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        }
+
+        if (WireMockMappingBuilder.this.responseDelayMilliseconds != null) {
+            responseBuilder.withFixedDelay(WireMockMappingBuilder.this.responseDelayMilliseconds.intValue());
+        }
+
+        return responseBuilder;
     }
 
     public final class DefaultContext {
@@ -244,82 +316,6 @@ public class WireMockMappingBuilder<Req, Res> {
                 WireMockMappingBuilder.this.defaultResponseMutator = mutator;
             }
             return this;
-        }
-    }
-
-    public final class RequestBuilder {
-
-        public RequestBuilder() {
-        }
-
-        public com.github.tomakehurst.wiremock.stubbing.StubMapping build() {
-            final MappingBuilder mappingBuilder = this.buildMappingBuilder();
-            WireMockMappingBuilder.this.wireMockClient.register(mappingBuilder);
-            return mappingBuilder.build();
-        }
-
-        private MappingBuilder buildMappingBuilder() {
-            final String requestMethod = requireMethod();
-            final MappingBuilder mappingBuilder = WireMock.request(requestMethod, requireUrlPattern());
-
-            if (WireMockMappingBuilder.this.requestJson != null) {
-                mappingBuilder.withRequestBody(WireMock.equalToJson(WireMockMappingBuilder.this.requestJson));
-            }
-
-            if (WireMockMappingBuilder.this.queryParameters != null) {
-                WireMockMappingBuilder.this.queryParameters.forEach((key, value) ->
-                        mappingBuilder.withQueryParam(key, WireMock.equalTo(value)));
-            }
-
-            if (WireMockMappingBuilder.this.pathParameters != null) {
-                WireMockMappingBuilder.this.pathParameters.forEach((key, value) ->
-                        mappingBuilder.withPathParam(key, WireMock.equalTo(String.valueOf(value))));
-            }
-
-            mappingBuilder.willReturn(buildResponseDefinition());
-
-            return mappingBuilder;
-        }
-
-        private ResponseDefinitionBuilder buildResponseDefinition() {
-            final ResponseDefinitionBuilder responseBuilder = WireMock.aResponse();
-
-            if (WireMockMappingBuilder.this.responseStatus != null) {
-                responseBuilder.withStatus(WireMockMappingBuilder.this.responseStatus.value());
-            }
-
-            if (WireMockMappingBuilder.this.responseJson != null) {
-                responseBuilder.withBody(WireMockMappingBuilder.this.responseJson);
-            }
-
-            if (WireMockMappingBuilder.this.responseDelayMilliseconds != null) {
-                responseBuilder.withFixedDelay(WireMockMappingBuilder.this.responseDelayMilliseconds.intValue());
-            }
-
-            return responseBuilder;
-        }
-
-        private String requireMethod() {
-            if (WireMockMappingBuilder.this.method == null) {
-                throw new IllegalStateException("HTTP method must be specified");
-            }
-            return WireMockMappingBuilder.this.method.name();
-        }
-
-        private UrlPattern requireUrlPattern() {
-            if (WireMockMappingBuilder.this.url != null) {
-                return WireMock.urlEqualTo(WireMockMappingBuilder.this.url);
-            }
-
-            if (WireMockMappingBuilder.this.urlPath != null) {
-                return WireMock.urlPathEqualTo(WireMockMappingBuilder.this.urlPath);
-            }
-
-            if (WireMockMappingBuilder.this.urlPathPattern != null) {
-                return WireMock.urlPathMatching(WireMockMappingBuilder.this.urlPathPattern);
-            }
-
-            throw new IllegalStateException("URL pattern must be specified");
         }
     }
 }
