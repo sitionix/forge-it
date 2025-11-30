@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -44,16 +45,20 @@ public class WireMockMappingBuilder<Req, Res> {
     private final DefaultContext defaultContext;
     private final DefaultMutationContext<Req, Res> defaultMutationContext;
 
+    private final WireMockJournal wireMockJournal;
+
     public WireMockMappingBuilder(final Endpoint<Req, Res> endpoint,
-            final WireMockLoaderResources loaderResources,
-            final ObjectMapper objectMapper,
-            final WireMock wireMockClient) {
+                                  final WireMockLoaderResources loaderResources,
+                                  final ObjectMapper objectMapper,
+                                  final WireMock wireMockClient,
+                                  final WireMockJournal wireMockJournal) {
         this.endpoint = endpoint;
         this.loaderResources = loaderResources;
         this.objectMapper = objectMapper;
         this.wireMockClient = wireMockClient;
         this.defaultContext = new DefaultContext();
         this.defaultMutationContext = new DefaultMutationContext<>();
+        this.wireMockJournal = wireMockJournal;
     }
 
     public WireMockMappingBuilder<Req, Res> matchesJson(final String requestFileName) {
@@ -97,7 +102,7 @@ public class WireMockMappingBuilder<Req, Res> {
 
     public WireMockMappingBuilder<Req, Res> plainUrl() {
         this.method = this.endpoint.getMethod();
-        this.url = this.endpoint.getUrl();
+        this.url = this.endpoint.getUrlBuilder().getUrl();
         this.urlPath = null;
         this.urlPathPattern = null;
         return this;
@@ -106,7 +111,7 @@ public class WireMockMappingBuilder<Req, Res> {
     public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, String> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
-            this.url = this.endpoint.getUrl();
+            this.url = this.endpoint.getUrlBuilder().getUrl();
             this.queryParameters = parameters;
         }
         return this;
@@ -115,7 +120,7 @@ public class WireMockMappingBuilder<Req, Res> {
     public WireMockMappingBuilder<Req, Res> path(final Map<String, String> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
-            this.urlPath = this.endpoint.getUrl();
+            this.urlPath = this.endpoint.getUrlBuilder().getUrl();
             this.queryParameters = parameters;
         }
         return this;
@@ -125,7 +130,7 @@ public class WireMockMappingBuilder<Req, Res> {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
             this.pathParameters = parameters;
-            this.urlPathPattern = this.endpoint.getUrl();
+            this.urlPathPattern = this.endpoint.getUrlBuilder().getUrl();
         }
         return this;
     }
@@ -196,7 +201,7 @@ public class WireMockMappingBuilder<Req, Res> {
         if (mutator != null) {
             mutator.accept(this.defaultMutationContext);
         }
-        return new RequestBuilder<Req, Res>();
+        return this.create();
     }
 
     public WireMockMappingBuilder<Req, Res> applyDefault(final Consumer<DefaultContext> consumer) {
@@ -206,13 +211,14 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public StubMapping create() {
+    public RequestBuilder<Req, Res> create() {
         final MappingBuilder mappingBuilder = this.buildMappingBuilder();
         final StubMapping stubMapping = mappingBuilder.build();
         this.wireMockClient.register(stubMapping);
 
-        RequestBuilder<Req, Res> requestBuilder =
-        return stubMapping;
+        return this.wireMockJournal.check(this.endpoint)
+                .id(stubMapping.getId())
+                .json(this.requestJson);
     }
 
     private MappingBuilder buildMappingBuilder() {

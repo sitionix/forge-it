@@ -1,14 +1,18 @@
 package com.sitionix.forgeit.wiremock.internal.domain;
 
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
+import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+
+import static java.util.Objects.nonNull;
 
 public class RequestBuilder<Req, Res> {
 
@@ -42,9 +46,52 @@ public class RequestBuilder<Req, Res> {
         return this;
     }
 
-    public RequestBuilder<Req, Res> pathWithParameters(Map<String, Object> parameters) {
-
+    public RequestBuilder<Req, Res> pathWithParameters(final Map<String, Object> parameters) {
+        if (nonNull(parameters)) {
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::resolve);
+        }
         return this;
     }
 
+    public RequestBuilder<Req, Res> jsonName(final String jsonName) {
+        if (nonNull(jsonName)) {
+            this.jsonValue = this.loaderResources.mappingRequest().getFromFile(jsonName);
+        }
+        return this;
+    }
+
+    public RequestBuilder<Req, Res> json(final String jsonValue) {
+        if (nonNull(jsonValue)) {
+            this.jsonValue = jsonValue;
+        }
+        return this;
+    }
+
+    public RequestBuilder<Req, Res> ignoringFields(final String... ignoringFields) {
+        if (nonNull(ignoringFields)) {
+            Collections.addAll(this.ignoringFields, ignoringFields);
+        }
+        return this;
+    }
+
+    public RequestBuilder<Req, Res> id(final UUID id) {
+        if (nonNull(id)) {
+            this.id = id;
+        }
+        return this;
+    }
+
+    public WireMockCheck<Req, Res> build() {
+        return new WireMockCheck<>(
+                this.endpoint,
+                this.jsonValue,
+                this.atLeastTimes,
+                this.ignoringFields,
+                this.id
+        );
+    }
+
+    public void verify() {
+        this.verifier.accept(this.build());
+    }
 }

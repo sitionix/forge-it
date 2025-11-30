@@ -4,6 +4,7 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.util.Timeout;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -16,7 +17,8 @@ import java.util.List;
 public class WireMockAdminConfig {
 
     @Bean
-    public RestClient wireMockAdminClient(final WireMockProperties properties) {
+    public RestClient wireMockAdminClient(@Value("${forgeit.wiremock.host}") String host,
+                                          @Value("${forgeit.wiremock.port}") int port) {
         final RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(Timeout.ofSeconds(10))
                 .setResponseTimeout(Timeout.ofSeconds(10))
@@ -35,7 +37,7 @@ public class WireMockAdminConfig {
 
         return RestClient.builder()
                 .requestFactory(factory)
-                .baseUrl("http://" + properties.getHost() + ":" + properties.getPort() + "/__admin")
+                .baseUrl("http://" + host + ":" + port + "/__admin")
                 .defaultHeaders(h -> {
                     h.setContentType(MediaType.APPLICATION_JSON);
                     h.setAccept(List.of(MediaType.APPLICATION_JSON));
