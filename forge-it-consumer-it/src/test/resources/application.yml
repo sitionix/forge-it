@@ -1,0 +1,3 @@
+auth:
+  external:
+    base-url: http://localhost:8089
