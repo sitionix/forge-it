@@ -30,7 +30,7 @@ public class WireMockJournalClient {
 
     public void reset() {
         this.restClient.post()
-                .uri("/requests/reset")
+                .uri("/reset")
                 .retrieve()
                 .toBodilessEntity();
     }
