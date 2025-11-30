@@ -50,13 +50,6 @@
                             <version>${project.version}</version>
                         </path>
                     </annotationProcessorPaths>
-                    <testAnnotationProcessorPaths>
-                        <path>
-                            <groupId>com.sitionix.forgeit</groupId>
-                            <artifactId>forge-it-annotation-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </testAnnotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
