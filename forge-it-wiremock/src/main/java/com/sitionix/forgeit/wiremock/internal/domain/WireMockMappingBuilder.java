@@ -188,15 +188,15 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public RequestBuilder createDefault() {
+    public RequestBuilder<Req, Res> createDefault() {
         return this.createDefault(null);
     }
 
-    public RequestBuilder createDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
+    public RequestBuilder<Req, Res> createDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
         if (mutator != null) {
             mutator.accept(this.defaultMutationContext);
         }
-        return new RequestBuilder();
+        return new RequestBuilder<Req, Res>();
     }
 
     public WireMockMappingBuilder<Req, Res> applyDefault(final Consumer<DefaultContext> consumer) {
@@ -210,6 +210,8 @@ public class WireMockMappingBuilder<Req, Res> {
         final MappingBuilder mappingBuilder = this.buildMappingBuilder();
         final StubMapping stubMapping = mappingBuilder.build();
         this.wireMockClient.register(stubMapping);
+
+        RequestBuilder<Req, Res> requestBuilder =
         return stubMapping;
     }
 
