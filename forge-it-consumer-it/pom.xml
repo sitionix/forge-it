@@ -26,6 +26,30 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
+            Internal consumer module: explicit test dependencies provide direct access to the
+            ForgeIT public API for integration-style usage without changing the external
+            published contract (still a single forgeit bundle for real users).
+        -->
+        <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-annotations</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-core</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-wiremock</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
