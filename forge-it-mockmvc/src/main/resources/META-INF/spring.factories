@@ -1,0 +1,4 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.mockmvc.config.MockMvcDefaultsEnvironmentPostProcessor
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.mockmvc.internal.config.MockMvcFeatureInstaller

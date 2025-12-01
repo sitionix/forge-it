@@ -1,0 +1,4 @@
+forge-it:
+  modules:
+    mock-mvc:
+      message: mock-mvc-bridge

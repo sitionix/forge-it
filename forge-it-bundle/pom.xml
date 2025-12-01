@@ -30,6 +30,12 @@
         </dependency>
         <dependency>
             <groupId>${project.parent.groupId}</groupId>
+            <artifactId>forge-it-mockmvc</artifactId>
+            <version>${project.parent.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>${project.parent.groupId}</groupId>
             <artifactId>forge-it-application</artifactId>
             <version>${project.parent.version}</version>
             <optional>true</optional>
