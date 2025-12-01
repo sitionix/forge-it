@@ -1,13 +1,14 @@
 package com.sitionix.forgeit.consumer.auth;
 
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
-import com.sitionix.forgeit.domain.endpoint.EndpointDefaultsContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
-import com.sitionix.forgeit.domain.endpoint.WireMockDefault;
+import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
+import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
+import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 
-public final class AuthEndpoints {
+public final class WireMockEndpoint {
 
-    private AuthEndpoints() {
+    private WireMockEndpoint() {
     }
 
     public static Endpoint<LoginRequest, LoginResponse> login() {
@@ -25,10 +26,10 @@ public final class AuthEndpoints {
                 HttpMethod.POST,
                 LoginRequest.class,
                 LoginResponse.class,
-                context -> context.plainUrl()
-                        .matchesJson("requestLoginUserWithHappyPath.json")
-                        .responseBody("responseLoginUserWithHappyPath.json")
-                        .responseStatus(200)
+                (WiremockDefault) context -> context.plainUrl()
+                       .matchesJson("requestLoginUserWithHappyPath.json")
+                       .responseBody("responseLoginUserWithHappyPath.json")
+                       .responseStatus(200)
         );
     }
 

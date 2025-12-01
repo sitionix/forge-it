@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal.validator;
+package com.sitionix.forgeit.mockmvc.internal.validator;
 
 import lombok.experimental.UtilityClass;
 import org.springframework.test.web.servlet.ResultMatcher;

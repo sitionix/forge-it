@@ -1,5 +1,7 @@
 package com.sitionix.forgeit.domain.endpoint;
 
+import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
+import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,19 +20,22 @@ public final class Endpoint<Req, Res> {
     private HttpMethod method;
     private Class<Req> requestClass;
     private Class<Res> responseClass;
-    private WireMockDefault wireMockDefault;
+    private WiremockDefault wireMockDefault;
+    private MockmvcDefault mockmvcDefault;
+
     public static <Req, Res> Endpoint<Req, Res> createContract(
             final String urlTemplate,
             final HttpMethod method,
             final Class<Req> requestClass,
             final Class<Res> responseClass,
-            final WireMockDefault wireMockDefault
+            final WiremockDefault wireMockDefault
     ) {
         return new Endpoint<>(new UrlBuilder(urlTemplate),
                 method,
                 requestClass,
                 responseClass,
-                wireMockDefault);
+                wireMockDefault,
+                null);
     }
 
     public static <Req, Res> Endpoint<Req, Res> createContract(
@@ -39,7 +44,27 @@ public final class Endpoint<Req, Res> {
             final Class<Req> requestClass,
             final Class<Res> responseClass
     ) {
-        return new Endpoint<>(new UrlBuilder(urlTemplate), method, requestClass, responseClass, null);
+        return new Endpoint<>(new UrlBuilder(urlTemplate),
+                method,
+                requestClass,
+                responseClass,
+                null,
+                null);
+    }
+
+    public static <Req, Res> Endpoint<Req, Res> createContract(
+            final String urlTemplate,
+            final HttpMethod method,
+            final Class<Req> requestClass,
+            final Class<Res> responseClass,
+            final MockmvcDefault mockmvcDefault
+    ) {
+        return new Endpoint<>(new UrlBuilder(urlTemplate),
+                method,
+                requestClass,
+                responseClass,
+                null,
+                mockmvcDefault);
     }
 
     @RequiredArgsConstructor

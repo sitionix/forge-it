@@ -1,4 +1,8 @@
 forge-it:
   modules:
     mock-mvc:
-      message: mock-mvc-bridge
+      path:
+        request: /mockmvc/request
+        response: /mockmvc/response
+        default-request: /mockmvc/default/request
+        default-response: /mockmvc/default/response
