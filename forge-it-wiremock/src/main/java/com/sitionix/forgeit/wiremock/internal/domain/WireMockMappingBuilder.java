@@ -8,7 +8,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
+import com.sitionix.forgeit.domain.endpoint.EndpointDefaultsContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
+import com.sitionix.forgeit.domain.endpoint.WireMockDefault;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
@@ -19,6 +21,8 @@ import lombok.Getter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+
+import static java.util.Objects.nonNull;
 
 @Getter
 public class WireMockMappingBuilder<Req, Res> {
@@ -205,12 +209,19 @@ public class WireMockMappingBuilder<Req, Res> {
         if (mutator != null) {
             mutator.accept(this.defaultMutationContext);
         }
+
+        this.endpoint.getWireMockDefault().applyDefaults(this.defaultContext);
         return this.create();
     }
 
     public WireMockMappingBuilder<Req, Res> applyDefault(final Consumer<DefaultContext> consumer) {
         if (consumer != null) {
             consumer.accept(this.defaultContext);
+        }
+
+        final WireMockDefault defaultsContext = this.endpoint.getWireMockDefault();
+        if (nonNull(defaultsContext)) {
+            defaultsContext.applyDefaults(this.defaultContext);
         }
         return this;
     }
@@ -291,23 +302,27 @@ public class WireMockMappingBuilder<Req, Res> {
         return responseBuilder;
     }
 
-    public final class DefaultContext {
+    public final class DefaultContext implements EndpointDefaultsContext {
 
+        @Override
         public DefaultContext matchesJson(final String json) {
             WireMockMappingBuilder.this.defaultMatchesJson(json);
             return this;
         }
 
+        @Override
         public DefaultContext responseBody(final String json) {
             WireMockMappingBuilder.this.defaultResponseBody(json);
             return this;
         }
 
-        public DefaultContext responseStatus(final HttpStatus status) {
-            WireMockMappingBuilder.this.responseStatus(status);
+        @Override
+        public DefaultContext responseStatus(final int status) {
+            WireMockMappingBuilder.this.responseStatus(HttpStatus.resolve(status));
             return this;
         }
 
+        @Override
         public DefaultContext plainUrl() {
             WireMockMappingBuilder.this.plainUrl();
             return this;
