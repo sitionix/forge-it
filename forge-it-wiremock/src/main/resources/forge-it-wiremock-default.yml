@@ -8,6 +8,6 @@ forge-it:
       mapping:
         request: /mappings/request
         response: /mappings/response
-        default-request: /default/request
-        default-response: /default/response
+        default-request: /mappings/default/request
+        default-response: /mappings/default/response
 

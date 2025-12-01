@@ -2,6 +2,7 @@ package com.sitionix.forgeit.domain.endpoint;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -10,12 +11,27 @@ import java.util.function.BiFunction;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder
 public final class Endpoint<Req, Res> {
 
-    private final UrlBuilder urlBuilder;
-    private final HttpMethod method;
-    private final Class<Req> requestClass;
-    private final Class<Res> responseClass;
+    private UrlBuilder urlBuilder;
+    private HttpMethod method;
+    private Class<Req> requestClass;
+    private Class<Res> responseClass;
+    private WireMockDefault wireMockDefault;
+    public static <Req, Res> Endpoint<Req, Res> createContract(
+            final String urlTemplate,
+            final HttpMethod method,
+            final Class<Req> requestClass,
+            final Class<Res> responseClass,
+            final WireMockDefault wireMockDefault
+    ) {
+        return new Endpoint<>(new UrlBuilder(urlTemplate),
+                method,
+                requestClass,
+                responseClass,
+                wireMockDefault);
+    }
 
     public static <Req, Res> Endpoint<Req, Res> createContract(
             final String urlTemplate,
@@ -23,7 +39,7 @@ public final class Endpoint<Req, Res> {
             final Class<Req> requestClass,
             final Class<Res> responseClass
     ) {
-        return new Endpoint<>(new UrlBuilder(urlTemplate), method, requestClass, responseClass);
+        return new Endpoint<>(new UrlBuilder(urlTemplate), method, requestClass, responseClass, null);
     }
 
     @RequiredArgsConstructor

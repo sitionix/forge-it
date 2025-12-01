@@ -5,5 +5,5 @@ import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.wiremock.api.WireMockSupport;
 
 @ForgeFeatures(WireMockSupport.class)
-public interface SampleUserTests extends ForgeIT {
+public interface ForgeItSupport extends ForgeIT {
 }

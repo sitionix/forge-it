@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerIT {
 
     @Autowired
-    private SampleUserTests forgeit;
+    private ForgeItSupport forgeit;
 
     @Autowired
     private MockMvc mockMvc;
@@ -37,14 +37,18 @@ class AuthControllerIT {
 
     @Test
     void givenUserLoginRequest_whenLogin_thenReturnLoginResponse() throws Exception {
-        final RequestBuilder<?,?> requestBuilder = this.forgeit.wiremock().createMapping(AuthEndpoints.login())
+        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock()
+                .createMapping(AuthEndpoints.login())
                 .matchesJson("requestLoginUserWithHappyPath.json")
                 .responseBody("responseLoginUserWithHappyPath.json")
                 .responseStatus(HttpStatus.OK)
                 .plainUrl()
                 .create();
 
-        final LoginRequest loginRequest = new LoginRequest("john.doe", "s3cr3t");
+        final LoginRequest loginRequest = LoginRequest.builder()
+                .password("s3cr3t")
+                .username("john.doe")
+                .build();
 
         this.mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -52,6 +56,80 @@ class AuthControllerIT {
                 .andExpect(status().isOk());
 
         requestBuilder.verify();
+    }
+
+    @Test
+    void givenUserLoginRequest_whenLogin_thenReturnLoginResponseWithMutation() throws Exception {
+        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock()
+                .createMapping(AuthEndpoints.login())
+                .matchesJson("requestLoginUserWithHappyPath.json",
+                        d -> {
+                            d.setUsername("username");
+                            d.setPassword("password");
+                        })
+                .responseBody("responseLoginUserWithHappyPath.json",
+                        d -> d.setToken("mutated-token"))
+                .responseStatus(HttpStatus.OK)
+                .plainUrl()
+                .create();
+
+        final LoginRequest loginRequest = LoginRequest.builder()
+                .password("password")
+                .username("username")
+                .build();
+
+        this.mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(this.objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(jsonPath("$.token").value("mutated-token"))
+                .andExpect(status().isOk());
+
+        requestBuilder.verify();
+    }
+
+    @Test
+    void givenUserLoginRequest_whenLogin_thenReturnDefaultLogin() throws Exception {
+
+        final RequestBuilder<?, ?> request = this.forgeit.wiremock()
+                .createMapping(AuthEndpoints.loginDefault())
+                .createDefault();
+
+        final LoginRequest loginRequest = LoginRequest.builder()
+                .password("s3cr3t")
+                .username("john.doe")
+                .build();
+
+        this.mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(this.objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isOk());
+
+        request.verify();
+    }
+
+    @Test
+    void givenUserLoginRequest_whenLogin_thenReturnDefaultLoginWithMutation() throws Exception {
+
+        final RequestBuilder<?, ?> request = this.forgeit.wiremock()
+                .createMapping(AuthEndpoints.loginDefault())
+                .createDefault(d -> d.mutateRequest(r -> {
+                            r.setPassword("password");
+                            r.setUsername("username");
+                        })
+                        .mutateResponse(res -> res.setToken("mutated-token")));
+
+        final LoginRequest loginRequest = LoginRequest.builder()
+                .password("password")
+                .username("username")
+                .build();
+
+        this.mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(this.objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(jsonPath("$.token").value("mutated-token"))
+                .andExpect(status().isOk());
+
+        request.verify();
     }
 
     @Test
