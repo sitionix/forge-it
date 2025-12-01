@@ -10,9 +10,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>forge-it-core</artifactId>
-    <name>ForgeIT Core</name>
-    <description>Core ForgeIT API exposing the generated feature aggregation interface.</description>
+    <artifactId>forge-it-mockmvc</artifactId>
+    <name>ForgeIT Mock MVC</name>
+    <description>Mock MVC feature template mirroring WireMock module structure.</description>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -21,22 +21,7 @@
             <artifactId>forge-it-annotations</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${project.parent.groupId}</groupId>
-            <artifactId>forge-it-wiremock</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.parent.groupId}</groupId>
-            <artifactId>forge-it-mockmvc</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.parent.groupId}</groupId>
-            <artifactId>forge-it-application</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot</artifactId>
@@ -46,12 +31,14 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-test</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.springframework</groupId>
-            <artifactId>spring-test</artifactId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -64,16 +51,10 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
                 <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>${project.parent.groupId}</groupId>
-                            <artifactId>forge-it-annotation-processor</artifactId>
-                            <version>${project.parent.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
+                    <useModulePath>false</useModulePath>
                 </configuration>
             </plugin>
         </plugins>
