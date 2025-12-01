@@ -13,6 +13,6 @@ class MockMvcSupportIT {
 
     @Test
     void shouldExposeMockMvcBridgeFromGeneratedSupport() {
-        Assertions.assertThat(this.forgeit.mockMvc().ping()).isEqualTo("mock-mvc-bridge");
+        Assertions.assertThat(this.forgeit.mockMvc().ping()).isEqualTo("consumer-mock-mvc");
     }
 }
