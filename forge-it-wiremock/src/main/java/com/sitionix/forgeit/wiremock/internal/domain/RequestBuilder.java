@@ -48,7 +48,7 @@ public class RequestBuilder<Req, Res> {
 
     public RequestBuilder<Req, Res> pathWithParameters(final Map<String, Object> parameters) {
         if (nonNull(parameters)) {
-            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::resolve);
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withPathParams);
         }
         return this;
     }

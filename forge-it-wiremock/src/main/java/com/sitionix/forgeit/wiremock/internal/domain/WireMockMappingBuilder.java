@@ -10,6 +10,7 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import java.util.Map;
@@ -32,8 +33,8 @@ public class WireMockMappingBuilder<Req, Res> {
     private String requestJson;
     private String responseJsonName;
     private String responseJson;
-    private Map<String, String> queryParameters;
-    private Map<String, Object> pathParameters;
+    private Map<String, Parameter> queryParameters;
+    private Map<String, Parameter> pathParameters;
     private String url;
     private String urlPath;
     private String urlPathPattern;
@@ -108,29 +109,32 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, String> parameters) {
+    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
-            this.url = this.endpoint.getUrlBuilder().getUrl();
+            this.url = null;
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withQueryParams);
+            this.urlPath = this.endpoint.getUrlBuilder().getTemplate();
             this.queryParameters = parameters;
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> path(final Map<String, String> parameters) {
+    public WireMockMappingBuilder<Req, Res> path(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
             this.urlPath = this.endpoint.getUrlBuilder().getUrl();
-            this.queryParameters = parameters;
+            this.pathParameters = parameters;
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> pathPattern(final Map<String, Object> parameters) {
+    public WireMockMappingBuilder<Req, Res> pathPattern(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
             this.pathParameters = parameters;
-            this.urlPathPattern = this.endpoint.getUrlBuilder().getUrl();
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withPathParams);
+            this.urlPathPattern = this.endpoint.getUrlBuilder().getTemplate();
         }
         return this;
     }
@@ -231,12 +235,12 @@ public class WireMockMappingBuilder<Req, Res> {
 
         if (WireMockMappingBuilder.this.queryParameters != null) {
             WireMockMappingBuilder.this.queryParameters.forEach((key, value) ->
-                    mappingBuilder.withQueryParam(key, WireMock.equalTo(value)));
+                    mappingBuilder.withQueryParam(key, value.toPattern()));
         }
 
         if (WireMockMappingBuilder.this.pathParameters != null) {
             WireMockMappingBuilder.this.pathParameters.forEach((key, value) ->
-                    mappingBuilder.withPathParam(key, WireMock.equalTo(String.valueOf(value))));
+                    mappingBuilder.withPathParam(key, value.toPattern()));
         }
 
         mappingBuilder.willReturn(buildResponseDefinition());
@@ -254,7 +258,7 @@ public class WireMockMappingBuilder<Req, Res> {
         }
 
         if (WireMockMappingBuilder.this.urlPathPattern != null) {
-            return WireMock.urlPathMatching(WireMockMappingBuilder.this.urlPathPattern);
+            return WireMock.urlPathTemplate(WireMockMappingBuilder.this.urlPathPattern);
         }
 
         throw new IllegalStateException("URL pattern must be specified");

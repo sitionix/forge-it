@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 public class PathTemplate {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^/}]+)}");
 
-    public static String resolve(final String template, final Map<String, ?> vars) {
+    public static String withPathParams(final String template, final Map<String, ?> vars) {
         if (template == null) {
             throw new IllegalArgumentException("Template cannot be null");
         }
@@ -29,4 +29,34 @@ public class PathTemplate {
         }
         return resolvedPath;
     }
+
+    public static String withQueryParams(final String template, final Map<String, ?> vars) {
+        if (template == null) {
+            throw new IllegalArgumentException("Template cannot be null");
+        }
+
+        final UriComponentsBuilder builder = UriComponentsBuilder.fromPath(template);
+
+        if (vars != null && !vars.isEmpty()) {
+            vars.forEach((key, value) -> {
+                if (value == null) {
+                    return;
+                }
+
+                if (value instanceof Iterable<?> iterable) {
+                    iterable.forEach(item -> builder.queryParam(key, item));
+                } else if (value.getClass().isArray()) {
+                    final Object[] array = (Object[]) value;
+                    for (Object item : array) {
+                        builder.queryParam(key, item);
+                    }
+                } else {
+                    builder.queryParam(key, value);
+                }
+            });
+        }
+
+        return builder.build().toUriString();
+    }
+
 }

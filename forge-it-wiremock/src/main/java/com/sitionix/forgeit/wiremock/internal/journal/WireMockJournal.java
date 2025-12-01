@@ -19,6 +19,7 @@ public class WireMockJournal {
     private final ObjectMapper objectMapper;
     private final WireMockContainerManager containerManager;
     private final WireMockValidator validator;
+    private final WireMockJournalClient journalClient;
 
     public <Req, Res> WireMockMappingBuilder<Req, Res> createMapping(final Endpoint<Req, Res> endpoint) {
         return new WireMockMappingBuilder<>(endpoint,
@@ -30,6 +31,10 @@ public class WireMockJournal {
 
     public <Req, Res> RequestBuilder<Req, Res> check(final Endpoint<Req, Res> endpoint) {
         return new RequestBuilder<>(this.loaderResources, this::verify, endpoint);
+    }
+
+    public void reset() {
+        this.journalClient.reset();
     }
 
     private <Req, Res> void verify(final WireMockCheck<Req, Res> check) {
