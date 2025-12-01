@@ -14,13 +14,13 @@ aggregates all ForgeIT modules, including the WireMock feature implementation.
 <dependency>
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forgeit</artifactId>
-    <version>0.0.5-SNAPSHOT</version>
+    <version>0.0.6-SNAPSHOT</version>
     <scope>test</scope>
 </dependency>
 <dependency>
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forge-it-annotation-processor</artifactId>
-    <version>0.0.5-SNAPSHOT</version>
+    <version>0.0.6-SNAPSHOT</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -160,3 +160,77 @@ to once).
 
 You can also reset WireMock between scenarios with `forgeit.wiremock().reset()` to clear
 previous mappings and journal entries.
+
+## MockMvc support
+
+`MockMvcSupport` offers a fluent builder for invoking your controllers with request/response
+fixtures while keeping assertions centralized in a single place.
+
+### Configuration
+
+The module ships with sensible defaults for loading request and response payloads from the
+classpath. Override the locations if your project stores fixtures elsewhere:
+
+```yaml
+forge-it:
+  modules:
+    mock-mvc:
+      path:
+        request: /mockmvc/request         # standard request fixture folder
+        response: /mockmvc/response       # standard response fixture folder
+        default-request: /mockmvc/default/request
+        default-response: /mockmvc/default/response
+```
+
+### Executing requests
+
+Use `forgeit.mockMvc().ping(...)` with an `Endpoint` definition to drive the request.
+Request/response bodies are loaded from the configured folders and can be mutated before
+execution:
+
+```java
+forgeit.mockMvc()
+        .ping(MockMvcEndpoint.login())
+        .request("loginRequest.json", req -> {
+            req.setUsername("username");
+            req.setPassword("password");
+        })
+        .response("loginResponse.json", res -> res.setToken("mutated-token"))
+        .status(HttpStatus.OK)
+        .execute();
+```
+
+Add `andExpectPath(...)` for extra matchers, or `token(...)` to attach an `Authorization`
+header. Response assertions can ignore fields via `response(..., fieldsToIgnore...)`.
+
+### Defaults and reusable fixtures
+
+Endpoints can declare defaults (request, response, status) that the builder reuses via
+`executeDefault()`. You can further mutate the defaults at call time:
+
+```java
+// Endpoint with baked-in defaults
+public static Endpoint<LoginRequest, LoginResponse> loginDefault() {
+    return Endpoint.createContract(
+            "/auth/login",
+            HttpMethod.POST,
+            LoginRequest.class,
+            LoginResponse.class,
+            (MockmvcDefault) ctx -> ctx
+                    .request("loginRequest.json")
+                    .response("loginResponse.json")
+                    .status(200)
+    );
+}
+
+// Invoke defaults and tweak fixtures per scenario
+forgeit.mockMvc()
+        .ping(MockMvcEndpoint.loginDefault())
+        .executeDefault(d -> d
+                .mutateRequest(r -> r.setPassword("password"))
+                .mutateResponse(res -> res.setToken("mutated-token")));
+```
+
+When defaults exist, `applyDefault(...)` can override the default request/response names or
+status before execution. If you skip request/response bodies altogether, the builder still
+performs status-only assertions.
