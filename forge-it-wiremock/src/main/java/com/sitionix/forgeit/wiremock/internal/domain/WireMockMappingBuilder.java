@@ -1,11 +1,11 @@
 package com.sitionix.forgeit.wiremock.internal.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.EndpointDefaultsContext;
@@ -15,12 +15,13 @@ import com.sitionix.forgeit.domain.loader.ResourcesLoader;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
-import java.util.Map;
-import java.util.function.Consumer;
 import lombok.Getter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 import static java.util.Objects.nonNull;
 
@@ -79,8 +80,8 @@ public class WireMockMappingBuilder<Req, Res> {
     }
 
     private WireMockMappingBuilder<Req, Res> loadRequestJson(final String fileName,
-            final boolean useDefault,
-            final Consumer<Req> mutator) {
+                                                             final boolean useDefault,
+                                                             final Consumer<Req> mutator) {
         if (fileName == null) {
             return this;
         }
@@ -157,13 +158,13 @@ public class WireMockMappingBuilder<Req, Res> {
     }
 
     public WireMockMappingBuilder<Req, Res> responseBody(final String responseFileName,
-            final Consumer<Res> mutator) {
+                                                         final Consumer<Res> mutator) {
         return this.loadResponseJson(responseFileName, false, mutator);
     }
 
     private WireMockMappingBuilder<Req, Res> loadResponseJson(final String fileName,
-            final boolean useDefault,
-            final Consumer<Res> mutator) {
+                                                              final boolean useDefault,
+                                                              final Consumer<Res> mutator) {
         if (fileName == null) {
             return this;
         }
@@ -210,7 +211,11 @@ public class WireMockMappingBuilder<Req, Res> {
             mutator.accept(this.defaultMutationContext);
         }
 
-        this.endpoint.getWireMockDefault().applyDefaults(this.defaultContext);
+        final WireMockDefault defaultsContext = this.endpoint.getWireMockDefault();
+        if (nonNull(defaultsContext)) {
+            this.endpoint.getWireMockDefault().applyDefaults(this.defaultContext);
+        }
+
         return this.create();
     }
 
@@ -237,8 +242,7 @@ public class WireMockMappingBuilder<Req, Res> {
     }
 
     private MappingBuilder buildMappingBuilder() {
-        final String requestMethod = requireMethod();
-        final MappingBuilder mappingBuilder = WireMock.request(requestMethod, requireUrlPattern());
+        final MappingBuilder mappingBuilder = WireMock.request(this.endpoint.getMethod().name(), requireUrlPattern());
 
         if (WireMockMappingBuilder.this.requestJson != null) {
             mappingBuilder.withRequestBody(WireMock.equalToJson(WireMockMappingBuilder.this.requestJson));
@@ -273,13 +277,6 @@ public class WireMockMappingBuilder<Req, Res> {
         }
 
         throw new IllegalStateException("URL pattern must be specified");
-    }
-
-    private String requireMethod() {
-        if (WireMockMappingBuilder.this.method == null) {
-            throw new IllegalStateException("HTTP method must be specified");
-        }
-        return WireMockMappingBuilder.this.method.name();
     }
 
     private ResponseDefinitionBuilder buildResponseDefinition() {

@@ -1,7 +1,9 @@
 package com.sitionix.forgeit.consumer.auth;
 
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
+import com.sitionix.forgeit.domain.endpoint.EndpointDefaultsContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
+import com.sitionix.forgeit.domain.endpoint.WireMockDefault;
 
 public final class AuthEndpoints {
 
@@ -14,6 +16,19 @@ public final class AuthEndpoints {
                 HttpMethod.POST,
                 LoginRequest.class,
                 LoginResponse.class
+        );
+    }
+
+    public static Endpoint<LoginRequest, LoginResponse> loginDefault() {
+        return Endpoint.createContract(
+                "/external/auth/login",
+                HttpMethod.POST,
+                LoginRequest.class,
+                LoginResponse.class,
+                context -> context.plainUrl()
+                        .matchesJson("requestLoginUserWithHappyPath.json")
+                        .responseBody("responseLoginUserWithHappyPath.json")
+                        .responseStatus(200)
         );
     }
 
