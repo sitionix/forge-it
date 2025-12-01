@@ -51,10 +51,10 @@ forge-it:
       host: localhost         # required when mode is external
       port: 8089              # required when mode is external
       mapping:
-        request: /mappings/request
-        response: /mappings/response
-        default-request: /default/request
-        default-response: /default/response
+        request: /wiremock/request
+        response: /wiremock/response
+        default-request: /wiremock/default/request
+        default-response: /wiremock/default/response
 ```
 
 When `mode` is `internal`, the module launches a `wiremock/wiremock:3.6.0` container and
