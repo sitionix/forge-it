@@ -10,6 +10,8 @@ import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
+import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -31,8 +33,8 @@ public class WireMockMappingBuilder<Req, Res> {
     private String requestJson;
     private String responseJsonName;
     private String responseJson;
-    private Map<String, String> queryParameters;
-    private Map<String, Object> pathParameters;
+    private Map<String, Parameter> queryParameters;
+    private Map<String, Parameter> pathParameters;
     private String url;
     private String urlPath;
     private String urlPathPattern;
@@ -44,16 +46,20 @@ public class WireMockMappingBuilder<Req, Res> {
     private final DefaultContext defaultContext;
     private final DefaultMutationContext<Req, Res> defaultMutationContext;
 
+    private final WireMockJournal wireMockJournal;
+
     public WireMockMappingBuilder(final Endpoint<Req, Res> endpoint,
-            final WireMockLoaderResources loaderResources,
-            final ObjectMapper objectMapper,
-            final WireMock wireMockClient) {
+                                  final WireMockLoaderResources loaderResources,
+                                  final ObjectMapper objectMapper,
+                                  final WireMock wireMockClient,
+                                  final WireMockJournal wireMockJournal) {
         this.endpoint = endpoint;
         this.loaderResources = loaderResources;
         this.objectMapper = objectMapper;
         this.wireMockClient = wireMockClient;
         this.defaultContext = new DefaultContext();
         this.defaultMutationContext = new DefaultMutationContext<>();
+        this.wireMockJournal = wireMockJournal;
     }
 
     public WireMockMappingBuilder<Req, Res> matchesJson(final String requestFileName) {
@@ -97,35 +103,38 @@ public class WireMockMappingBuilder<Req, Res> {
 
     public WireMockMappingBuilder<Req, Res> plainUrl() {
         this.method = this.endpoint.getMethod();
-        this.url = this.endpoint.getUrl();
+        this.url = this.endpoint.getUrlBuilder().getUrl();
         this.urlPath = null;
         this.urlPathPattern = null;
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, String> parameters) {
+    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
-            this.url = this.endpoint.getUrl();
+            this.url = null;
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withQueryParams);
+            this.urlPath = this.endpoint.getUrlBuilder().getTemplate();
             this.queryParameters = parameters;
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> path(final Map<String, String> parameters) {
+    public WireMockMappingBuilder<Req, Res> path(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
-            this.urlPath = this.endpoint.getUrl();
-            this.queryParameters = parameters;
+            this.urlPath = this.endpoint.getUrlBuilder().getUrl();
+            this.pathParameters = parameters;
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> pathPattern(final Map<String, Object> parameters) {
+    public WireMockMappingBuilder<Req, Res> pathPattern(final Map<String, Parameter> parameters) {
         if (parameters != null) {
             this.method = this.endpoint.getMethod();
             this.pathParameters = parameters;
-            this.urlPathPattern = this.endpoint.getUrl();
+            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withPathParams);
+            this.urlPathPattern = this.endpoint.getUrlBuilder().getTemplate();
         }
         return this;
     }
@@ -188,15 +197,15 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public RequestBuilder createDefault() {
+    public RequestBuilder<Req, Res> createDefault() {
         return this.createDefault(null);
     }
 
-    public RequestBuilder createDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
+    public RequestBuilder<Req, Res> createDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
         if (mutator != null) {
             mutator.accept(this.defaultMutationContext);
         }
-        return new RequestBuilder();
+        return this.create();
     }
 
     public WireMockMappingBuilder<Req, Res> applyDefault(final Consumer<DefaultContext> consumer) {
@@ -206,11 +215,14 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public StubMapping create() {
+    public RequestBuilder<Req, Res> create() {
         final MappingBuilder mappingBuilder = this.buildMappingBuilder();
         final StubMapping stubMapping = mappingBuilder.build();
         this.wireMockClient.register(stubMapping);
-        return stubMapping;
+
+        return this.wireMockJournal.check(this.endpoint)
+                .id(stubMapping.getId())
+                .json(this.requestJson);
     }
 
     private MappingBuilder buildMappingBuilder() {
@@ -223,12 +235,12 @@ public class WireMockMappingBuilder<Req, Res> {
 
         if (WireMockMappingBuilder.this.queryParameters != null) {
             WireMockMappingBuilder.this.queryParameters.forEach((key, value) ->
-                    mappingBuilder.withQueryParam(key, WireMock.equalTo(value)));
+                    mappingBuilder.withQueryParam(key, value.toPattern()));
         }
 
         if (WireMockMappingBuilder.this.pathParameters != null) {
             WireMockMappingBuilder.this.pathParameters.forEach((key, value) ->
-                    mappingBuilder.withPathParam(key, WireMock.equalTo(String.valueOf(value))));
+                    mappingBuilder.withPathParam(key, value.toPattern()));
         }
 
         mappingBuilder.willReturn(buildResponseDefinition());
@@ -246,7 +258,7 @@ public class WireMockMappingBuilder<Req, Res> {
         }
 
         if (WireMockMappingBuilder.this.urlPathPattern != null) {
-            return WireMock.urlPathMatching(WireMockMappingBuilder.this.urlPathPattern);
+            return WireMock.urlPathTemplate(WireMockMappingBuilder.this.urlPathPattern);
         }
 
         throw new IllegalStateException("URL pattern must be specified");

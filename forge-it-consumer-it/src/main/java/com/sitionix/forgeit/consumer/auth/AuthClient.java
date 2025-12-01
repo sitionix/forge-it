@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
 public class AuthClient {
@@ -22,5 +23,30 @@ public class AuthClient {
 
     public ResponseEntity<LoginResponse> login(final LoginRequest request) {
         return this.restTemplate.postForEntity(this.baseUrl + "/external/auth/login", request, LoginResponse.class);
+    }
+
+    public ResponseEntity<Void> ping() {
+        return this.restTemplate.getForEntity(this.baseUrl + "/external/auth/ping", Void.class);
+    }
+
+    public ResponseEntity<LoginResponse> requestToken(final String username, final String correlationId) {
+        final String uri = UriComponentsBuilder.fromHttpUrl(this.baseUrl + "/external/auth/token")
+                .queryParam("username", username)
+                .queryParam("correlationId", correlationId)
+                .toUriString();
+
+        return this.restTemplate.getForEntity(uri, LoginResponse.class);
+    }
+
+    public ResponseEntity<UserProfileResponse> fetchUser(
+            final String tenantId,
+            final String userId
+    ) {
+        final String uri = UriComponentsBuilder
+                .fromHttpUrl(this.baseUrl + "/external/tenants/{tenantId}/users/{userId}")
+                .buildAndExpand(tenantId, userId)
+                .toUriString();
+
+        return this.restTemplate.getForEntity(uri, UserProfileResponse.class);
     }
 }
