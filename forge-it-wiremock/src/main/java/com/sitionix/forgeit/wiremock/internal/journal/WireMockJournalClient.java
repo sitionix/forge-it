@@ -36,9 +36,18 @@ public class WireMockJournalClient {
     }
 
     public List<String> findBodiesByUrl(final Endpoint<?, ?> endpoint) {
+        if (endpoint.getUrlBuilder().hasQueryParameters()) {
+            return this.findByPattern(FindRequestPattern.findByUrlPathAndQuery(endpoint));
+        } else {
+            return this.findByPattern(FindRequestPattern.findByUrlPatternAndPathParams(endpoint));
+        }
+
+    }
+
+    private List<String> findByPattern(final FindRequestPattern pattern) {
         final ResponseEntity<String> response = this.restClient.post()
                 .uri("/requests/find")
-                .body(FindRequestPattern.findPostByUrl(endpoint.getMethod(), endpoint.getUrlBuilder().getUrl()))
+                .body(pattern)
                 .retrieve()
                 .toEntity(String.class);
         return this.extractBodies(response.getBody());
