@@ -6,8 +6,8 @@ forge-it:
       host: localhost
       port: 8089
       mapping:
-        request: /mappings/request
-        response: /mappings/response
-        default-request: /mappings/default/request
-        default-response: /mappings/default/response
+        request: /wiremock/request
+        response: /wiremock/response
+        default-request: /wiremock/default/request
+        default-response: /wiremock/default/response
 

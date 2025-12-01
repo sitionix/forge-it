@@ -8,9 +8,9 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.matching.UrlPattern;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
-import com.sitionix.forgeit.domain.endpoint.EndpointDefaultsContext;
+import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
-import com.sitionix.forgeit.domain.endpoint.WireMockDefault;
+import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
@@ -211,7 +211,7 @@ public class WireMockMappingBuilder<Req, Res> {
             mutator.accept(this.defaultMutationContext);
         }
 
-        final WireMockDefault defaultsContext = this.endpoint.getWireMockDefault();
+        final WiremockDefault defaultsContext = this.endpoint.getWireMockDefault();
         if (nonNull(defaultsContext)) {
             this.endpoint.getWireMockDefault().applyDefaults(this.defaultContext);
         }
@@ -224,7 +224,7 @@ public class WireMockMappingBuilder<Req, Res> {
             consumer.accept(this.defaultContext);
         }
 
-        final WireMockDefault defaultsContext = this.endpoint.getWireMockDefault();
+        final WiremockDefault defaultsContext = this.endpoint.getWireMockDefault();
         if (nonNull(defaultsContext)) {
             defaultsContext.applyDefaults(this.defaultContext);
         }
@@ -299,7 +299,7 @@ public class WireMockMappingBuilder<Req, Res> {
         return responseBuilder;
     }
 
-    public final class DefaultContext implements EndpointDefaultsContext {
+    public final class DefaultContext implements WiremockDefaultContext {
 
         @Override
         public DefaultContext matchesJson(final String json) {

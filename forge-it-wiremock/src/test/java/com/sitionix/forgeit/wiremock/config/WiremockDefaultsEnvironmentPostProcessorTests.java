@@ -7,7 +7,7 @@ import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class WireMockDefaultsEnvironmentPostProcessorTests extends MockExtension {
+class WiremockDefaultsEnvironmentPostProcessorTests extends MockExtension {
 
     private final WireMockDefaultsEnvironmentPostProcessor postProcessor = new WireMockDefaultsEnvironmentPostProcessor();
 
