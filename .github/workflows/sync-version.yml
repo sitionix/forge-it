@@ -87,7 +87,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH_NAME: sync/release-${{ steps.versions.outputs.CURRENT_VERSION }}
-        run: git push origin "HEAD:${BRANCH_NAME}"
+        run: |
+          git fetch origin "${BRANCH_NAME}" || true
+
+          git push --force-with-lease origin "HEAD:${BRANCH_NAME}"
+
 
       - name: Open sync pull request
         if: steps.check_pr.outputs.exists != 'true'
