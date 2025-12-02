@@ -3,3 +3,4 @@ spring:
     import:
       - classpath:forge-it-core-default.yml
       - classpath:forge-it-wiremock-default.yml
+      - classpath:forge-it-mockmvc-default.yml
