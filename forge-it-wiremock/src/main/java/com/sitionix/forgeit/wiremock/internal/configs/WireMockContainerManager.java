@@ -80,12 +80,12 @@ public final class WireMockContainerManager implements InitializingBean, Disposa
             throw new IllegalStateException("WireMock container not initialised");
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
-        final Map<String, Object> properties = Map.of(
-                "forgeit.wiremock.base-url", this.baseUrl.toString(),
-                "forgeit.wiremock.port", this.baseUrl.getPort(),
-                "forgeit.wiremock.host", this.baseUrl.getHost()
+        final Map<String, Object> props = Map.of(
+                "forge-it.wiremock.base-url", this.baseUrl.toString(),
+                "forge-it.wiremock.port", this.baseUrl.getPort(),
+                "forge-it.wiremock.host", this.baseUrl.getHost()
         );
-        final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, properties);
+        final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, props);
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
             sources.replace(PROPERTY_SOURCE_NAME, propertySource);
         } else {
