@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Utility helpers for Maven version management.
 
-Parses the root ``pom.xml`` version, derives the release version (without
-``-SNAPSHOT``), and computes the next patch snapshot version. Designed to work
-inside CI without depending on Maven's network access.
+Parses the root ``pom.xml`` version, validates it follows ``X.Y.Z`` without
+``-SNAPSHOT``, and computes the next patch version. Designed to work inside CI
+without depending on Maven's network access.
 """
 from __future__ import annotations
 
@@ -27,25 +27,29 @@ def read_version(pom_path: str) -> str:
 
 
 def compute_versions(raw_version: str) -> tuple[str, str]:
-    base_version = raw_version.removesuffix("-SNAPSHOT")
-    parts = base_version.split(".")
+    if raw_version.endswith("-SNAPSHOT"):
+        raise SystemExit("Snapshot versions are not supported: use X.Y.Z format")
+
+    parts = raw_version.split(".")
     if len(parts) != 3 or not all(part.isdigit() for part in parts):
-        raise SystemExit(
-            "Project version must follow semantic format X.Y.Z or X.Y.Z-SNAPSHOT"
-        )
+        raise SystemExit("Project version must follow semantic format X.Y.Z")
 
     major, minor, patch = map(int, parts)
-    release_version = f"{major}.{minor}.{patch}"
-    next_version = f"{major}.{minor}.{patch + 1}-SNAPSHOT"
-    return release_version, next_version
+    current_version = f"{major}.{minor}.{patch}"
+    next_version = f"{major}.{minor}.{patch + 1}"
+    return current_version, next_version
 
 
-def export_env(release_version: str, next_version: str) -> str:
-    return f"RELEASE_VERSION={release_version}\nNEXT_VERSION={next_version}\n"
+def export_env(current_version: str, next_version: str) -> str:
+    return (
+        f"CURRENT_VERSION={current_version}\n"
+        f"RELEASE_VERSION={current_version}\n"
+        f"NEXT_VERSION={next_version}\n"
+    )
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Compute release/next Maven versions")
+    parser = argparse.ArgumentParser(description="Compute Maven version bump")
     parser.add_argument(
         "action",
         choices=["print", "export"],
@@ -62,12 +66,12 @@ def main(argv: list[str]) -> int:
 
     args = parser.parse_args(argv)
     raw_version = read_version(args.pom_path)
-    release_version, next_version = compute_versions(raw_version)
+    current_version, next_version = compute_versions(raw_version)
 
     if args.action == "print":
-        print(f"release={release_version}\nnext={next_version}")
+        print(f"current={current_version}\nnext={next_version}")
     else:
-        sys.stdout.write(export_env(release_version, next_version))
+        sys.stdout.write(export_env(current_version, next_version))
     return 0
 
 

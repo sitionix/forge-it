@@ -58,8 +58,8 @@ forge-it:
 ```
 
 When `mode` is `internal`, the module launches a `wiremock/wiremock:3.6.0` container and
-publishes the base URL as `forgeit.wiremock.base-url`, `forgeit.wiremock.port`, and
-`forgeit.wiremock.host` environment properties.
+publishes the base URL as `forge-it.wiremock.base-url`, `forge-it.wiremock.port`, and
+`forge-it.wiremock.host` environment properties.
 
 ### Creating stubs
 
