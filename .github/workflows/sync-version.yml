@@ -104,5 +104,5 @@ jobs:
           gh pr create \
             --head "${BRANCH_NAME}" \
             --base develop \
-            --title "chore: sync version ${CURRENT_VERSION} → ${NEXT_VERSION}" \
+            --title "Sync version ${CURRENT_VERSION} → ${NEXT_VERSION}" \
             --body "This PR updates develop to version ${NEXT_VERSION} after merge into main."
