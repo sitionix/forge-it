@@ -17,8 +17,8 @@ import java.util.List;
 public class WireMockAdminConfig {
 
     @Bean
-    public RestClient wireMockAdminClient(@Value("${forgeit.wiremock.host}") String host,
-                                          @Value("${forgeit.wiremock.port}") int port) {
+    public RestClient wireMockAdminClient(@Value("${forge-it.wiremock.host}") String host,
+                                          @Value("${forge-it.wiremock.port}") int port) {
         final RequestConfig requestConfig = RequestConfig.custom()
                 .setConnectTimeout(Timeout.ofSeconds(10))
                 .setResponseTimeout(Timeout.ofSeconds(10))

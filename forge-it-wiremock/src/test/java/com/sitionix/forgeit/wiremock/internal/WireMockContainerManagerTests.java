@@ -17,9 +17,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class WireMockContainerManagerTests extends MockExtension {
 
     private static final List<String> EXPORTED_PROPERTIES = List.of(
-            "forgeit.wiremock.base-url",
-            "forgeit.wiremock.port",
-            "forgeit.wiremock.host"
+            "forge-it.wiremock.base-url",
+            "forge-it.wiremock.port",
+            "forge-it.wiremock.host"
     );
 
     @Test
@@ -45,9 +45,9 @@ class WireMockContainerManagerTests extends MockExtension {
 
         final WireMockLifecycleState expectedState = new WireMockLifecycleState(
                 new WireMockState(URI.create("http://localhost:9090"), Map.of(
-                        "forgeit.wiremock.base-url", "http://localhost:9090",
-                        "forgeit.wiremock.port", "9090",
-                        "forgeit.wiremock.host", "localhost"
+                        "forge-it.wiremock.base-url", "http://localhost:9090",
+                        "forge-it.wiremock.port", "9090",
+                        "forge-it.wiremock.host", "localhost"
                 )),
                 new EnvironmentState(Map.of())
         );
