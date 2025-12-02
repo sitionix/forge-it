@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.sitionix.forgeit</groupId>
         <artifactId>forgeit-parent</artifactId>
-        <version>0.0.7-SNAPSHOT</version>
+        <version>0.0.8</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -58,6 +58,10 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -72,6 +76,11 @@
                             <groupId>${project.parent.groupId}</groupId>
                             <artifactId>forge-it-annotation-processor</artifactId>
                             <version>${project.parent.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
