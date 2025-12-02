@@ -234,3 +234,29 @@ forgeit.mockMvc()
 When defaults exist, `applyDefault(...)` can override the default request/response names or
 status before execution. If you skip request/response bodies altogether, the builder still
 performs status-only assertions.
+
+## Release flow
+
+The repository is set up to automatically cut releases whenever changes are pushed to the
+`main` branch. The CI workflow performs the following steps:
+
+1. Reads the project version from the root `pom.xml` and computes both the release
+   version (without `-SNAPSHOT`) and the next patch snapshot version.
+2. Sets the release version across every module with
+   `./mvnw versions:set -DnewVersion=<release> -DgenerateBackupPoms=false`.
+3. Runs the full Maven verification and deploys the build to the configured Maven
+   repository.
+4. Commits the release (`Release X.Y.Z`), tags it as `vX.Y.Z`, and pushes the updates to
+   `main`.
+5. Creates a sync branch (`sync/release-X.Y.Z`) that bumps the patch version to the next
+   `-SNAPSHOT`, commits the change (`Prepare next development version X.Y.(Z+1)-SNAPSHOT`),
+   pushes the branch, and opens a pull request to `develop` titled
+   `chore: sync X.Y.Z to develop`.
+
+You can reuse the version helper locally via
+`.github/scripts/version_helper.py` to inspect the derived versions:
+
+```bash
+python .github/scripts/version_helper.py         # prints release/next versions
+python .github/scripts/version_helper.py export  # emits shell env vars
+```
