@@ -14,13 +14,13 @@ aggregates all ForgeIT modules, including the WireMock feature implementation.
 <dependency>
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forgeit</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.7-SNAPSHOT</version>
     <scope>test</scope>
 </dependency>
 <dependency>
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forge-it-annotation-processor</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.7-SNAPSHOT</version>
     <scope>test</scope>
 </dependency>
 ```

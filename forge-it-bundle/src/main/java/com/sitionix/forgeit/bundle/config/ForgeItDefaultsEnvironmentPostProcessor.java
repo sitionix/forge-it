@@ -19,7 +19,8 @@ public class ForgeItDefaultsEnvironmentPostProcessor implements EnvironmentPostP
 
     private static final String[] DEFAULT_YAML_RESOURCES = {
             "forge-it-core-default.yml",
-            "forge-it-wiremock-default.yml"
+            "forge-it-wiremock-default.yml",
+            "forge-it-mockmvc-default.yml"
     };
 
     private final YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
