@@ -48,7 +48,7 @@ class AuthControllerIT {
                 .request("loginRequest.json")
                 .response("loginResponse.json")
                 .status(HttpStatus.OK)
-                .execute();
+                .createAndAssert();
 
         requestBuilder.verify();
     }
@@ -77,7 +77,7 @@ class AuthControllerIT {
                         })
                 .response("loginResponse.json", d -> d.setToken("mutated-token"))
                 .status(HttpStatus.OK)
-                .execute();
+                .createAndAssert();
 
         requestBuilder.verify();
     }
@@ -91,7 +91,7 @@ class AuthControllerIT {
 
         this.forgeit.mockMvc()
                 .ping(MockMvcEndpoint.loginDefault())
-                .executeDefault();
+                .assertDefault();
 
         request.verify();
     }
@@ -109,7 +109,7 @@ class AuthControllerIT {
 
         this.forgeit.mockMvc()
                 .ping(MockMvcEndpoint.loginDefault())
-                .executeDefault(d -> d.mutateRequest(r -> {
+                .assertDefault(d -> d.mutateRequest(r -> {
                     r.setPassword("password");
                     r.setUsername("username");
                 }).mutateResponse(res -> res.setToken("mutated-token")));

@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
-import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
 import com.sitionix.forgeit.domain.loader.ResourcesLoader;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
@@ -144,11 +143,11 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
-    public void executeDefault() {
-        this.executeDefault(null);
+    public void assertDefault() {
+        this.assertDefault(null);
     }
 
-    public void executeDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
+    public void assertDefault(final Consumer<DefaultMutationContext<Req, Res>> mutator) {
         if (mutator != null) {
             mutator.accept(this.defaultMutationContext);
         }
@@ -158,10 +157,10 @@ public class MockMvcBuilder<Req, Res> {
             this.endpoint.getMockmvcDefault().applyDefaults(this.defaultContext);
         }
 
-        this.execute();
+        this.createAndAssert();
     }
 
-    public void execute() {
+    public void createAndAssert() {
         try {
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
             if (nonNull(this.token)) {
@@ -178,7 +177,7 @@ public class MockMvcBuilder<Req, Res> {
                 mvcResultActions.andExpect(matcher);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to execute MockMvc request", e);
+            throw new RuntimeException("Failed to createAndAssert MockMvc request", e);
         }
     }
 
