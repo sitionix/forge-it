@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Loads the default PostgreSQL YAML settings when the module is present on the classpath.
  */
-public class PostgreSqlDefaultsEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+public class PostgresqlDefaultsEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
     private static final String DEFAULT_RESOURCE = "forge-it-postgresql-default.yml";
 

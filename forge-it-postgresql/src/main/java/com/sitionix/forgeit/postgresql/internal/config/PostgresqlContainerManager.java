@@ -15,13 +15,13 @@ import java.util.Objects;
 
 @RequiredArgsConstructor
 @Component
-public final class PostgreSqlContainerManager implements InitializingBean, DisposableBean {
+public final class PostgresqlContainerManager implements InitializingBean, DisposableBean {
 
-    private static final String PROPERTY_SOURCE_NAME = "forgeItPostgreSql";
+    private static final String PROPERTY_SOURCE_NAME = "forgeItPostgresql";
     private static final String DEFAULT_IMAGE = "postgres:16-alpine";
 
     private final ConfigurableEnvironment environment;
-    private final PostgreSqlProperties properties;
+    private final PostgresqlProperties properties;
 
     private PostgreSQLContainer<?> container;
     private String jdbcUrl;
@@ -31,8 +31,8 @@ public final class PostgreSqlContainerManager implements InitializingBean, Dispo
     @Override
     public void afterPropertiesSet() {
         validateEnabled();
-        final PostgreSqlProperties.Mode mode = requireMode();
-        if (mode == PostgreSqlProperties.Mode.EXTERNAL) {
+        final PostgresqlProperties.Mode mode = requireMode();
+        if (mode == PostgresqlProperties.Mode.EXTERNAL) {
             initialiseExternal();
         } else {
             startInternal();
@@ -47,21 +47,21 @@ public final class PostgreSqlContainerManager implements InitializingBean, Dispo
 
     public String getJdbcUrl() {
         if (this.jdbcUrl == null) {
-            throw new IllegalStateException("PostgreSQL JDBC URL has not been initialised");
+            throw new IllegalStateException("Postgresql JDBC URL has not been initialised");
         }
         return this.jdbcUrl;
     }
 
     public Integer getPort() {
         if (this.port == null) {
-            throw new IllegalStateException("PostgreSQL port has not been initialised");
+            throw new IllegalStateException("Postgresql port has not been initialised");
         }
         return this.port;
     }
 
     public String getHost() {
         if (this.host == null) {
-            throw new IllegalStateException("PostgreSQL host has not been initialised");
+            throw new IllegalStateException("Postgresql host has not been initialised");
         }
         return this.host;
     }
@@ -82,7 +82,7 @@ public final class PostgreSqlContainerManager implements InitializingBean, Dispo
             return;
         }
         if (this.jdbcUrl == null || this.host == null || this.port == null) {
-            throw new IllegalStateException("PostgreSQL container not initialised");
+            throw new IllegalStateException("Postgresql container not initialised");
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
         final Map<String, Object> props = Map.of(
@@ -113,12 +113,12 @@ public final class PostgreSqlContainerManager implements InitializingBean, Dispo
 
     private void validateEnabled() {
         if (this.properties == null || !Boolean.TRUE.equals(this.properties.getEnabled())) {
-            throw new IllegalStateException("PostgreSQL module is disabled via forge-it.modules.postgresql.enabled=false");
+            throw new IllegalStateException("Postgresql module is disabled via forge-it.modules.postgresql.enabled=false");
         }
     }
 
-    private PostgreSqlProperties.Mode requireMode() {
-        final PostgreSqlProperties.Mode mode = this.properties.getMode();
+    private PostgresqlProperties.Mode requireMode() {
+        final PostgresqlProperties.Mode mode = this.properties.getMode();
         if (mode == null) {
             throw new IllegalStateException("forge-it.modules.postgresql.mode must be configured");
         }
@@ -138,16 +138,16 @@ public final class PostgreSqlContainerManager implements InitializingBean, Dispo
         this.port = configuredPort;
         this.jdbcUrl = Objects.requireNonNullElseGet(this.properties.getJdbcUrl(),
                 () -> "jdbc:postgresql://" + this.host + ":" + this.port + "/" +
-                        Objects.requireNonNullElse(this.properties.getDatabase(), "forgeit"));
+                        Objects.requireNonNullElse(this.properties.getDatabase(), "forge-it"));
     }
 
     private void startInternal() {
         try {
             this.container = new PostgreSQLContainer<>(DockerImageName.parse(
                     Objects.requireNonNullElse(this.properties.getImage(), DEFAULT_IMAGE)))
-                    .withDatabaseName(Objects.requireNonNullElse(this.properties.getDatabase(), "forgeit"))
-                    .withUsername(Objects.requireNonNullElse(this.properties.getUsername(), "forgeit"))
-                    .withPassword(Objects.requireNonNullElse(this.properties.getPassword(), "forgeit"));
+                    .withDatabaseName(Objects.requireNonNullElse(this.properties.getDatabase(), "forge-it"))
+                    .withUsername(Objects.requireNonNullElse(this.properties.getUsername(), "forge-it"))
+                    .withPassword(Objects.requireNonNullElse(this.properties.getPassword(), "forge-it"));
             this.container.start();
             this.jdbcUrl = this.container.getJdbcUrl();
             this.host = this.container.getHost();

@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
  */
 @Data
 @Component
-@ConfigurationProperties(prefix = PostgreSqlProperties.PROPERTY_PREFIX)
-public final class PostgreSqlProperties {
+@ConfigurationProperties(prefix = PostgresqlProperties.PROPERTY_PREFIX)
+public final class PostgresqlProperties {
 
     static final String PROPERTY_PREFIX = "forge-it.modules.postgresql";
 

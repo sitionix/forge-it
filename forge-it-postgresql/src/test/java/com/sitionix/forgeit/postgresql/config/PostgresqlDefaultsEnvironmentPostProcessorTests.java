@@ -6,10 +6,10 @@ import org.springframework.mock.env.MockEnvironment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class PostgreSqlDefaultsEnvironmentPostProcessorTests {
+class PostgresqlDefaultsEnvironmentPostProcessorTests {
 
-    private final PostgreSqlDefaultsEnvironmentPostProcessor postProcessor =
-            new PostgreSqlDefaultsEnvironmentPostProcessor();
+    private final PostgresqlDefaultsEnvironmentPostProcessor postProcessor =
+            new PostgresqlDefaultsEnvironmentPostProcessor();
 
     @Test
     void shouldLoadDefaultPostgreSqlProperties() {

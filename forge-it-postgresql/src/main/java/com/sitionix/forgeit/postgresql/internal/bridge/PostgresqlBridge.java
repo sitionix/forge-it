@@ -1,7 +1,7 @@
 package com.sitionix.forgeit.postgresql.internal.bridge;
 
-import com.sitionix.forgeit.postgresql.internal.config.PostgreSqlContainerManager;
-import com.sitionix.forgeit.postgresql.internal.config.PostgreSqlProperties;
+import com.sitionix.forgeit.postgresql.internal.config.PostgresqlContainerManager;
+import com.sitionix.forgeit.postgresql.internal.config.PostgresqlProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,10 +12,10 @@ import java.util.Objects;
  */
 @RequiredArgsConstructor
 @Component
-public class PostgreSqlBridge {
+public class PostgresqlBridge {
 
-    private final PostgreSqlContainerManager containerManager;
-    private final PostgreSqlProperties properties;
+    private final PostgresqlContainerManager containerManager;
+    private final PostgresqlProperties properties;
 
     public String template() {
         return Objects.requireNonNullElse(this.properties.getTemplate(), "postgresql-template");
