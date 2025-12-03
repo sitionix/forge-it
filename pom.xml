@@ -24,6 +24,7 @@
         <module>forge-it-application</module>
         <module>forge-it-wiremock</module>
         <module>forge-it-mockmvc</module>
+        <module>forge-it-postgresql</module>
         <module>forge-it-annotation-processor</module>
         <module>forge-it-core</module>
         <module>forge-it-bundle</module>

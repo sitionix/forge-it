@@ -1,2 +1,3 @@
 com.sitionix.forgeit.mockmvc.api.MockMvcSupport
 com.sitionix.forgeit.wiremock.api.WireMockSupport
+com.sitionix.forgeit.postgresql.api.PostgreSqlSupport
