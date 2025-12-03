@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static com.sitionix.forgeit.wiremock.internal.domain.Parameter.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +32,11 @@ class AuthControllerIT {
     @BeforeEach
     void setUp() {
         this.forgeit.wiremock().reset();
+    }
+
+    @Test
+    void shouldExposePostgreSqlTemplate() {
+        assertThat(this.forgeit.postgresql().template()).isEqualTo("postgresql-template");
     }
 
     @Test

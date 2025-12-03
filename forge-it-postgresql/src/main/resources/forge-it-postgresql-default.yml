@@ -1,0 +1,12 @@
+forge-it:
+  modules:
+    postgresql:
+      enabled: true
+      mode: internal
+      host: localhost
+      port: 5432
+      database: forgeit
+      username: forgeit
+      password: forgeit
+      image: postgres:16-alpine
+      template: postgresql-template
