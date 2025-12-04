@@ -5,3 +5,10 @@ forge-it:
   modules:
     mock-mvc:
       message: consumer-mock-mvc
+spring:
+  datasource:
+    postgres:
+      url: jdbc:postgresql://localhost:5432/forge-it
+      username: forge-it
+      password: forge-it-pwd
+      driver-class-name: org.postgresql.Driver

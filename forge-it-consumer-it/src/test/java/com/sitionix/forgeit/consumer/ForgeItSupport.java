@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.consumer.auth;
+package com.sitionix.forgeit.consumer;
 
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.sitionix.forgeit.core.api.ForgeIT;
