@@ -1,19 +1,18 @@
-package com.sitionix.forgeit.application.loader;
+package com.sitionix.forgeit.application.loader.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sitionix.forgeit.application.loader.file.FileLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-import static com.sitionix.forgeit.application.loader.JsonLoader.load;
-
 @Component
-public class ResourcesLoaderImpl implements ResourcesLoader {
+@RequiredArgsConstructor
+public class JsonLoaderImpl implements JsonLoader {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     private String basePath;
 
@@ -42,6 +41,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     }
 
     private String loadResource(final String fileName) {
-        return load(this.basePath + "/" +fileName);
+        return FileLoader.load(this.basePath + "/" + fileName);
     }
 }

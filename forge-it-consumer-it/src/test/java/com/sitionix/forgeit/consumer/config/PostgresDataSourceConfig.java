@@ -16,7 +16,7 @@ import java.util.Objects;
 @Configuration
 public class PostgresDataSourceConfig {
 
-    private static final String POSTGRES_PROPERTIES_PREFIX = "forge-it.postgresql";
+    private static final String POSTGRES_PROPERTIES_PREFIX = "forge-it.postgresql.connection";
     private static final String JDBC_URL_PROPERTY = POSTGRES_PROPERTIES_PREFIX + ".jdbc-url";
     private static final String USERNAME_PROPERTY = POSTGRES_PROPERTIES_PREFIX + ".username";
     private static final String PASSWORD_PROPERTY = POSTGRES_PROPERTIES_PREFIX + ".password";
@@ -26,9 +26,9 @@ public class PostgresDataSourceConfig {
     public DataSourceProperties postgresDataSourceProperties(final Environment environment,
                                                             final PostgresqlProperties postgresqlProperties) {
         final DataSourceProperties properties = new DataSourceProperties();
-        properties.setUrl(resolveJdbcUrl(environment, postgresqlProperties));
-        properties.setUsername(resolveWithDefault(environment, USERNAME_PROPERTY, postgresqlProperties.getUsername()));
-        properties.setPassword(resolveWithDefault(environment, PASSWORD_PROPERTY, postgresqlProperties.getPassword()));
+        properties.setUrl(this.resolveJdbcUrl(environment, postgresqlProperties));
+        properties.setUsername(this.resolveWithDefault(environment, USERNAME_PROPERTY, postgresqlProperties.getConnection().getUsername()));
+        properties.setPassword(this.resolveWithDefault(environment, PASSWORD_PROPERTY, postgresqlProperties.getConnection().getPassword()));
         properties.setDriverClassName("org.postgresql.Driver");
         return properties;
     }
@@ -37,7 +37,7 @@ public class PostgresDataSourceConfig {
     @Primary
     @DependsOn("postgresqlContainerManager")
     public DataSource dataSource(final DataSourceProperties postgresDataSourceProperties) {
-        return postgresDataSource(postgresDataSourceProperties);
+        return this.postgresDataSource(postgresDataSourceProperties);
     }
 
     @Bean(name = "postgresDataSource")
@@ -51,9 +51,9 @@ public class PostgresDataSourceConfig {
         if (StringUtils.hasText(configuredUrl)) {
             return configuredUrl;
         }
-        final String host = Objects.requireNonNullElse(postgresqlProperties.getHost(), "localhost");
-        final Integer port = Objects.requireNonNullElse(postgresqlProperties.getPort(), 5432);
-        final String database = Objects.requireNonNullElse(postgresqlProperties.getDatabase(), "forge-it");
+        final String host = Objects.requireNonNullElse(postgresqlProperties.getConnection().getHost(), "localhost");
+        final Integer port = Objects.requireNonNullElse(postgresqlProperties.getConnection().getPort(), 5432);
+        final String database = Objects.requireNonNullElse(postgresqlProperties.getConnection().getDatabase(), "forge-it");
         return "jdbc:postgresql://" + host + ":" + port + "/" + database;
     }
 

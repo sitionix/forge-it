@@ -3,10 +3,13 @@ forge-it:
     postgresql:
       enabled: true
       mode: internal
-      host: localhost
-      port: 5432
-      database: forge-it
-      username: forge-it
-      password: forge-it-pwd
-      image: postgres:16-alpine
-      template: postgresql-template
+      container:
+        image: postgres:16-alpine
+      connection:
+        database: forge-it
+        username: forge-it
+        password: forge-it-pwd
+        host: localhost
+        port: 5432
+      ddl-path:
+        path: db/postgresql

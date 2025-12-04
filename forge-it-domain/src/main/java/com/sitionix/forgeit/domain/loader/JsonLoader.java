@@ -1,6 +1,6 @@
 package com.sitionix.forgeit.domain.loader;
 
-public interface ResourcesLoader {
+public interface JsonLoader {
 
     <T> T getFromFile(String fileName, Class<T> tClass);
 

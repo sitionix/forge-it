@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -186,7 +186,7 @@ public class MockMvcBuilder<Req, Res> {
             return;
         }
 
-        final ResourcesLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultRequest() :
+        final JsonLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultRequest() :
                 this.mockMvcLoader.mvcRequest();
 
         final Consumer<Req> effectiveMutator = isDefault
@@ -216,7 +216,7 @@ public class MockMvcBuilder<Req, Res> {
             return;
         }
 
-        final ResourcesLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultResponse()
+        final JsonLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultResponse()
                 : this.mockMvcLoader.mvcResponse();
 
         final Consumer<Res> effectiveMutator = isDefault

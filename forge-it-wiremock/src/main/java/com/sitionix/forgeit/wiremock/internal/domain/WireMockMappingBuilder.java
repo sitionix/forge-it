@@ -11,7 +11,7 @@ import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
@@ -88,7 +88,7 @@ public class WireMockMappingBuilder<Req, Res> {
 
         this.requestJsonName = fileName;
 
-        final ResourcesLoader loader = useDefault ? this.loaderResources.mappingDefaultRequest()
+        final JsonLoader loader = useDefault ? this.loaderResources.mappingDefaultRequest()
                 : this.loaderResources.mappingRequest();
 
         final Consumer<Req> effectiveMutator = useDefault
@@ -171,7 +171,7 @@ public class WireMockMappingBuilder<Req, Res> {
 
         this.responseJsonName = fileName;
 
-        final ResourcesLoader loader = useDefault ? this.loaderResources.mappingDefaultResponse()
+        final JsonLoader loader = useDefault ? this.loaderResources.mappingDefaultResponse()
                 : this.loaderResources.mappingResponse();
 
         final Consumer<Res> effectiveMutator = useDefault

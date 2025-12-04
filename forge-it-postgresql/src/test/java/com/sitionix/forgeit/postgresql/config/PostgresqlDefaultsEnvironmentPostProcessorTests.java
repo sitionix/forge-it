@@ -12,15 +12,14 @@ class PostgresqlDefaultsEnvironmentPostProcessorTests {
             new PostgresqlDefaultsEnvironmentPostProcessor();
 
     @Test
-    void shouldLoadDefaultPostgreSqlProperties() {
-        MockEnvironment environment = new MockEnvironment();
+    void shouldLoadDefaultPostgresqlProperties() {
+        final MockEnvironment environment = new MockEnvironment();
 
         this.postProcessor.postProcessEnvironment(environment, new SpringApplication(Object.class));
 
         assertThat(environment.getProperty("forge-it.modules.postgresql.enabled")).isEqualTo("true");
         assertThat(environment.getProperty("forge-it.modules.postgresql.mode")).isEqualTo("internal");
-        assertThat(environment.getProperty("forge-it.modules.postgresql.host")).isEqualTo("localhost");
-        assertThat(environment.getProperty("forge-it.modules.postgresql.port")).isEqualTo("5432");
-        assertThat(environment.getProperty("forge-it.modules.postgresql.template")).isEqualTo("postgresql-template");
+        assertThat(environment.getProperty("forge-it.modules.postgresql.connection.host")).isEqualTo("localhost");
+        assertThat(environment.getProperty("forge-it.modules.postgresql.connection.port")).isEqualTo("5432");
     }
 }
