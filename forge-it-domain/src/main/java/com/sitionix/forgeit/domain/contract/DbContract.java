@@ -1,6 +1,16 @@
 package com.sitionix.forgeit.domain.contract;
 
-@FunctionalInterface
+import java.util.List;
+
 public interface DbContract<E> {
-    void describe();
+
+    Class<E> entityType();
+
+    List<DbDependency<E, ?>> dependencies();
+
+    default DbContractInvocation<E> withJson(final String jsonResourceName) {
+        return new DbContractInvocation<>(this, jsonResourceName);
+    }
 }
+
+

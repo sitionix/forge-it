@@ -1,8 +1,8 @@
 package com.sitionix.forgeit.application.loader.sql;
 
+import com.sitionix.forgeit.domain.loader.SqlLoader;
 import com.sitionix.forgeit.domain.model.sql.ScriptPhase;
 import com.sitionix.forgeit.domain.model.sql.SqlScriptDescriptor;
-import com.sitionix.forgeit.domain.loader.SqlLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -13,9 +13,12 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+
 @RequiredArgsConstructor
 @Component
 public class SqlLoaderImpl implements SqlLoader {
+
+    private static final String BASE_FORGE_IT_PATH = "forge-it/";
 
     private final ResourcePatternResolver resolver;
     private String rootLocation;
@@ -25,9 +28,12 @@ public class SqlLoaderImpl implements SqlLoader {
         if (basePath == null || basePath.isBlank()) {
             throw new IllegalArgumentException("Base path for SQL scripts must not be null or blank");
         }
-        this.rootLocation = basePath.endsWith("/")
+
+        final String normalized = basePath.endsWith("/")
                 ? basePath.substring(0, basePath.length() - 1)
                 : basePath;
+
+        this.rootLocation = BASE_FORGE_IT_PATH + normalized;
     }
 
     @Override
@@ -36,8 +42,10 @@ public class SqlLoaderImpl implements SqlLoader {
             throw new IllegalStateException("Base path for SQL scripts is not configured. Call setBasePath(...) first.");
         }
 
+        final String pattern = "classpath*:" + this.rootLocation + "/**/*.sql";
+
         try {
-            final Resource[] resources = this.resolver.getResources(this.rootLocation + "/**/*.sql");
+            final Resource[] resources = this.resolver.getResources(pattern);
 
             return Arrays.stream(resources)
                     .map(this::toDescriptor)
@@ -93,4 +101,3 @@ public class SqlLoaderImpl implements SqlLoader {
         return Integer.parseInt(filename.substring(0, i));
     }
 }
-

@@ -1,7 +1,7 @@
 package com.sitionix.forgeit.postgresql.internal.repository;
 
-import com.sitionix.forgeit.domain.contract.DbGraphBuilder;
-import com.sitionix.forgeit.postgresql.internal.config.PostgresqlProperties;
+import com.sitionix.forgeit.domain.contract.DbEntityFactory;
+import com.sitionix.forgeit.domain.contract.graph.DbGraphBuilder;
 import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostgresForge {
 
-    private final PostgresqlProperties properties;
+    private final DbEntityFactory entityFactory;
 
     public DbGraphBuilder create() {
-        return new PostgresGraphBuilder();
+        return new PostgresGraphBuilder(this.entityFactory);
     }
 }

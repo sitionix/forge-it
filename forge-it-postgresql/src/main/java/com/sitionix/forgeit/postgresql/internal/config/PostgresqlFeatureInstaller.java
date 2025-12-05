@@ -20,9 +20,9 @@ public final class PostgresqlFeatureInstaller implements FeatureInstaller {
     }
 
     @Override
-    public void install(FeatureInstallationContext context) {
+    public void install(final FeatureInstallationContext context) {
         final ConfigurableApplicationContext applicationContext = context.applicationContext();
-        if (!(applicationContext instanceof BeanDefinitionRegistry registry)) {
+        if (!(applicationContext instanceof final BeanDefinitionRegistry registry)) {
             throw new IllegalStateException("Postgresql installer requires a BeanDefinitionRegistry context");
         }
         new AnnotatedBeanDefinitionReader(registry).register(PostgresqlFeatureConfiguration.class);

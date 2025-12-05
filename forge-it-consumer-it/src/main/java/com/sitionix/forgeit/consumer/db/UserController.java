@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.consumer.db;
 
+import com.sitionix.forgeit.consumer.db.dto.UserDTO;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,8 @@ public class UserController {
     private final PostgresRepository postgresRepository;
 
     @PostMapping("/register")
-    public ResponseEntity<UserEntity> login(@RequestBody final UserEntity request) {
-        return ResponseEntity.ok(this.postgresRepository.createPostgres(request));
+    public ResponseEntity<UserDTO> login(@RequestBody final UserEntity request) {
+        final UserDTO response = UserDTO.asUserDTO(this.postgresRepository.createPostgres(request));
+        return ResponseEntity.ok(response);
     }
 }

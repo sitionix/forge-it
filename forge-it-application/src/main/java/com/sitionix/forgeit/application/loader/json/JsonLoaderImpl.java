@@ -17,18 +17,18 @@ public class JsonLoaderImpl implements JsonLoader {
     private String basePath;
 
     @Override
-    public <T> T getFromFile(String fileName, Class<T> tClass) {
+    public <T> T getFromFile(final String fileName, final Class<T> tClass) {
         final String file = this.loadResource(fileName);
         return this.getResourceAsObject(file, tClass);
     }
 
     @Override
-    public String getFromFile(String fileName) {
+    public String getFromFile(final String fileName) {
         return this.loadResource(fileName);
     }
 
     @Override
-    public void setBasePath(String basePath) {
+    public void setBasePath(final String basePath) {
         this.basePath = basePath;
     }
 

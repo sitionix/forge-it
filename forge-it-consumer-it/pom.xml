@@ -59,6 +59,13 @@
 
         <dependency>
             <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-domain</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
             <artifactId>forge-it-application</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

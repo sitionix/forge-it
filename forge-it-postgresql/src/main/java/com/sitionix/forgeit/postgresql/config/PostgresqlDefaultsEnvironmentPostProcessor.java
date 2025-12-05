@@ -22,8 +22,8 @@ public class PostgresqlDefaultsEnvironmentPostProcessor implements EnvironmentPo
     private final YamlPropertySourceLoader loader = new YamlPropertySourceLoader();
 
     @Override
-    public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
-        loadYaml(DEFAULT_RESOURCE, environment);
+    public void postProcessEnvironment(final ConfigurableEnvironment environment, final SpringApplication application) {
+        this.loadYaml(DEFAULT_RESOURCE, environment);
     }
 
     @Override
@@ -31,15 +31,15 @@ public class PostgresqlDefaultsEnvironmentPostProcessor implements EnvironmentPo
         return Ordered.LOWEST_PRECEDENCE;
     }
 
-    private void loadYaml(String resourcePath, ConfigurableEnvironment environment) {
-        Resource resource = new ClassPathResource(resourcePath);
+    private void loadYaml(final String resourcePath, final ConfigurableEnvironment environment) {
+        final Resource resource = new ClassPathResource(resourcePath);
         if (!resource.exists()) {
             return;
         }
         try {
-            List<PropertySource<?>> propertySources = this.loader.load(resourcePath, resource);
+            final List<PropertySource<?>> propertySources = this.loader.load(resourcePath, resource);
             propertySources.forEach(ps -> environment.getPropertySources().addLast(ps));
-        } catch (IOException ex) {
+        } catch (final IOException ex) {
             throw new IllegalStateException("Failed to load PostgreSQL default file " + resourcePath, ex);
         }
     }

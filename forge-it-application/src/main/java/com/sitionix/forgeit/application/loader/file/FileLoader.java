@@ -17,7 +17,7 @@ public class FileLoader {
                 throw new IllegalStateException(String.format("File not found: %s", filePath));
             }
             return new String(isLoader.readAllBytes());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(String.format("Failed to get file: %s", fileName));
         }
     }
