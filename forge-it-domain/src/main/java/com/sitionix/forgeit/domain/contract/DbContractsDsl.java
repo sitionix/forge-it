@@ -1,6 +1,9 @@
 package com.sitionix.forgeit.domain.contract;
 
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -54,24 +57,18 @@ public final class DbContractsDsl {
         @Override
         public DbContract<E> build() {
             final List<DbDependency<E, ?>> immutableDeps = List.copyOf(this.dependencies);
-            return new DefaultDbContract<>(this.entityType, immutableDeps);
+            return new DefaultDbContract<>(this.entityType,
+                    immutableDeps,
+                    this.defaultJsonResourceName);
         }
     }
 
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class DefaultDbContract<E> implements DbContract<E> {
 
         private final Class<E> entityType;
         private final List<DbDependency<E, ?>> dependencies;
-
-        private String defaultJsonResourceName;
-
-        private DefaultDbContract(
-                final Class<E> entityType,
-                final List<DbDependency<E, ?>> dependencies
-        ) {
-            this.entityType = entityType;
-            this.dependencies = dependencies;
-        }
+        private final String defaultJsonResourceName;
 
         @Override
         public Class<E> entityType() {

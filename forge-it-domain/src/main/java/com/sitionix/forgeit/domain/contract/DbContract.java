@@ -1,5 +1,7 @@
 package com.sitionix.forgeit.domain.contract;
 
+import com.sitionix.forgeit.domain.contract.body.JsonBodySpec;
+
 import java.util.List;
 
 public interface DbContract<E> {
@@ -11,10 +13,10 @@ public interface DbContract<E> {
     String defaultJsonResourceName();
 
     default DbContractInvocation<E> withJson(final String jsonResourceName) {
-        final String effective = (jsonResourceName != null)
-                ? jsonResourceName
-                : this.defaultJsonResourceName();
-        return new DbContractInvocation<>(this, effective);
+        if (jsonResourceName != null) {
+            return new DbContractInvocation<>(this, JsonBodySpec.explicitBody(jsonResourceName));
+        }
+        return new DbContractInvocation<>(this, JsonBodySpec.defaultBody(this.defaultJsonResourceName()));
     }
 }
 

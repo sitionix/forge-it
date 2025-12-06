@@ -17,8 +17,6 @@ public class PostgresDbEntityFactory implements DbEntityFactory {
     public <E> E create(final DbContractInvocation<E> invocation) {
         final DbContract<E> contract = invocation.contract();
         final Class<E> entityType = contract.entityType();
-        
-        final String jsonResourceName = invocation.jsonResourceName();
 
         final E entity = this.newInstance(entityType);
 
