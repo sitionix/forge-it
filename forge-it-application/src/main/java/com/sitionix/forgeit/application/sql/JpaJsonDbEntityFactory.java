@@ -1,48 +1,56 @@
-package com.sitionix.forgeit.postgresql.internal.domain;
+package com.sitionix.forgeit.application.sql;
 
-import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.DbEntityFactory;
 import com.sitionix.forgeit.domain.contract.body.BodySpecification;
+import com.sitionix.forgeit.domain.contract.body.JsonBodySource;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
-import com.sitionix.forgeit.postgresql.internal.config.PostgresqlProperties;
+import com.sitionix.forgeit.domain.model.sql.RelationalModuleProperties;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class PostgresDbEntityFactory implements DbEntityFactory {
+public class JpaJsonDbEntityFactory implements DbEntityFactory {
 
     private final EntityManager entityManager;
     private final JsonLoader jsonLoader;
-    private final PostgresqlProperties properties;
+    private final RelationalModuleProperties properties;
 
     @Override
     public <E> E create(final DbContractInvocation<E> invocation) {
-        final DbContract<E> contract = invocation.getContract();
-        final Class<E> entityType = contract.entityType();
+        final Class<E> entityType = invocation.getContract().entityType();
+        final BodySpecification<E> spec = invocation.getBodySpecification();
 
-        return this.getEntityFromSource(invocation.getBodySpecification(), entityType);
+        return this.getEntityFromSource(spec, entityType);
     }
 
-    private <E> E getEntityFromSource(final BodySpecification<E> bodySpecification, final Class<E> entityType) {
-        return switch (bodySpecification.getSource()) {
+    private <E> E getEntityFromSource(final BodySpecification<E> bodySpecification,
+                                      final Class<E> entityType) {
+
+        final JsonBodySource source = bodySpecification.getSource();
+
+        return switch (source) {
             case JSON_DEFAULT -> this.getEntityFromLoader(
                     this.properties.getPaths().getEntity().getDefaults(),
                     bodySpecification.getResourceName(),
-                    entityType);
+                    entityType
+            );
             case JSON -> this.getEntityFromLoader(
                     this.properties.getPaths().getEntity().getCustom(),
                     bodySpecification.getResourceName(),
-                    entityType);
+                    entityType
+            );
             case ENTITY -> bodySpecification.getEntity();
             case GET_BY_ID -> this.entityManager.find(entityType, bodySpecification.getId());
         };
     }
 
-    private <E> E getEntityFromLoader(final String path, final String resourceName, final Class<E> entityType) {
-        this.jsonLoader.setBasePath(path);
+    private <E> E getEntityFromLoader(final String basePath,
+                                      final String resourceName,
+                                      final Class<E> entityType) {
+        this.jsonLoader.setBasePath(basePath);
         return this.jsonLoader.getFromFile(resourceName, entityType);
     }
 }

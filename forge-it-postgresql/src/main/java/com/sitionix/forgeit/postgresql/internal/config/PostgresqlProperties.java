@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.postgresql.internal.config;
 
+import com.sitionix.forgeit.domain.model.sql.RelationalModuleProperties;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = PostgresqlProperties.PROPERTY_PREFIX)
-public final class PostgresqlProperties {
+public final class PostgresqlProperties implements RelationalModuleProperties {
 
     static final String PROPERTY_PREFIX = "forge-it.modules.postgresql";
 
@@ -22,7 +23,7 @@ public final class PostgresqlProperties {
     /**
      * Defines how PostgreSQL is provided: internally via Testcontainers or externally.
      */
-    private Mode mode;
+    private RelationalModuleProperties.Mode mode;
 
     /**
      * Container-related configuration (used for internal mode).
@@ -38,18 +39,12 @@ public final class PostgresqlProperties {
 
     /**
      * DDL / SQL scripts configuration (root path for SQL files).
-     * Maps from "forge-it.modules.postgresql.ddl-path".
+     * Maps from "forge-it.modules.postgresql.paths".
      */
     private Paths paths;
 
-    public enum Mode {
-        INTERNAL,
-        EXTERNAL
-    }
-
     @Data
     public static final class Container {
-
         /**
          * Docker image for PostgreSQL container (internal mode).
          */
@@ -58,7 +53,7 @@ public final class PostgresqlProperties {
     }
 
     @Data
-    public static final class Connection {
+    public static final class Connection implements RelationalModuleProperties.Connection {
 
         /**
          * Database name.
@@ -92,28 +87,37 @@ public final class PostgresqlProperties {
     }
 
     @Data
-    public static final class Paths {
+    public static final class Paths implements RelationalModuleProperties.Paths {
 
         /**
-         * Base path for SQL scripts (e.g. "db/postgresql" or "classpath:db/postgresql").
+         * Path group for DDL scripts.
          */
         private Ddl ddl;
 
+        /**
+         * Paths for JSON entity fixtures.
+         */
         private Entity entity;
 
-
         @Data
-        public static final class Entity {
-            private String defaults;
-            private String custom;
+        public static final class Ddl implements RelationalModuleProperties.Paths.Ddl {
+            /**
+             * Base path for schema-related SQL scripts.
+             */
+            private String path;
         }
 
-        /**
-         * Path for schema-related SQL scripts.
-         */
         @Data
-        public static final class Ddl {
-            private String path;
+        public static final class Entity implements RelationalModuleProperties.Paths.Entity {
+            /**
+             * Base path for default JSON payloads.
+             */
+            private String defaults;
+
+            /**
+             * Base path for custom JSON payloads (перевизначення дефолтів).
+             */
+            private String custom;
         }
     }
 }
