@@ -40,7 +40,7 @@ public final class PostgresqlProperties {
      * DDL / SQL scripts configuration (root path for SQL files).
      * Maps from "forge-it.modules.postgresql.ddl-path".
      */
-    private DdlPath ddlPath;
+    private Paths paths;
 
     public enum Mode {
         INTERNAL,
@@ -92,11 +92,28 @@ public final class PostgresqlProperties {
     }
 
     @Data
-    public static final class DdlPath {
+    public static final class Paths {
 
         /**
          * Base path for SQL scripts (e.g. "db/postgresql" or "classpath:db/postgresql").
          */
-        private String path;
+        private Ddl ddl;
+
+        private Entity entity;
+
+
+        @Data
+        public static final class Entity {
+            private String defaults;
+            private String custom;
+        }
+
+        /**
+         * Path for schema-related SQL scripts.
+         */
+        @Data
+        public static final class Ddl {
+            private String path;
+        }
     }
 }

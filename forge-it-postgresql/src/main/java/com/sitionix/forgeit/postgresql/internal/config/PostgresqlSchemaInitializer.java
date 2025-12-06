@@ -22,18 +22,18 @@ public class PostgresqlSchemaInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void initializeSchema() {
-        if (this.properties.getDdlPath() == null ||
-                this.properties.getDdlPath().getPath() == null ||
-                this.properties.getDdlPath().getPath().isBlank()) {
+        if (this.properties.getPaths() == null ||
+                this.properties.getPaths().getDdl().getPath() == null ||
+                this.properties.getPaths().getDdl().getPath().isBlank()) {
             log.debug("PostgreSQL DDL path is not configured, skipping schema initialization");
             return;
         }
 
-        final String basePath = this.properties.getDdlPath().getPath().trim();
+        final String basePath = this.properties.getPaths().getDdl().getPath().trim();
         log.info("Initializing PostgreSQL schema from path: {}", basePath);
 
         try {
-            this.sqlScriptExecutor.executeAllForDataSource(this.dataSource, this.properties.getDdlPath().getPath());
+            this.sqlScriptExecutor.executeAllForDataSource(this.dataSource, this.properties.getPaths().getDdl().getPath());
             log.info("PostgreSQL schema initialization completed successfully");
         } catch (final Exception ex) {
             log.error("PostgreSQL schema initialization failed", ex);
