@@ -1,6 +1,6 @@
 package com.sitionix.forgeit.domain.contract;
 
-import com.sitionix.forgeit.domain.contract.body.JsonBodySpec;
+import com.sitionix.forgeit.domain.contract.body.BodySpecification;
 
 import java.util.List;
 
@@ -14,9 +14,17 @@ public interface DbContract<E> {
 
     default DbContractInvocation<E> withJson(final String jsonResourceName) {
         if (jsonResourceName != null) {
-            return new DbContractInvocation<>(this, JsonBodySpec.explicitBody(jsonResourceName));
+            return new DbContractInvocation<>(this, BodySpecification.explicitJsonName(jsonResourceName));
         }
-        return new DbContractInvocation<>(this, JsonBodySpec.defaultBody(this.defaultJsonResourceName()));
+        return new DbContractInvocation<>(this, BodySpecification.defaultJsonName(this.defaultJsonResourceName()));
+    }
+
+    default DbContractInvocation<E> withEntity(final E entity) {
+        return new DbContractInvocation<>(this, BodySpecification.entityBody(entity));
+    }
+
+    default DbContractInvocation<E> getById(final Long id) {
+        return new DbContractInvocation<>(this, BodySpecification.getById(id));
     }
 }
 

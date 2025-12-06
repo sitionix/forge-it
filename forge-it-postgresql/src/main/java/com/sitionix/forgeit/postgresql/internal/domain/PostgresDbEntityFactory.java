@@ -3,8 +3,7 @@ package com.sitionix.forgeit.postgresql.internal.domain;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.DbEntityFactory;
-import com.sitionix.forgeit.domain.contract.body.JsonBodySource;
-import com.sitionix.forgeit.domain.contract.body.JsonBodySpec;
+import com.sitionix.forgeit.domain.contract.body.BodySpecification;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.postgresql.internal.config.PostgresqlProperties;
 import jakarta.persistence.EntityManager;
@@ -21,26 +20,29 @@ public class PostgresDbEntityFactory implements DbEntityFactory {
 
     @Override
     public <E> E create(final DbContractInvocation<E> invocation) {
-        final DbContract<E> contract = invocation.contract();
+        final DbContract<E> contract = invocation.getContract();
         final Class<E> entityType = contract.entityType();
 
-        final E entity = this.getEntityFromSource(invocation.jsonBodySpec(), entityType);
-
-        this.entityManager.persist(entity);
-
-        return entity;
+        return this.getEntityFromSource(invocation.getBodySpecification(), entityType);
     }
 
-    private <E> E getEntityFromSource(final JsonBodySpec jsonBodySpec, final Class<E> entityType) {
-        this.injectPathToLoader(jsonBodySpec.source());
-        return this.jsonLoader.getFromFile(jsonBodySpec.resourceName(), entityType);
+    private <E> E getEntityFromSource(final BodySpecification<E> bodySpecification, final Class<E> entityType) {
+        return switch (bodySpecification.getSource()) {
+            case JSON_DEFAULT -> this.getEntityFromLoader(
+                    this.properties.getPaths().getEntity().getDefaults(),
+                    bodySpecification.getResourceName(),
+                    entityType);
+            case JSON -> this.getEntityFromLoader(
+                    this.properties.getPaths().getEntity().getCustom(),
+                    bodySpecification.getResourceName(),
+                    entityType);
+            case ENTITY -> bodySpecification.getEntity();
+            case GET_BY_ID -> this.entityManager.find(entityType, bodySpecification.getId());
+        };
     }
 
-    private void injectPathToLoader(final JsonBodySource source) {
-        switch (source) {
-            case DEFAULT -> this.jsonLoader.setBasePath(this.properties.getPaths().getEntity().getDefaults());
-            case EXPLICIT -> this.jsonLoader.setBasePath(this.properties.getPaths().getEntity().getCustom());
-            default -> throw new IllegalArgumentException("Unknown JsonBodySource: " + source);
-        }
+    private <E> E getEntityFromLoader(final String path, final String resourceName, final Class<E> entityType) {
+        this.jsonLoader.setBasePath(path);
+        return this.jsonLoader.getFromFile(resourceName, entityType);
     }
 }

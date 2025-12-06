@@ -15,6 +15,6 @@ public class DbContracts {
     public static final DbContract<UserEntity> USER_ENTITY_DB_CONTRACT =
             DbContractsDsl.entity(UserEntity.class)
                     .dependsOn(USER_STATUS_ENTITY_DB_CONTRACT, UserEntity::setStatus)
-                    .withDefaultBody("user-entity.json")
+                    .withDefaultBody("default_user_entity.json")
                     .build();
 }

@@ -13,7 +13,7 @@ forge-it:
         port: 5432
       paths:
         entity:
-          defaults: db/postgresql/entities/default
-          custom: db/postgresql/entities/custom
+          defaults: /db/postgresql/entities/default
+          custom: /db/postgresql/entities/custom
         ddl:
-          path: db/postgresql
+          path: /db/postgresql

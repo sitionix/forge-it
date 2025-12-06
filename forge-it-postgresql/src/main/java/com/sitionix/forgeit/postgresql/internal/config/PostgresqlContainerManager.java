@@ -1,7 +1,5 @@
 package com.sitionix.forgeit.postgresql.internal.config;
 
-import com.sitionix.forgeit.domain.executor.SqlScriptExecutor;
-import com.sitionix.forgeit.domain.loader.SqlLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -12,7 +10,6 @@ import org.springframework.stereotype.Component;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import javax.sql.DataSource;
 import java.util.Map;
 import java.util.Objects;
 

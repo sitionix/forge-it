@@ -1,7 +1,6 @@
 package com.sitionix.forgeit.domain.contract.graph;
 
 import com.sitionix.forgeit.domain.contract.DbContract;
-import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;

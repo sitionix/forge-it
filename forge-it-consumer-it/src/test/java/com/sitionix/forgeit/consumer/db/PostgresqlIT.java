@@ -15,9 +15,10 @@ class PostgresqlIT {
 
     @Test
     void test() {
+
         this.forgeIt.postgresql()
                 .create()
-                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT)
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT)
                 .build();
 

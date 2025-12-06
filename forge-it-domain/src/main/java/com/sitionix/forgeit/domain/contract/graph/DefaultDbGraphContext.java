@@ -20,7 +20,7 @@ public final class DefaultDbGraphContext implements DbGraphContext {
     @Override
     @SuppressWarnings("unchecked")
     public synchronized <E> E getOrCreate(final DbContractInvocation<E> invocation) {
-        final DbContract<E> contract = invocation.contract();
+        final DbContract<E> contract = invocation.getContract();
 
         return (E) this.cache.computeIfAbsent(contract, c -> {
             final E entity = this.entityFactory.create(invocation);

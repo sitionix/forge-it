@@ -18,7 +18,7 @@ import java.util.Objects;
 @Component
 public class SqlLoaderImpl implements SqlLoader {
 
-    private static final String BASE_FORGE_IT_PATH = "forge-it/";
+    private static final String BASE_FORGE_IT_PATH = "forge-it";
 
     private final ResourcePatternResolver resolver;
     private String rootLocation;
