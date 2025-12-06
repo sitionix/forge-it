@@ -8,8 +8,13 @@ public interface DbContract<E> {
 
     List<DbDependency<E, ?>> dependencies();
 
+    String defaultJsonResourceName();
+
     default DbContractInvocation<E> withJson(final String jsonResourceName) {
-        return new DbContractInvocation<>(this, jsonResourceName);
+        final String effective = (jsonResourceName != null)
+                ? jsonResourceName
+                : this.defaultJsonResourceName();
+        return new DbContractInvocation<>(this, effective);
     }
 }
 

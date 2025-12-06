@@ -1,9 +1,6 @@
 package com.sitionix.forgeit.domain.contract;
 
 
-import com.sitionix.forgeit.domain.contract.DbContract;
-import com.sitionix.forgeit.domain.contract.DbDependency;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -24,6 +21,8 @@ public final class DbContractsDsl {
                 BiConsumer<E, P> attach
         );
 
+        <P> DbContractBuilder <E> withDefaultBody(String jsonNome);
+
         DbContract<E> build();
     }
 
@@ -31,6 +30,7 @@ public final class DbContractsDsl {
 
         private final Class<E> entityType;
         private final List<DbDependency<E, ?>> dependencies = new ArrayList<>();
+        private String defaultJsonResourceName;
 
         private DefaultDbContractBuilder(final Class<E> entityType) {
             this.entityType = entityType;
@@ -46,6 +46,12 @@ public final class DbContractsDsl {
         }
 
         @Override
+        public <P> DbContractBuilder<E> withDefaultBody(final String jsonNome) {
+            this.defaultJsonResourceName = jsonNome;
+            return this;
+        }
+
+        @Override
         public DbContract<E> build() {
             final List<DbDependency<E, ?>> immutableDeps = List.copyOf(this.dependencies);
             return new DefaultDbContract<>(this.entityType, immutableDeps);
@@ -56,6 +62,8 @@ public final class DbContractsDsl {
 
         private final Class<E> entityType;
         private final List<DbDependency<E, ?>> dependencies;
+
+        private String defaultJsonResourceName;
 
         private DefaultDbContract(
                 final Class<E> entityType,
@@ -73,6 +81,11 @@ public final class DbContractsDsl {
         @Override
         public List<DbDependency<E, ?>> dependencies() {
             return this.dependencies;
+        }
+
+        @Override
+        public String defaultJsonResourceName() {
+            return this.defaultJsonResourceName;
         }
     }
 }

@@ -1,12 +1,13 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
-import com.sitionix.forgeit.domain.contract.DbContract;
+import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.DbEntityFactory;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphBuilder;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphChain;
+import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
 import com.sitionix.forgeit.domain.contract.graph.DefaultDbGraphContext;
 
-public class PostgresGraphBuilder implements DbGraphBuilder {
+public final class PostgresGraphBuilder implements DbGraphBuilder {
 
     private final DbEntityFactory entityFactory;
 
@@ -15,11 +16,13 @@ public class PostgresGraphBuilder implements DbGraphBuilder {
     }
 
     @Override
-    public <E> DbGraphChain<E> to(final DbContract<E> contract) {
-        if (contract == null) {
-            throw new IllegalArgumentException("DbContract must not be null");
+    public <E> DbGraphChain<E> to(final DbContractInvocation<E> invocation) {
+        if (invocation == null) {
+            throw new IllegalArgumentException("DbContractInvocation must not be null");
         }
-        final DefaultDbGraphContext context = new DefaultDbGraphContext(this.entityFactory);
-        return new PostgresDbGraphChain<>(context, contract);
+
+        final DbGraphContext context = new DefaultDbGraphContext(this.entityFactory);
+        return new PostgresDbGraphChain<>(context, invocation);
     }
 }
+

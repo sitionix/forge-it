@@ -1,8 +1,9 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
-
 import com.sitionix.forgeit.domain.contract.DbContract;
+import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.DbEntityFactory;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,17 +11,30 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PostgresDbEntityFactory implements DbEntityFactory {
 
-
+    private final EntityManager entityManager;
 
     @Override
-    public <E> E create(final DbContract<E> contract) {
+    public <E> E create(final DbContractInvocation<E> invocation) {
+        final DbContract<E> contract = invocation.contract();
+        final Class<E> entityType = contract.entityType();
+        
+        final String jsonResourceName = invocation.jsonResourceName();
 
+        final E entity = this.newInstance(entityType);
 
-        // TODO: тут ти:
-        // 1) знаходиш відповідний JSON (пізніше – через DbContractInvocation)
-        // 2) мапиш його в E
-        // 3) робиш insert у Postgres
-        // 4) повертаєш ентіті E
-        throw new UnsupportedOperationException("Not implemented yet");
+        this.entityManager.persist(entity);
+
+        return entity;
+    }
+
+    private <E> E newInstance(final Class<E> entityType) {
+        try {
+            return entityType.getDeclaredConstructor().newInstance();
+        } catch (final ReflectiveOperationException ex) {
+            throw new IllegalStateException(
+                    "Cannot instantiate entity type: " + entityType.getName(),
+                    ex
+            );
+        }
     }
 }
