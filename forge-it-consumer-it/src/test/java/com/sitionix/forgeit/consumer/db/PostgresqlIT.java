@@ -19,7 +19,7 @@ class PostgresqlIT {
     private ForgeItSupport forgeIt;
 
     @Test
-    void test() {
+    void givenOneCreatedRecord_whenCreateUser_thenVerifySize() {
         this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
