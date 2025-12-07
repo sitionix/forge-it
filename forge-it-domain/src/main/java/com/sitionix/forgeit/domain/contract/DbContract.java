@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.domain.contract;
 
 import com.sitionix.forgeit.domain.contract.body.BodySpecification;
+import com.sitionix.forgeit.domain.contract.clean.CleanupPolicy;
 
 import java.util.List;
 
@@ -11,6 +12,8 @@ public interface DbContract<E> {
     List<DbDependency<E, ?>> dependencies();
 
     String defaultJsonResourceName();
+
+    CleanupPolicy cleanupPolicy();
 
     default DbContractInvocation<E> withJson(final String jsonResourceName) {
         if (jsonResourceName != null) {

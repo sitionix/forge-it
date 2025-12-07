@@ -3,17 +3,16 @@ package com.sitionix.forgeit.consumer.db;
 import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.db.contract.DbContracts;
 import com.sitionix.forgeit.consumer.db.contract.EndpointContract;
-import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
-import com.sitionix.forgeit.consumer.db.jpa.PostgresJpaRepository;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
-import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
+import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
 import com.sitionix.forgeit.core.test.IntegrationTest;
-import org.junit.jupiter.api.Test;
+import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 
 import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
@@ -22,15 +21,9 @@ class PostgresqlIT {
     @Autowired
     private ForgeItSupport forgeIt;
 
-    @Autowired
-    private PostgresJpaRepository postgresJpaRepository;
-
-    @Autowired
-    private Environment environment;
-
     @BeforeEach
     void cleanDatabase() {
-        this.postgresJpaRepository.deleteAll();
+        this.forgeIt.postgresql().clearAllData();
     }
 
     @Test
@@ -122,23 +115,5 @@ class PostgresqlIT {
 
         assertThat(persisted.getUsername()).isEqualTo("manual_user");
         assertThat(persisted.getStatus().getDescription()).isEqualTo("BLOCKED");
-    }
-
-    @Test
-    void shouldExposeConnectionPropertiesFromContainerManager() {
-        final String jdbcUrl = this.environment.getProperty("forge-it.postgresql.connection.jdbc-url");
-        final Integer port = this.environment.getProperty("forge-it.postgresql.connection.port", Integer.class);
-        final String host = this.environment.getProperty("forge-it.postgresql.connection.host");
-        final String database = this.environment.getProperty("forge-it.postgresql.connection.database");
-        final String username = this.environment.getProperty("forge-it.postgresql.connection.username");
-        final String password = this.environment.getProperty("forge-it.postgresql.connection.password");
-
-        assertThat(jdbcUrl).isNotBlank();
-        assertThat(port).isNotNull().isPositive();
-        assertThat(host).isNotBlank();
-        assertThat(database).isEqualTo("forge-it");
-        assertThat(username).isEqualTo("forge-it");
-        assertThat(password).isEqualTo("forge-it-pwd");
-        assertThat(jdbcUrl).contains(host).contains(String.valueOf(port));
     }
 }

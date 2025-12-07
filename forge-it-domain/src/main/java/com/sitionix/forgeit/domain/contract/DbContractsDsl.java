@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.domain.contract;
 
 
+import com.sitionix.forgeit.domain.contract.clean.CleanupPolicy;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +27,8 @@ public final class DbContractsDsl {
 
         <P> DbContractBuilder <E> withDefaultBody(String jsonNome);
 
+        DbContractBuilder<E> cleanupPolicy(CleanupPolicy policy);
+
         DbContract<E> build();
     }
 
@@ -34,6 +37,7 @@ public final class DbContractsDsl {
         private final Class<E> entityType;
         private final List<DbDependency<E, ?>> dependencies = new ArrayList<>();
         private String defaultJsonResourceName;
+        private CleanupPolicy cleanupPolicy = CleanupPolicy.DELETE_ALL;
 
         private DefaultDbContractBuilder(final Class<E> entityType) {
             this.entityType = entityType;
@@ -55,11 +59,18 @@ public final class DbContractsDsl {
         }
 
         @Override
+        public DbContractBuilder<E> cleanupPolicy(final CleanupPolicy policy) {
+            this.cleanupPolicy = policy;
+            return this;
+        }
+
+        @Override
         public DbContract<E> build() {
             final List<DbDependency<E, ?>> immutableDeps = List.copyOf(this.dependencies);
             return new DefaultDbContract<>(this.entityType,
                     immutableDeps,
-                    this.defaultJsonResourceName);
+                    this.defaultJsonResourceName,
+                    this.cleanupPolicy);
         }
     }
 
@@ -69,6 +80,7 @@ public final class DbContractsDsl {
         private final Class<E> entityType;
         private final List<DbDependency<E, ?>> dependencies;
         private final String defaultJsonResourceName;
+        private final CleanupPolicy cleanupPolicy;
 
         @Override
         public Class<E> entityType() {
@@ -83,6 +95,11 @@ public final class DbContractsDsl {
         @Override
         public String defaultJsonResourceName() {
             return this.defaultJsonResourceName;
+        }
+
+        @Override
+        public CleanupPolicy cleanupPolicy() {
+            return this.cleanupPolicy;
         }
     }
 }
