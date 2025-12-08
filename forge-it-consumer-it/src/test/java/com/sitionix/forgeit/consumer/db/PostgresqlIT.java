@@ -23,7 +23,10 @@ class PostgresqlIT {
 
     @BeforeEach
     void cleanDatabase() {
-        this.forgeIt.postgresql().clearAllData();
+        this.forgeIt.postgresql().clearAllData(List.of(
+                DbContracts.USER_ENTITY_DB_CONTRACT,
+                DbContracts.USER_STATUS_ENTITY_DB_CONTRACT
+        ));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
+import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphChain;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
@@ -9,7 +10,9 @@ import jakarta.persistence.EntityManager;
 
 import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
 
@@ -57,12 +60,32 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
             for (final DbContractInvocation<?> invocation : this.chain) {
                 this.context.getOrCreate(invocation);
             }
+            final Map<DbContract<?>, Object> original = this.context.snapshot();
 
-            this.context.snapshot().values().forEach(this.entityManager::merge);
+            final Map<DbContract<?>, Object> managedMap = new LinkedHashMap<>();
+
+            for (final Map.Entry<DbContract<?>, Object> entry : original.entrySet()) {
+                final DbContract<?> contract = entry.getKey();
+                final Object entity = entry.getValue();
+
+                if (entity == null) {
+                    managedMap.put(contract, null);
+                    continue;
+                }
+
+                final Object managedEntity;
+                if (this.entityManager.contains(entity)) {
+                    managedEntity = entity;
+                } else {
+                    managedEntity = this.entityManager.merge(entity);
+                }
+
+                managedMap.put(contract, managedEntity);
+            }
 
             this.entityManager.flush();
 
-            return new DefaultDbGraphResult(this.context.snapshot());
+            return new DefaultDbGraphResult(Map.copyOf(managedMap));
         });
     }
 

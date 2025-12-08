@@ -4,6 +4,8 @@ import com.sitionix.forgeit.domain.contract.DbContract;
 
 import java.util.List;
 
-public interface DbCleaner {
-    void clearTables(List<DbContract<?>> contracts);
+public interface DbCleanupPlan {
+
+    List<DbContract<?>> contractsFor(CleanupPhase phase);
+
 }
