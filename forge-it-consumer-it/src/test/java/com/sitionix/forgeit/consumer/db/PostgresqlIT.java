@@ -5,7 +5,9 @@ import com.sitionix.forgeit.consumer.db.contract.DbContracts;
 import com.sitionix.forgeit.consumer.db.contract.EndpointContract;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
+import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,18 +18,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
+//@DbCleanup(phase = CleanupPhase.BEFORE_EACH)
 class PostgresqlIT {
 
     @Autowired
     private ForgeItSupport forgeIt;
-
-    @BeforeEach
-    void cleanDatabase() {
-        this.forgeIt.postgresql().clearAllData(List.of(
-                DbContracts.USER_ENTITY_DB_CONTRACT,
-                DbContracts.USER_STATUS_ENTITY_DB_CONTRACT
-        ));
-    }
 
     @Test
     void givenOneCreatedRecord_whenCreateUser_thenVerifySize() {

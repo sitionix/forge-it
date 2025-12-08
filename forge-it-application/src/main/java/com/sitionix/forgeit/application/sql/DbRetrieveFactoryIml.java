@@ -4,7 +4,6 @@ import com.sitionix.forgeit.domain.model.sql.DbRetrieveFactory;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 

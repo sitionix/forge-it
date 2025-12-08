@@ -1,2 +1,5 @@
 org.springframework.test.context.ContextCustomizerFactory=\
 com.sitionix.forgeit.core.internal.test.IntegrationTestContextCustomizerFactory
+org.springframework.test.context.TestExecutionListener=\
+com.sitionix.forgeit.application.executor.ForgeItDbCleanupTestExecutionListener
+
