@@ -6,6 +6,7 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
@@ -22,6 +23,8 @@ public class JpaDbCleaner implements DbCleaner {
     @Override
     public void clearTables(final List<DbContract<?>> contracts) {
         final TransactionTemplate tx = new TransactionTemplate(this.transactionManager);
+
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         tx.execute(status -> {
 

@@ -7,6 +7,7 @@ import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.domain.contract.clean.DbCleaner;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
 
@@ -16,11 +17,12 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public int getOrder() {
-        return 100;
+        return 3000;
     }
 
     @Override
     public void beforeTestClass(final TestContext testContext) {
+        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveClassPhase(testContext);
         if (phase == CleanupPhase.BEFORE_ALL) {
             this.performCleanup(testContext);
@@ -29,6 +31,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestMethod(final TestContext testContext) {
+        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.BEFORE_EACH) {
             this.performCleanup(testContext);
@@ -37,6 +40,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void afterTestMethod(final TestContext testContext) {
+        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.AFTER_EACH) {
             this.performCleanup(testContext);
@@ -45,6 +49,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void afterTestClass(final TestContext testContext) {
+        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveClassPhase(testContext);
         if (phase == CleanupPhase.AFTER_ALL) {
             this.performCleanup(testContext);
@@ -91,5 +96,24 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
             return null;
         }
         return annotation.phase();
+    }
+
+    private void validateConfiguration(final Class<?> testClass) {
+        final DbCleanup classCleanup = AnnotatedElementUtils.findMergedAnnotation(testClass, DbCleanup.class);
+        final CleanupPhase phase = classCleanup != null ? classCleanup.phase() : CleanupPhase.NONE;
+
+        final Rollback rollback = AnnotatedElementUtils.findMergedAnnotation(testClass, Rollback.class);
+        final boolean rollbackEnabled = rollback == null || rollback.value();
+
+        if (rollbackEnabled && phase != CleanupPhase.NONE) {
+            throw new IllegalStateException("""
+                    ForgeIT configuration error for test class %s: rollback=true and DbCleanup.phase=%s.%n
+                    This combination leads to flaky tests.%n
+                    Please choose ONE of the following:%n
+                      - rollback=true  and DbCleanup.phase=NONE  (Spring-style transactional tests)%n
+                      - rollback=false and DbCleanup.phase!=NONE (ForgeIT DB cleanup mode)
+                    """.formatted(testClass.getName(), phase));
+
+        }
     }
 }

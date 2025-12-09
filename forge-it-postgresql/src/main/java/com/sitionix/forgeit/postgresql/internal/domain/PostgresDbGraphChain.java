@@ -8,7 +8,6 @@ import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import com.sitionix.forgeit.domain.contract.graph.DefaultDbGraphResult;
 import jakarta.persistence.EntityManager;
 
-import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,33 +19,26 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
     private final List<DbContractInvocation<?>> chain;
     private final DbContractInvocation<E> last;
     private final EntityManager entityManager;
-    private final TransactionTemplate transactionTemplate;
 
     public PostgresDbGraphChain(
             final DbGraphContext context,
             final DbContractInvocation<E> firstInvocation,
-            final EntityManager entityManager,
-            final TransactionTemplate transactionTemplate
-    ) {
+            final EntityManager entityManager) {
         this(context,
                 List.of(firstInvocation),
                 firstInvocation,
-                entityManager,
-                transactionTemplate);
+                entityManager);
     }
 
     private PostgresDbGraphChain(
             final DbGraphContext context,
             final List<DbContractInvocation<?>> chain,
             final DbContractInvocation<E> last,
-            final EntityManager entityManager,
-            final TransactionTemplate transactionTemplate
-            ) {
+            final EntityManager entityManager) {
         this.context = context;
         this.chain = chain;
         this.last = last;
         this.entityManager = entityManager;
-        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -56,7 +48,6 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
 
     @Override
     public DbGraphResult build() {
-        return this.transactionTemplate.execute(status -> {
             for (final DbContractInvocation<?> invocation : this.chain) {
                 this.context.getOrCreate(invocation);
             }
@@ -86,7 +77,6 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
             this.entityManager.flush();
 
             return new DefaultDbGraphResult(Map.copyOf(managedMap));
-        });
     }
 
     @Override
@@ -96,8 +86,7 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
         return new PostgresDbGraphChain<>(this.context,
                 nextChain,
                 nextInvocation,
-                this.entityManager,
-                this.transactionTemplate);
+                this.entityManager);
     }
 }
 

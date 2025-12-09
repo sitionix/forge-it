@@ -1,9 +1,10 @@
 package com.sitionix.forgeit.core.internal.test;
 
-import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.annotation.ForgeFeatures;
+import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
-import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.core.test.ForgeItTest;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
@@ -21,17 +22,17 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
     private static final String GENERATED_FEATURES_PACKAGE = "com.sitionix.forgeit.core.generated";
 
     @Override
-    public ContextCustomizer createContextCustomizer(Class<?> testClass,
-                                                     List<ContextConfigurationAttributes> configAttributes) {
-        if (!AnnotatedElementUtils.hasAnnotation(testClass, IntegrationTest.class)) {
+    public ContextCustomizer createContextCustomizer(final @NotNull Class<?> testClass,
+                                                     final @NotNull List<ContextConfigurationAttributes> configAttributes) {
+        if (!AnnotatedElementUtils.hasAnnotation(testClass, ForgeItTest.class)) {
             return null;
         }
-        final Class<?> contractType = resolveContractType(testClass);
-        final List<Class<? extends FeatureSupport>> features = List.copyOf(resolveFeatures(contractType));
+        final Class<?> contractType = this.resolveContractType(testClass);
+        final List<Class<? extends FeatureSupport>> features = List.copyOf(this.resolveFeatures(contractType));
         return new ForgeIntegrationTestContextCustomizer(contractType, features);
     }
 
-    private Class<?> resolveContractType(Class<?> testClass) {
+    private Class<?> resolveContractType(final Class<?> testClass) {
         final Set<Class<?>> candidates = new LinkedHashSet<>();
         ReflectionUtils.doWithFields(testClass, field -> {
             if (!Modifier.isStatic(field.getModifiers()) && ForgeIT.class.isAssignableFrom(field.getType())) {
@@ -52,32 +53,30 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
     }
 
     @SuppressWarnings("unchecked")
-    private Set<Class<? extends FeatureSupport>> resolveFeatures(Class<?> contractType) {
+    private Set<Class<? extends FeatureSupport>> resolveFeatures(final Class<?> contractType) {
         final Set<Class<? extends FeatureSupport>> features = new LinkedHashSet<>();
-        collectFeatures(contractType, features, new LinkedHashSet<>());
+        this.collectFeatures(contractType, features, new LinkedHashSet<>());
         return features;
     }
 
-    private void collectFeatures(Class<?> type,
-                                 Set<Class<? extends FeatureSupport>> features,
-                                 Set<Class<?>> visited) {
+    private void collectFeatures(final Class<?> type,
+                                 final Set<Class<? extends FeatureSupport>> features,
+                                 final Set<Class<?>> visited) {
         if (!visited.add(type)) {
             return;
         }
         final ForgeFeatures annotation = AnnotatedElementUtils.findMergedAnnotation(type, ForgeFeatures.class);
         if (annotation != null) {
-            for (Class<? extends FeatureSupport> feature : annotation.value()) {
-                features.add(feature);
-            }
+            features.addAll(Arrays.asList(annotation.value()));
         }
-        for (Class<?> parent : type.getInterfaces()) {
+        for (final Class<?> parent : type.getInterfaces()) {
             if (FeatureSupport.class.isAssignableFrom(parent)
                     && parent != FeatureSupport.class
                     && !GENERATED_FEATURES_PACKAGE.equals(parent.getPackageName())
                     && Arrays.asList(parent.getInterfaces()).contains(FeatureSupport.class)) {
                 features.add((Class<? extends FeatureSupport>) parent);
             }
-            collectFeatures(parent, features, visited);
+            this.collectFeatures(parent, features, visited);
         }
     }
 }

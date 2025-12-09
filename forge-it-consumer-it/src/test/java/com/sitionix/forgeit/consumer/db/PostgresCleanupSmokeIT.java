@@ -3,7 +3,6 @@ package com.sitionix.forgeit.consumer.db;
 import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.db.contract.DbContracts;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
-import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import org.junit.jupiter.api.MethodOrderer;
@@ -16,9 +15,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
+@IntegrationTest(cleanupPhase = CleanupPhase.BEFORE_EACH,
+        rollback = false)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@DbCleanup(phase = CleanupPhase.BEFORE_EACH)
 class PostgresCleanupSmokeIT {
 
     @Autowired

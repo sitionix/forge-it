@@ -4,6 +4,7 @@ import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
 import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
