@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.LinkedHashMap;
@@ -33,9 +34,7 @@ public class PostgresGraphExecutor {
     }
 
     public DbGraphResult execute(final DbGraphContext context, final List<DbContractInvocation<?>> chain) {
-        final Propagation propagation = this.shouldUseMandatoryPropagation()
-                ? Propagation.MANDATORY
-                : Propagation.REQUIRED;
+        final Propagation propagation = this.resolvePropagation();
 
         final TransactionTemplate transactionTemplate = new TransactionTemplate(this.transactionManager);
         transactionTemplate.setPropagationBehavior(propagation.value());
@@ -76,12 +75,21 @@ public class PostgresGraphExecutor {
         return new DefaultDbGraphResult(Map.copyOf(managedMap));
     }
 
-    private boolean shouldUseMandatoryPropagation() {
+    private Propagation resolvePropagation() {
         final Class<?> testClass = TestRollbackContextHolder.getCurrentTestClass();
         if (testClass == null) {
-            return false;
+            return Propagation.REQUIRED;
         }
         final Rollback rollback = AnnotatedElementUtils.findMergedAnnotation(testClass, Rollback.class);
-        return rollback == null || rollback.value();
+        final boolean rollbackEnabled = rollback == null || rollback.value();
+        if (!rollbackEnabled) {
+            return Propagation.REQUIRED;
+        }
+
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            return Propagation.MANDATORY;
+        }
+
+        return Propagation.REQUIRED;
     }
 }
