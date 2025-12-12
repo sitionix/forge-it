@@ -29,7 +29,7 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         }
         final Class<?> contractType = this.resolveContractType(testClass);
         final List<Class<? extends FeatureSupport>> features = List.copyOf(this.resolveFeatures(contractType));
-        return new ForgeIntegrationTestContextCustomizer(contractType, features);
+        return new ForgeIntegrationTestContextCustomizer(testClass, contractType, features);
     }
 
     private Class<?> resolveContractType(final Class<?> testClass) {
