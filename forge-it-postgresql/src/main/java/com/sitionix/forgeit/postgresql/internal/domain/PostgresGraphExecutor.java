@@ -82,12 +82,11 @@ public class PostgresGraphExecutor {
         }
         final Rollback rollback = AnnotatedElementUtils.findMergedAnnotation(testClass, Rollback.class);
         final boolean rollbackEnabled = rollback == null || rollback.value();
-        if (!rollbackEnabled) {
+        if (rollbackEnabled && TransactionSynchronizationManager.isActualTransactionActive()) {
+            // Join the existing test transaction when it is active; otherwise, allow Spring
+            // to start a transaction so the graph execution can proceed without failing with
+            // an IllegalTransactionStateException.
             return Propagation.REQUIRED;
-        }
-
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            return Propagation.MANDATORY;
         }
 
         return Propagation.REQUIRED;
