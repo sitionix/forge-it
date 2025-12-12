@@ -6,7 +6,6 @@ import com.sitionix.forgeit.domain.contract.graph.DbGraphBuilder;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphChain;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
 import com.sitionix.forgeit.domain.contract.graph.DefaultDbGraphContext;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -14,7 +13,7 @@ public final class PostgresGraphBuilder implements DbGraphBuilder {
 
     private final DbEntityFactory entityFactory;
 
-    private final EntityManager entityManager;
+    private final PostgresGraphExecutor graphExecutor;
 
     @Override
     public <E> DbGraphChain<E> to(final DbContractInvocation<E> invocation) {
@@ -25,7 +24,7 @@ public final class PostgresGraphBuilder implements DbGraphBuilder {
         final DbGraphContext context = new DefaultDbGraphContext(this.entityFactory);
         return new PostgresDbGraphChain<>(context,
                 invocation,
-                this.entityManager);
+                this.graphExecutor);
     }
 }
 
