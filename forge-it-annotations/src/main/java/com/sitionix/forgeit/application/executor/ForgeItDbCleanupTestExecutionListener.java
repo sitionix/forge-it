@@ -22,6 +22,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestClass(final TestContext testContext) {
+        TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
         this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveClassPhase(testContext);
         if (phase == CleanupPhase.BEFORE_ALL) {
@@ -31,6 +32,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestMethod(final TestContext testContext) {
+        TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
         this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.BEFORE_EACH) {
@@ -45,6 +47,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
         if (phase == CleanupPhase.AFTER_EACH) {
             this.performCleanup(testContext);
         }
+        TestRollbackContextHolder.clear();
     }
 
     @Override
@@ -54,6 +57,7 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
         if (phase == CleanupPhase.AFTER_ALL) {
             this.performCleanup(testContext);
         }
+        TestRollbackContextHolder.clear();
     }
 
     private void performCleanup(final TestContext testContext) {
