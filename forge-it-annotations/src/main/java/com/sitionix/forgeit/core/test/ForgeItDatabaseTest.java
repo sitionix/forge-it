@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ForgeItTest
-@Transactional
+@Transactional(transactionManager = "transactionManager")
 @Rollback
 @TestExecutionListeners(
         listeners = ForgeItDbCleanupTestExecutionListener.class,

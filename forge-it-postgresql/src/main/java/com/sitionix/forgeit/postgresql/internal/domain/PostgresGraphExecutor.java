@@ -34,20 +34,10 @@ public class PostgresGraphExecutor {
     }
 
     public DbGraphResult execute(final DbGraphContext context, final List<DbContractInvocation<?>> chain) {
-        final TransactionMode transactionMode = this.resolveTransactionMode();
-
         final TransactionTemplate transactionTemplate = new TransactionTemplate(this.transactionManager);
-        transactionTemplate.setPropagationBehavior(transactionMode.propagation().value());
+        transactionTemplate.setPropagationBehavior(this.resolvePropagation().value());
 
-        return Objects.requireNonNull(transactionTemplate.execute(status -> {
-            final DbGraphResult result = this.executeGraph(context, chain);
-
-            if (transactionMode.forceRollback()) {
-                status.setRollbackOnly();
-            }
-
-            return result;
-        }));
+        return Objects.requireNonNull(transactionTemplate.execute(status -> this.executeGraph(context, chain)));
     }
 
     private DbGraphResult executeGraph(final DbGraphContext context, final List<DbContractInvocation<?>> chain) {
@@ -83,30 +73,23 @@ public class PostgresGraphExecutor {
         return new DefaultDbGraphResult(Map.copyOf(managedMap));
     }
 
-    private TransactionMode resolveTransactionMode() {
+    private Propagation resolvePropagation() {
         final Class<?> testClass = TestRollbackContextHolder.getCurrentTestClass();
         if (testClass == null) {
-            return TransactionMode.requiredNoForceRollback();
+            return Propagation.REQUIRED;
         }
 
         final Rollback rollback = AnnotatedElementUtils.findMergedAnnotation(testClass, Rollback.class);
         final boolean rollbackEnabled = rollback == null || rollback.value();
 
-        if (rollbackEnabled && !TransactionSynchronizationManager.isActualTransactionActive()) {
-            return TransactionMode.requiredForceRollback();
+        if (rollbackEnabled) {
+            return Propagation.MANDATORY;
         }
 
-        return TransactionMode.requiredNoForceRollback();
-    }
-
-    private record TransactionMode(Propagation propagation, boolean forceRollback) {
-
-        private static TransactionMode requiredForceRollback() {
-            return new TransactionMode(Propagation.REQUIRED, true);
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            return Propagation.MANDATORY;
         }
 
-        private static TransactionMode requiredNoForceRollback() {
-            return new TransactionMode(Propagation.REQUIRED, false);
-        }
+        return Propagation.REQUIRED;
     }
 }
