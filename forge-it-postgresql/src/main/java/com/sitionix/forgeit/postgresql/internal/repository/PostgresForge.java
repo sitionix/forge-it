@@ -7,7 +7,7 @@ import com.sitionix.forgeit.domain.contract.graph.DbGraphBuilder;
 import com.sitionix.forgeit.domain.model.sql.DbRetrieveFactory;
 import com.sitionix.forgeit.domain.model.sql.DbRetriever;
 import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphBuilder;
-import jakarta.persistence.EntityManager;
+import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphExecutor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +22,7 @@ public class PostgresForge {
 
     private final DbEntityFactory entityFactory;
 
-    private final EntityManager entityManager;
+    private final PostgresGraphExecutor graphExecutor;
 
     private final DbRetrieveFactory retrieveFactory;
 
@@ -30,7 +30,7 @@ public class PostgresForge {
 
     public DbGraphBuilder create() {
         return new PostgresGraphBuilder(this.entityFactory,
-                this.entityManager);
+                this.graphExecutor);
     }
 
     public <E> DbRetriever<E> get(final Class<E> entityClass) {
