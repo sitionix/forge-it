@@ -3,7 +3,7 @@ package com.sitionix.forgeit.core.internal.test;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
-import org.springframework.transaction.interceptor.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 import org.springframework.transaction.interceptor.TransactionAttribute;
 
