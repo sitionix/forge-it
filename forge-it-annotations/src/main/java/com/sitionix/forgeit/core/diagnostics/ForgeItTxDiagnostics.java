@@ -200,20 +200,26 @@ public final class ForgeItTxDiagnostics {
             return List.of();
         }
 
-        final Object manager = ReflectionTestUtils.getField(testContext, "testContextManager");
-        if (manager == null) {
-            return List.of();
-        }
+        try {
+            final Object manager = ReflectionTestUtils.getField(testContext, "testContextManager");
+            if (manager == null) {
+                return List.of("unavailable: testContextManager not exposed on TestContext");
+            }
 
-        final Object listeners = ReflectionTestUtils.invokeMethod(manager, "getTestExecutionListeners");
-        if (!(listeners instanceof TestExecutionListener[] typed)) {
-            return List.of();
-        }
+            final Object listeners = ReflectionTestUtils.invokeMethod(manager, "getTestExecutionListeners");
+            if (!(listeners instanceof TestExecutionListener[] typed)) {
+                return List.of("unavailable: unexpected listener container type %s".formatted(
+                        listeners == null ? "null" : listeners.getClass().getName()
+                ));
+            }
 
-        return Arrays.stream(typed)
-                .filter(Objects::nonNull)
-                .map(listener -> listener.getClass().getName())
-                .collect(Collectors.toList());
+            return Arrays.stream(typed)
+                    .filter(Objects::nonNull)
+                    .map(listener -> listener.getClass().getName())
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException ex) {
+            return List.of("unavailable: " + ex.getMessage());
+        }
     }
 
     private static Optional<JpaTransactionManager> resolveJpaTransactionManager(final ApplicationContext context) {
