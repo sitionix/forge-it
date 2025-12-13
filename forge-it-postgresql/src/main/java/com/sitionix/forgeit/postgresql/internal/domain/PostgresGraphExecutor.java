@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
+import com.sitionix.forgeit.core.diagnostics.ForgeItTxDiagnostics;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
@@ -8,7 +9,7 @@ import com.sitionix.forgeit.domain.contract.graph.DefaultDbGraphResult;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.jpa.EntityManagerFactoryUtils;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -20,20 +21,19 @@ import java.util.Map;
 public class PostgresGraphExecutor {
 
     private final EntityManagerFactory emf;
+    private final ApplicationContext applicationContext;
 
-    public PostgresGraphExecutor(final EntityManagerFactory emf) {
+    public PostgresGraphExecutor(final EntityManagerFactory emf, final ApplicationContext applicationContext) {
         this.emf = emf;
+        this.applicationContext = applicationContext;
     }
 
     public DbGraphResult execute(final DbGraphContext context, final List<DbContractInvocation<?>> chain) {
-        final EntityManager em = EntityManagerFactoryUtils.getTransactionalEntityManager(this.emf);
-
-        if (em == null) {
-            throw new IllegalStateException("""
-                ForgeIT expected an active JPA transactional EntityManager, but none is bound.
-                This means your test tx exists in Spring, but JPA EM is not joined/bound to it.
-                """);
-        }
+        final EntityManager em = ForgeItTxDiagnostics.requireTransactionalEntityManager(
+                this.applicationContext,
+                this.emf,
+                "PostgresGraphExecutor.execute"
+        );
 
         return this.executeGraph(em, context, chain);
     }

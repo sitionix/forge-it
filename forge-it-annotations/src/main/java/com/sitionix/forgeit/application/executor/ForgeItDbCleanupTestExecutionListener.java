@@ -1,10 +1,12 @@
 package com.sitionix.forgeit.application.executor;
 
 import com.sitionix.forgeit.core.contract.DbCleanup;
+import com.sitionix.forgeit.core.diagnostics.ForgeItTxDiagnostics;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractsRegistry;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.domain.contract.clean.DbCleaner;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.test.annotation.Rollback;
@@ -16,6 +18,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.util.List;
 
+@Slf4j
 public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExecutionListener {
 
     @Override
@@ -35,35 +38,19 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestMethod(final TestContext testContext) {
-
-        PlatformTransactionManager tmByName =
-                TestContextTransactionUtils.retrieveTransactionManager(
-                        testContext,
-                        "transactionManager"
-                );
-
-        System.out.println(
-                "SpringTest TM(byName=transactionManager) = " +
-                        (tmByName == null ? null : tmByName.getClass().getName())
+        PlatformTransactionManager tmByName = TestContextTransactionUtils.retrieveTransactionManager(
+                testContext,
+                "transactionManager"
         );
 
-        System.out.println(
-                "TSM.isActualTransactionActive = " +
-                        TransactionSynchronizationManager.isActualTransactionActive()
+        log.info(
+                "ForgeIT Tx baseline beforeTestMethod: TM(byName=transactionManager)={}, TSM.active={}, TestTransaction.active={}",
+                tmByName == null ? null : tmByName.getClass().getName(),
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                org.springframework.test.context.transaction.TestTransaction.isActive()
         );
 
-        System.out.println(
-                "TestTransaction.isActive = " +
-                        org.springframework.test.context.transaction.TestTransaction.isActive()
-        );
-
-        var tx = org.springframework.core.annotation.AnnotatedElementUtils
-                .findMergedAnnotation(testContext.getTestClass(), org.springframework.transaction.annotation.Transactional.class);
-
-        System.out.println("@Transactional merged on testClass = " + (tx != null));
-        if (tx != null) {
-            System.out.println("txManager=" + tx.transactionManager() + ", propagation=" + tx.propagation());
-        }
+        ForgeItTxDiagnostics.logTestPhaseSnapshot("ForgeItDbCleanupTestExecutionListener.beforeTestMethod", testContext);
 
         TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
 
