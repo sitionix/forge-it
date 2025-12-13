@@ -10,6 +10,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
+import org.springframework.test.context.transaction.TestContextTransactionUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -32,13 +35,47 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestMethod(final TestContext testContext) {
+
+        PlatformTransactionManager tmByName =
+                TestContextTransactionUtils.retrieveTransactionManager(
+                        testContext,
+                        "transactionManager"
+                );
+
+        System.out.println(
+                "SpringTest TM(byName=transactionManager) = " +
+                        (tmByName == null ? null : tmByName.getClass().getName())
+        );
+
+        System.out.println(
+                "TSM.isActualTransactionActive = " +
+                        TransactionSynchronizationManager.isActualTransactionActive()
+        );
+
+        System.out.println(
+                "TestTransaction.isActive = " +
+                        org.springframework.test.context.transaction.TestTransaction.isActive()
+        );
+
+        var tx = org.springframework.core.annotation.AnnotatedElementUtils
+                .findMergedAnnotation(testContext.getTestClass(), org.springframework.transaction.annotation.Transactional.class);
+
+        System.out.println("@Transactional merged on testClass = " + (tx != null));
+        if (tx != null) {
+            System.out.println("txManager=" + tx.transactionManager() + ", propagation=" + tx.propagation());
+        }
+
         TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
+
         this.validateConfiguration(testContext.getTestClass());
+
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.BEFORE_EACH) {
             this.performCleanup(testContext);
         }
     }
+
+
 
     @Override
     public void afterTestMethod(final TestContext testContext) {

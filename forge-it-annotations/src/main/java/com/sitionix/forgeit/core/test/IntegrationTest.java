@@ -7,10 +7,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.TestExecutionListeners;
+import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
@@ -22,11 +24,15 @@ import java.lang.annotation.Target;
 @Transactional(transactionManager = "transactionManager")
 @Rollback
 @TestExecutionListeners(
-        listeners = ForgeItDbCleanupTestExecutionListener.class,
+        listeners = {
+                TransactionalTestExecutionListener.class,
+                ForgeItDbCleanupTestExecutionListener.class
+        },
         mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
 )
 @DbCleanup(phase = CleanupPhase.NONE)
 @AutoConfigureMockMvc
+@Inherited
 public @interface IntegrationTest {
 
     @AliasFor(annotation = Rollback.class, attribute = "value")
@@ -35,3 +41,4 @@ public @interface IntegrationTest {
     @AliasFor(annotation = DbCleanup.class, attribute = "phase")
     CleanupPhase cleanupPhase() default CleanupPhase.NONE;
 }
+
