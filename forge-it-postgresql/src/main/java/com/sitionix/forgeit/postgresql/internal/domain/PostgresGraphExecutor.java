@@ -10,8 +10,11 @@ import jakarta.persistence.EntityManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.orm.jpa.EntityManagerFactoryUtils;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,19 +23,23 @@ import java.util.Map;
 @Component
 public class PostgresGraphExecutor {
 
+    private final JpaTransactionManager transactionManager;
+
     private static final Logger log = LoggerFactory.getLogger(PostgresGraphExecutor.class);
 
-    private final EntityManagerFactory emf;
-
-    public PostgresGraphExecutor(EntityManagerFactory emf) {
-        this.emf = emf;
+    public PostgresGraphExecutor(JpaTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
     public DbGraphResult execute(DbGraphContext context, List<DbContractInvocation<?>> chain) {
+        EntityManagerFactory emf = this.transactionManager.getEntityManagerFactory();
+
         EntityManager em = EntityManagerFactoryUtils.getTransactionalEntityManager(emf);
         if (em == null) {
             throw new IllegalStateException("No transactional EntityManager bound to current thread");
         }
+
 
         log.info("[PostgresGraphExecutor] TSM.active={}, name={}, resources={}, emf={}, em={}, em.joined={}, hasResource={}",
                 TransactionSynchronizationManager.isActualTransactionActive(),
@@ -71,4 +78,3 @@ public class PostgresGraphExecutor {
         return value.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(value));
     }
 }
-
