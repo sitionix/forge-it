@@ -6,8 +6,9 @@ import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import com.sitionix.forgeit.domain.contract.graph.DefaultDbGraphResult;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import org.springframework.orm.jpa.EntityManagerFactoryUtils;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -17,18 +18,11 @@ import java.util.Map;
 @Component
 public class PostgresGraphExecutor {
 
-    private final EntityManagerFactory emf;
+    @PersistenceContext
+    private EntityManager em;
 
-    public PostgresGraphExecutor(EntityManagerFactory emf) {
-        this.emf = emf;
-    }
-
+    @Transactional(propagation = Propagation.MANDATORY)
     public DbGraphResult execute(DbGraphContext context, List<DbContractInvocation<?>> chain) {
-        EntityManager em = EntityManagerFactoryUtils.getTransactionalEntityManager(emf);
-        if (em == null) {
-            throw new IllegalStateException("No transactional EntityManager bound to current thread");
-        }
-
         for (DbContractInvocation<?> invocation : chain) {
             context.getOrCreate(invocation);
         }
