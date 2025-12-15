@@ -110,6 +110,12 @@ public final class ForgeItTxDiagnostics {
                 .map(entry -> " - %s => %s".formatted(describe(entry.getKey()), describe(entry.getValue())))
                 .toList();
 
+        final List<String> resourceKeys = resourceMap.keySet()
+                .stream()
+                .map(ForgeItTxDiagnostics::describe)
+                .sorted()
+                .toList();
+
         final String txName = TransactionSynchronizationManager.getCurrentTransactionName();
         final Integer isolation = TransactionSynchronizationManager.getCurrentTransactionIsolationLevel();
         final boolean readOnly = TransactionSynchronizationManager.isCurrentTransactionReadOnly();
@@ -134,6 +140,9 @@ public final class ForgeItTxDiagnostics {
 
         builder.append("EntityManagerFactory beans:\n");
         emfBeans.forEach(line -> builder.append(line).append('\n'));
+
+        builder.append("TSM.resourceMap keys:\n");
+        resourceKeys.forEach(line -> builder.append(" - ").append(line).append('\n'));
 
         if (executorEmf != null) {
             builder.append("Executor EMF identity: ").append(describe(executorEmf)).append('\n');
