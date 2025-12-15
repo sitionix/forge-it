@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.core.test;
 
 import com.sitionix.forgeit.application.executor.ForgeItDbCleanupTestExecutionListener;
+import com.sitionix.forgeit.application.executor.ForgeItTxDiagnosticTestExecutionListener;
 import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,8 +26,8 @@ import java.lang.annotation.Target;
 @Rollback
 @TestExecutionListeners(
         listeners = {
-                TransactionalTestExecutionListener.class,
-                ForgeItDbCleanupTestExecutionListener.class
+                ForgeItDbCleanupTestExecutionListener.class,
+                ForgeItTxDiagnosticTestExecutionListener.class
         },
         mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
 )
