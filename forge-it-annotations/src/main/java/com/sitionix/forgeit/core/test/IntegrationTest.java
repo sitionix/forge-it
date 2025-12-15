@@ -26,7 +26,6 @@ import java.lang.annotation.Target;
 @Rollback
 @TestExecutionListeners(
         listeners = {
-                TransactionalTestExecutionListener.class,
                 ForgeItDbCleanupTestExecutionListener.class,
                 ForgeItTxDiagnosticTestExecutionListener.class
         },
