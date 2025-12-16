@@ -11,14 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ForgeItTransactionalTestExecutionListener extends TransactionalTestExecutionListener {
 
     @Override
-    protected boolean isTestMethodTransactional(final TestContext testContext) {
-        return super.isTestMethodTransactional(testContext)
-                || AnnotatedElementUtils.hasAnnotation(testContext.getTestMethod(), Transactional.class);
-    }
-
-    @Override
-    protected boolean isClassTransactional(final TestContext testContext) {
-        return super.isClassTransactional(testContext)
+    protected boolean isTransactional(final TestContext testContext) {
+        return super.isTransactional(testContext)
+                || AnnotatedElementUtils.hasAnnotation(testContext.getTestMethod(), Transactional.class)
                 || AnnotatedElementUtils.hasAnnotation(testContext.getTestClass(), Transactional.class);
     }
 }
