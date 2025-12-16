@@ -235,6 +235,146 @@ When defaults exist, `applyDefault(...)` can override the default request/respon
 status before execution. If you skip request/response bodies altogether, the builder still
 performs status-only assertions.
 
+## PostgreSQL support
+
+`PostgresqlSupport` drives relational test data through JSON fixtures, contract graphs,
+and optional Testcontainers orchestration. It mirrors the patterns used in WireMock and
+MockMvc so that API stubs, database seeding, and cleanup share the same lifecycle.
+
+### Configuration
+
+Defaults are provided by `forge-it-postgresql-default.yml`, but every key can be
+overridden in your test configuration:
+
+```yaml
+forge-it:
+  modules:
+    postgresql:
+      enabled: true              # disable to skip the module entirely
+      mode: internal             # or "external" to reuse an existing instance
+      container:
+        image: postgres:16-alpine
+      connection:
+        database: forge-it
+        username: forge-it
+        password: forge-it-pwd
+        host: localhost          # required when mode is external
+        port: 5432               # required when mode is external
+        jdbc-url: jdbc:postgresql://localhost:5432/forge-it
+      paths:
+        entity:
+          defaults: /db/postgresql/entities/default  # default JSON payloads
+          custom: /db/postgresql/entities/custom     # overrides for specific scenarios
+        ddl:
+          path: /db/postgresql                       # root folder for schema SQL files
+      tx-policy: requires_new   # REQUIRED, REQUIRES_NEW, or MANDATORY
+```
+
+- **Internal mode** starts a `postgres:16-alpine` Testcontainer and publishes
+  `forge-it.postgresql.connection.*` properties (JDBC URL, host, port, credentials)
+  into the Spring Environment. The module shuts the container down on context close.
+- **External mode** reuses an existing database; you must provide `host` and `port`
+  (or a `jdbc-url`) under `connection`.
+- **Schema initialization** runs on `ApplicationReadyEvent` when `paths.ddl.path` is
+  set. All SQL files under the configured folder are executed against the active
+  `DataSource` via `SqlScriptExecutor`.
+- **Transaction policy** controls how the graph executor participates in Spring
+  transactions. `MANDATORY` requires an existing transaction (otherwise a
+  `ForgeItConfigurationException` is thrown), while `REQUIRED`/`REQUIRES_NEW` wrap the
+  graph execution in a `TransactionTemplate` with the matching propagation level.
+
+### Declaring DB contracts
+
+Contracts describe how to build entities from fixtures and how to wire dependencies.
+Use `DbContractsDsl` to keep these declarations in one place:
+
+```java
+import static com.sitionix.forgeit.domain.contract.DbContractsDsl.entity;
+
+public final class DbContracts {
+    public static final DbContract<UserEntity> USER = entity(UserEntity.class)
+            .withDefaultBody("user.json")
+            .cleanupPolicy(CleanupPolicy.DELETE_ALL) // include in cleanup cycle
+            .build();
+
+    public static final DbContract<AddressEntity> ADDRESS = entity(AddressEntity.class)
+            .dependsOn(USER, AddressEntity::setUser) // auto-attach parent
+            .withDefaultBody("address.json")
+            .build();
+
+    private DbContracts() {}
+}
+```
+
+- `withDefaultBody(...)` points at a JSON file under the `paths.entity.defaults`
+  folder; `withJson(...)` on the invocation overrides it with a file from the
+  `paths.entity.custom` folder.
+- `dependsOn(...)` wires parent/child relations; dependencies are resolved and attached
+  when the graph is built.
+- `cleanupPolicy(CleanupPolicy.NONE)` opts an entity out of automatic table truncation
+  while `DELETE_ALL` (the default) includes it.
+
+### Building graphs and seeding data
+
+Use the fluent graph builder to chain contract invocations and persist them inside the
+configured transaction boundary:
+
+```java
+@ForgeFeatures(PostgresqlSupport.class)
+class UserFlowTests implements ForgeIT {
+
+    @Test
+    void shouldPersistUserGraph() {
+        final DbGraphResult graph = this.postgresql().create()
+                .to(DbContracts.USER.withJson("custom-user.json"))
+                .to(DbContracts.ADDRESS) // uses the default body and attaches USER
+                .build();
+
+        final UserEntity user = graph.entity(DbContracts.USER); // managed entity
+        final AddressEntity address = graph.entity(DbContracts.ADDRESS);
+        // exercise the SUT using the persisted data...
+    }
+}
+```
+
+Invocation options mirror the contract body specification:
+
+- `contract.withJson("user-overrides.json")` loads a custom fixture.
+- `contract.withEntity(existingUser)` uses a pre-built entity instance instead of a
+  JSON file.
+- `contract.getById(id)` pulls an existing row via `EntityManager#find` when you want
+  to reference previously seeded data.
+
+The builder caches entities per contract during a single `build()` call, so multiple
+children sharing a parent receive the same managed instance. After the graph executes,
+entities are merged into the active `EntityManager` and flushed.
+
+### Reading data back in tests
+
+`postgresql().get(...)` exposes a thin retrieval API on top of JPA for quick assertions:
+
+```java
+final DbRetriever<UserEntity> users = forgeit.postgresql().get(UserEntity.class);
+assertThat(users.getById(1L)).isNotNull();
+assertThat(users.getAll()).hasSize(3);
+```
+
+### Cleanup strategies
+
+The default `@IntegrationTest` meta-annotation runs database cleanup **after each**
+test via `ForgeItDbCleanupTestExecutionListener`, which gathers all known contracts
+from `DbContractsRegistry` and deletes rows for contracts whose `cleanupPolicy` is
+`DELETE_ALL`.
+
+- Override the lifecycle per test/class with `@DbCleanup(phase = CleanupPhase.BEFORE_ALL | BEFORE_EACH | AFTER_EACH | AFTER_ALL | NONE)`.
+- Mark specific contracts with `CleanupPolicy.NONE` to exclude them from truncation.
+- Trigger a manual cleanup by calling `forgeit.postgresql().clearAllData(contracts)` if
+  you need to wipe a subset of contracts mid-test.
+
+Because cleanup runs in a new transaction and issues JPQL `DELETE FROM <Entity>` per
+unique entity type, keep your contracts registry complete so that every table seeded in
+tests is accounted for.
+
 ## Release flow
 
 The repository is set up to automatically cut releases whenever changes are pushed to the
