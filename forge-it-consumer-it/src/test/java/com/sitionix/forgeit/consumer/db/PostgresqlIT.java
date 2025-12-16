@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
@@ -42,10 +43,10 @@ class PostgresqlIT {
         log.info("[TEST] executorFromContext id={} class={}",
                 System.identityHashCode(this.executor),
                 this.executor.getClass().getName());
-        log.info("[CTX-TEST] bfId={} tmId={} emfId={}",
-                System.identityHashCode(this.context.getAutowireCapableBeanFactory()),
-                System.identityHashCode(this.context.getBean("transactionManager")),
-                System.identityHashCode(this.context.getBean("entityManagerFactory")));
+        log.info("[CTX] bfId={} tm={} emfNames={}",
+                System.identityHashCode(((ConfigurableApplicationContext) this.context).getBeanFactory()),
+                TxProbe.describe(this.context.getBean("transactionManager")),
+                java.util.Arrays.toString(this.context.getBeanNamesForType(jakarta.persistence.EntityManagerFactory.class)));
 
         Assertions.assertTrue(
                 TransactionSynchronizationManager.isActualTransactionActive(),
