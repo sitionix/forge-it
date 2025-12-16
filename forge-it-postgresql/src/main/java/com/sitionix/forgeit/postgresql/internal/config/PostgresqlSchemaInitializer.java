@@ -3,6 +3,7 @@ package com.sitionix.forgeit.postgresql.internal.config;
 import com.sitionix.forgeit.domain.executor.SqlScriptExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ public class PostgresqlSchemaInitializer {
     @SuppressWarnings("unused")
     private final PostgresqlContainerManager containerManager;
     private final SqlScriptExecutor sqlScriptExecutor;
+    @Qualifier("postgresDataSource")
     private final DataSource dataSource;
     private final PostgresqlProperties properties;
 
