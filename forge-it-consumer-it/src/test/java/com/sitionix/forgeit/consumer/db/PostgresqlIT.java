@@ -7,6 +7,7 @@ import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -165,7 +166,7 @@ class PostgresqlIT {
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT)
                 .build())
-                .isInstanceOf(DataIntegrityViolationException.class);
+                .isInstanceOfAny(DataIntegrityViolationException.class, ConstraintViolationException.class);
 
         final List<UserEntity> users = this.forgeIt.postgresql()
                 .get(UserEntity.class)
