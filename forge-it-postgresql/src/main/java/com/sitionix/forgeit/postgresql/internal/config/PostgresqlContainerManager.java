@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.postgresql.internal.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -15,6 +16,7 @@ import java.util.Objects;
 
 @RequiredArgsConstructor
 @Component
+@ConditionalOnProperty(prefix = PostgresqlProperties.PROPERTY_PREFIX, name = "enabled", havingValue = "true")
 public final class PostgresqlContainerManager implements InitializingBean, DisposableBean {
 
     private static final String PROPERTY_SOURCE_NAME = "forgeItPostgresql";

@@ -27,12 +27,17 @@ public final class PostgresqlFeatureInstaller implements FeatureInstaller {
         if (!(applicationContext instanceof final BeanDefinitionRegistry registry)) {
             throw new IllegalStateException("Postgresql installer requires a BeanDefinitionRegistry context");
         }
+        final boolean enabled = Boolean.TRUE.equals(
+                applicationContext.getEnvironment()
+                        .getProperty(PostgresqlProperties.PROPERTY_PREFIX + ".enabled", Boolean.class));
+        if (!enabled) {
+            return;
+        }
         new AnnotatedBeanDefinitionReader(registry).register(PostgresqlFeatureConfiguration.class);
     }
 
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(PostgresqlSupport.class)
-    @ConditionalOnProperty(prefix = PostgresqlProperties.PROPERTY_PREFIX, name = "enabled", havingValue = "true")
     @ComponentScan(basePackages = "com.sitionix.forgeit.postgresql.internal")
     static class PostgresqlFeatureConfiguration {
     }

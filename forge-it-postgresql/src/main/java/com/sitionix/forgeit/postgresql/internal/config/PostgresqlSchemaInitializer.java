@@ -3,6 +3,7 @@ package com.sitionix.forgeit.postgresql.internal.config;
 import com.sitionix.forgeit.domain.executor.SqlScriptExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,7 @@ import javax.sql.DataSource;
 @Slf4j
 @RequiredArgsConstructor
 @Component
+@ConditionalOnProperty(prefix = PostgresqlProperties.PROPERTY_PREFIX, name = "enabled", havingValue = "true")
 public class PostgresqlSchemaInitializer {
 
     @SuppressWarnings("unused")

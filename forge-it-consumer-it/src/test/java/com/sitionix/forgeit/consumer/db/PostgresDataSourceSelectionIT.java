@@ -6,12 +6,18 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.test.context.TestPropertySource;
 
 import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @IntegrationTest
+@TestPropertySource(properties = {
+        "spring.datasource.url=jdbc:postgresql://example.invalid:6543/consumer-main-db",
+        "spring.datasource.username=main-user",
+        "spring.datasource.password=main-pass"
+})
 class PostgresDataSourceSelectionIT {
 
     @SuppressWarnings("unused")
