@@ -7,11 +7,8 @@ import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.transaction.TestTransaction;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -25,12 +22,6 @@ class PostgresqlIT {
 
     @Test
     void givenOneCreatedRecord_whenCreateUser_thenVerifySize() {
-
-        System.out.println("TSM txActive=" + TransactionSynchronizationManager.isActualTransactionActive());
-        System.out.println("TSM txName=" + TransactionSynchronizationManager.getCurrentTransactionName());
-        System.out.println("TSM resources=" + TransactionSynchronizationManager.getResourceMap().keySet());
-
-
         this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))

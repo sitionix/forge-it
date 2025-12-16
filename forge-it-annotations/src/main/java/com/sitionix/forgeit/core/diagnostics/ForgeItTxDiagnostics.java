@@ -32,9 +32,12 @@ public final class ForgeItTxDiagnostics {
     }
 
     public static void logTestPhaseSnapshot(final String phaseLabel, final TestContext testContext) {
+        if (!log.isDebugEnabled()) {
+            return;
+        }
         final ApplicationContext context = testContext.getApplicationContext();
         final String diagnostics = buildDiagnostics(phaseLabel, context, testContext, null);
-        log.info("{}\n{}", phaseLabel, diagnostics);
+        log.debug("{}\n{}", phaseLabel, diagnostics);
     }
 
     public static EntityManager requireTransactionalEntityManager(
@@ -79,7 +82,9 @@ public final class ForgeItTxDiagnostics {
             throw new IllegalStateException(message.toString());
         }
 
-        log.info("{}\n{}", phaseLabel, buildDiagnostics(phaseLabel, context, null, executorEmf));
+        if (log.isDebugEnabled()) {
+            log.debug("{}\n{}", phaseLabel, buildDiagnostics(phaseLabel, context, null, executorEmf));
+        }
         return em;
     }
 
