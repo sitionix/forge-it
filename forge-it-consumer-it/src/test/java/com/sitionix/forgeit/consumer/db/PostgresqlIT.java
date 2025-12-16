@@ -5,12 +5,16 @@ import com.sitionix.forgeit.consumer.db.contract.DbContracts;
 import com.sitionix.forgeit.consumer.db.contract.EndpointContract;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
+import com.sitionix.forgeit.core.diagnostics.TxProbe;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
-import org.junit.jupiter.api.AfterEach;
+import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphExecutor;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.transaction.TestTransaction;
+import org.springframework.context.ApplicationContext;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
@@ -20,15 +24,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 @IntegrationTest
 class PostgresqlIT {
 
+    private static final Logger log = LoggerFactory.getLogger(PostgresqlIT.class);
+
     @Autowired
     private ForgeItSupport forgeIt;
+
+    @Autowired
+    private PostgresGraphExecutor executor;
+
+    @Autowired
+    private ApplicationContext context;
 
     @Test
     void givenOneCreatedRecord_whenCreateUser_thenVerifySize() {
 
-        System.out.println("TSM txActive=" + TransactionSynchronizationManager.isActualTransactionActive());
-        System.out.println("TSM txName=" + TransactionSynchronizationManager.getCurrentTransactionName());
-        System.out.println("TSM resources=" + TransactionSynchronizationManager.getResourceMap().keySet());
+        log.info(TxProbe.snapshot("test-before-build"));
+        log.info("[TEST] executorFromContext id={} class={}",
+                System.identityHashCode(this.executor),
+                this.executor.getClass().getName());
+        log.info("[CTX-TEST] bfId={} tmId={} emfId={}",
+                System.identityHashCode(this.context.getAutowireCapableBeanFactory()),
+                System.identityHashCode(this.context.getBean("transactionManager")),
+                System.identityHashCode(this.context.getBean("entityManagerFactory")));
+
+        Assertions.assertTrue(
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                "Expected TX active in test before build()"
+        );
 
 
         this.forgeIt.postgresql()

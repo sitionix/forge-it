@@ -1,14 +1,19 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
+import com.sitionix.forgeit.core.diagnostics.TxProbe;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphChain;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
+
+    private static final Logger log = LoggerFactory.getLogger(PostgresDbGraphChain.class);
 
     private final DbGraphContext context;
     private final List<DbContractInvocation<?>> chain;
@@ -43,7 +48,11 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
 
     @Override
     public DbGraphResult build() {
-            return this.graphExecutor.execute(this.context, this.chain);
+        log.info(TxProbe.snapshot("chain-build-entry"));
+        log.info("[CHAIN] executorClass={} executorId={}",
+                this.graphExecutor.getClass().getName(),
+                System.identityHashCode(this.graphExecutor));
+        return this.graphExecutor.execute(this.context, this.chain);
     }
 
     @Override
