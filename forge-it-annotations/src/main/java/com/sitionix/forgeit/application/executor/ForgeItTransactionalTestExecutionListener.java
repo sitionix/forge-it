@@ -13,12 +13,12 @@ public class ForgeItTransactionalTestExecutionListener extends TransactionalTest
     @Override
     protected boolean isTestMethodTransactional(final TestContext testContext) {
         return super.isTestMethodTransactional(testContext)
-                || AnnotatedElementUtils.findMergedAnnotation(testContext.getTestMethod(), Transactional.class) != null;
+                || AnnotatedElementUtils.hasAnnotation(testContext.getTestMethod(), Transactional.class);
     }
 
     @Override
     protected boolean isClassTransactional(final TestContext testContext) {
         return super.isClassTransactional(testContext)
-                || AnnotatedElementUtils.findMergedAnnotation(testContext.getTestClass(), Transactional.class) != null;
+                || AnnotatedElementUtils.hasAnnotation(testContext.getTestClass(), Transactional.class);
     }
 }
