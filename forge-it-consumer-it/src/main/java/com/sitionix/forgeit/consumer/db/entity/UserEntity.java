@@ -31,7 +31,7 @@ public class UserEntity {
     @Column(name = "USERNAME")
     private String username;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "STATUS_ID", nullable = false)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
