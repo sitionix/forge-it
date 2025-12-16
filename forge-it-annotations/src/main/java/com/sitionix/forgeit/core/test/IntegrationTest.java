@@ -1,15 +1,11 @@
 package com.sitionix.forgeit.core.test;
 
 import com.sitionix.forgeit.application.executor.ForgeItDbCleanupTestExecutionListener;
-import com.sitionix.forgeit.application.executor.ForgeItTxDiagnosticTestExecutionListener;
 import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.core.annotation.AliasFor;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -22,24 +18,18 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ForgeItTest
-@Transactional(transactionManager = "transactionManager")
-@Rollback
 @TestExecutionListeners(
         listeners = {
-                ForgeItDbCleanupTestExecutionListener.class,
-                ForgeItTxDiagnosticTestExecutionListener.class
+                ForgeItDbCleanupTestExecutionListener.class
         },
         mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
 )
-@DbCleanup(phase = CleanupPhase.NONE)
+@DbCleanup(phase = CleanupPhase.AFTER_EACH)
 @AutoConfigureMockMvc
 @Inherited
 public @interface IntegrationTest {
 
-    @AliasFor(annotation = Rollback.class, attribute = "value")
-    boolean rollback() default true;
-
     @AliasFor(annotation = DbCleanup.class, attribute = "phase")
-    CleanupPhase cleanupPhase() default CleanupPhase.NONE;
+    CleanupPhase cleanupPhase() default CleanupPhase.AFTER_EACH;
 }
 

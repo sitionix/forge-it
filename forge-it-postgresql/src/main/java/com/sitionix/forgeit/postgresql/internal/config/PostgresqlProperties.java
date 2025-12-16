@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.postgresql.internal.config;
 
 import com.sitionix.forgeit.domain.model.sql.RelationalModuleProperties;
+import com.sitionix.forgeit.postgresql.internal.domain.GraphTxPolicy;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,11 @@ public final class PostgresqlProperties implements RelationalModuleProperties {
      * Maps from "forge-it.modules.postgresql.paths".
      */
     private Paths paths;
+
+    /**
+     * Transaction policy used by graph executor.
+     */
+    private GraphTxPolicy txPolicy = GraphTxPolicy.REQUIRES_NEW;
 
     @Data
     public static final class Container {

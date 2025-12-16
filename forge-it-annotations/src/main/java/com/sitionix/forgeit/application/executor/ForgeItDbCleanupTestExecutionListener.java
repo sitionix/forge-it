@@ -1,7 +1,6 @@
 package com.sitionix.forgeit.application.executor;
 
 import com.sitionix.forgeit.core.contract.DbCleanup;
-import com.sitionix.forgeit.core.diagnostics.ForgeItTxDiagnostics;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractsRegistry;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
@@ -9,12 +8,8 @@ import com.sitionix.forgeit.domain.contract.clean.DbCleaner;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
-import org.springframework.test.context.transaction.TestContextTransactionUtils;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -28,8 +23,6 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestClass(final TestContext testContext) {
-        TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
-        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveClassPhase(testContext);
         if (phase == CleanupPhase.BEFORE_ALL) {
             this.performCleanup(testContext);
@@ -38,50 +31,26 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
     @Override
     public void beforeTestMethod(final TestContext testContext) {
-        PlatformTransactionManager tmByName = TestContextTransactionUtils.retrieveTransactionManager(
-                testContext,
-                "transactionManager"
-        );
-
-        log.info(
-                "ForgeIT Tx baseline beforeTestMethod: TM(byName=transactionManager)={}, TSM.active={}, TestTransaction.active={}",
-                tmByName == null ? null : tmByName.getClass().getName(),
-                TransactionSynchronizationManager.isActualTransactionActive(),
-                org.springframework.test.context.transaction.TestTransaction.isActive()
-        );
-
-        ForgeItTxDiagnostics.logTestPhaseSnapshot("ForgeItDbCleanupTestExecutionListener.beforeTestMethod", testContext);
-
-        TestRollbackContextHolder.setCurrentTestClass(testContext.getTestClass());
-
-        this.validateConfiguration(testContext.getTestClass());
-
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.BEFORE_EACH) {
             this.performCleanup(testContext);
         }
     }
 
-
-
     @Override
     public void afterTestMethod(final TestContext testContext) {
-        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveEffectivePhase(testContext);
         if (phase == CleanupPhase.AFTER_EACH) {
-            this.performCleanup(testContext);
+            this.performCleanupSafely(testContext);
         }
-        TestRollbackContextHolder.clear();
     }
 
     @Override
     public void afterTestClass(final TestContext testContext) {
-        this.validateConfiguration(testContext.getTestClass());
         final CleanupPhase phase = this.resolveClassPhase(testContext);
         if (phase == CleanupPhase.AFTER_ALL) {
             this.performCleanup(testContext);
         }
-        TestRollbackContextHolder.clear();
     }
 
     private void performCleanup(final TestContext testContext) {
@@ -93,6 +62,20 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
 
         final List<DbContract<?>> contracts = registry.allContracts();
         cleaner.clearTables(contracts);
+    }
+
+    private void performCleanupSafely(final TestContext testContext) {
+        final Throwable testException = testContext.getTestException();
+        try {
+            this.performCleanup(testContext);
+        } catch (RuntimeException ex) {
+            if (testException != null) {
+                log.error("DB cleanup after test {} failed; original test exception preserved.",
+                        testContext.getTestMethod(), ex);
+                return;
+            }
+            throw ex;
+        }
     }
 
     private CleanupPhase resolveClassPhase(final TestContext testContext) {
@@ -124,24 +107,5 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
             return null;
         }
         return annotation.phase();
-    }
-
-    private void validateConfiguration(final Class<?> testClass) {
-        final DbCleanup classCleanup = AnnotatedElementUtils.findMergedAnnotation(testClass, DbCleanup.class);
-        final CleanupPhase phase = classCleanup != null ? classCleanup.phase() : CleanupPhase.NONE;
-
-        final Rollback rollback = AnnotatedElementUtils.findMergedAnnotation(testClass, Rollback.class);
-        final boolean rollbackEnabled = rollback == null || rollback.value();
-
-        if (rollbackEnabled && phase != CleanupPhase.NONE) {
-            throw new IllegalStateException("""
-                    ForgeIT configuration error for test class %s: rollback=true and DbCleanup.phase=%s.%n
-                    This combination leads to flaky tests.%n
-                    Please choose ONE of the following:%n
-                      - rollback=true  and DbCleanup.phase=NONE  (Spring-style transactional tests)%n
-                      - rollback=false and DbCleanup.phase!=NONE (ForgeIT DB cleanup mode)
-                    """.formatted(testClass.getName(), phase));
-
-        }
     }
 }
