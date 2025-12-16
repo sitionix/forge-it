@@ -28,6 +28,5 @@ public class MockMvcEndpoint {
                         .response("loginResponse.json")
                         .status(200)
         );
-
     }
 }
