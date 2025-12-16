@@ -5,6 +5,7 @@ target/
 !.mvn/wrapper/maven-wrapper.properties
 !**/src/main/**/target/
 !**/src/test/**/target/
+AGENTS.md
 
 ### STS ###
 .apt_generated
