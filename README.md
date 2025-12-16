@@ -94,6 +94,16 @@ resource folders (mutators allow you to tweak payloads programmatically).
 - `applyDefault(...)` and `createDefault(...)` apply reusable defaults across multiple
 stubs.
 
+#### Fixture locations for WireMock JSON
+Request and response payloads resolve relative to the configured `mapping.request` and
+`mapping.response` paths (defaults: `/wiremock/request` and `/wiremock/response` under
+`src/test/resources/forge-it`). Default payloads consumed by `applyDefault(...)` and
+`createDefault(...)` load from `mapping.default-request` and `mapping.default-response`.
+Keep reusable templates in the default folders (for example,
+`forge-it/wiremock/default/response/responseLoginDefault.json`) and store per-scenario
+payloads under the main request/response paths. Mutators work with either location so you
+can adjust fixtures at runtime without editing files.
+
 #### Default logic and reusable stubs
 
 Default mappings let you define a reusable baseline and selectively override it per
@@ -182,6 +192,13 @@ forge-it:
         default-response: /mockmvc/default/response
 ```
 
+Request and response JSON files live under `src/test/resources/forge-it` by default, so
+`request("loginRequest.json")` resolves to `forge-it/mockmvc/request/loginRequest.json`.
+Defaults declared on an `Endpoint` or via `executeDefault(...)` read from the
+`default-request`/`default-response` folders, while per-test overrides sit under the main
+`request`/`response` paths. This separation keeps reusable templates tidy without blocking
+bespoke payloads for specific scenarios.
+
 ### Executing requests
 
 Use `forgeit.mockMvc().ping(...)` with an `Endpoint` definition to drive the request.
@@ -263,6 +280,34 @@ forge-it:
           custom: /db/postgresql/entities/custom
       tx-policy: REQUIRES_NEW    # REQUIRED | REQUIRES_NEW | MANDATORY
 ```
+
+### Schema, constraints, and seed scripts
+SQL scripts execute deterministically: everything under `schema/`, then `constraints/`,
+then `data/`, and finally any other folder (treated as `custom`). Inside a phase,
+filenames are ordered by their leading number, so `001_create_users.sql` runs before
+`110_add_fk.sql`; files without a numeric prefix run last within the phase. Drop your own
+DDL, constraint, and seed files under `src/test/resources/forge-it/db/postgresql/**` (or
+the path set in `forge-it.modules.postgresql.paths.ddl.path`) to extend the database for
+your tests. The sample consumer illustrates the layout:
+
+- `schema/*.sql` for table creation
+- `constraints/*.sql` for foreign keys, unique indexes, or checks
+- `data/*.sql` for reference or seed rows
+- any other folder for custom scripts that should run after data loads
+
+### Entity fixtures and JSON mapping
+Entities can be hydrated from JSON rather than hand-built objects. Default bodies declared
+via `.withDefaultBody(...)` load from `forge-it.modules.postgresql.paths.entity.defaults`
+(defaults to `/db/postgresql/entities/default`), while `.withJson(...)` pulls from
+`forge-it.modules.postgresql.paths.entity.custom` (default `/db/postgresql/entities/custom`).
+Resources are resolved under `src/test/resources/forge-it`, so
+`withDefaultBody("default_user_entity.json")` maps to
+`forge-it/db/postgresql/entities/default/default_user_entity.json`, and
+`withJson("priority_user_entity.json")` maps to
+`forge-it/db/postgresql/entities/custom/priority_user_entity.json`. Override the paths if
+you prefer a different folder structure. Keep JSON aligned with the entity structure that
+Jackson deserialises; combine shared defaults with scenario-specific custom files to avoid
+duplicating base shapes.
 
 ### Declaring contracts and building graphs
 Use `DbContractsDsl` to describe entities, defaults, and dependencies. Cleanup defaults to
