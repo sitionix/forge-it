@@ -3,6 +3,8 @@ package com.sitionix.forgeit.postgresql.internal.config;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstallationContext;
 import com.sitionix.forgeit.core.internal.feature.FeatureInstaller;
 import com.sitionix.forgeit.postgresql.api.PostgresqlSupport;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotatedBeanDefinitionReader;
@@ -29,6 +31,8 @@ public final class PostgresqlFeatureInstaller implements FeatureInstaller {
     }
 
     @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(PostgresqlSupport.class)
+    @ConditionalOnProperty(prefix = PostgresqlProperties.PROPERTY_PREFIX, name = "enabled", havingValue = "true")
     @ComponentScan(basePackages = "com.sitionix.forgeit.postgresql.internal")
     static class PostgresqlFeatureConfiguration {
     }

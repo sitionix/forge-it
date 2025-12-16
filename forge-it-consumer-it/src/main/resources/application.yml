@@ -1,0 +1,5 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://example.invalid:6543/consumer-main-db
+    username: main-user
+    password: main-pass
