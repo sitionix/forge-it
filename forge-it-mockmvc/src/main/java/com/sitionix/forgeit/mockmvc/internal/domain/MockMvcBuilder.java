@@ -1,26 +1,19 @@
 package com.sitionix.forgeit.mockmvc.internal.domain;
 
-import static com.sitionix.forgeit.mockmvc.internal.validator.CustomResultMatcher.jsonEqualsIgnore;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
@@ -28,7 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static com.sitionix.forgeit.mockmvc.internal.validator.CustomResultMatcher.jsonEqualsIgnore;
 import static java.util.Objects.nonNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 public class MockMvcBuilder<Req, Res> {
     private final MockMvc mockMvc;
@@ -186,7 +185,7 @@ public class MockMvcBuilder<Req, Res> {
             return;
         }
 
-        final ResourcesLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultRequest() :
+        final JsonLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultRequest() :
                 this.mockMvcLoader.mvcRequest();
 
         final Consumer<Req> effectiveMutator = isDefault
@@ -216,7 +215,7 @@ public class MockMvcBuilder<Req, Res> {
             return;
         }
 
-        final ResourcesLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultResponse()
+        final JsonLoader loader = isDefault ? this.mockMvcLoader.mvcDefaultResponse()
                 : this.mockMvcLoader.mvcResponse();
 
         final Consumer<Res> effectiveMutator = isDefault

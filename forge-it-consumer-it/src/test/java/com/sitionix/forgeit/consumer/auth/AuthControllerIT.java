@@ -1,7 +1,10 @@
 package com.sitionix.forgeit.consumer.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sitionix.forgeit.consumer.ForgeItSupport;
+import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
+import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,22 +23,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthControllerIT {
 
     @Autowired
-    private ForgeItSupport forgeit;
+    private ForgeItSupport forgeIt;
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @BeforeEach
     void setUp() {
-        this.forgeit.wiremock().reset();
+        this.forgeIt.wiremock().reset();
     }
 
     @Test
-    void givenUserLoginRequest_whenLogin_thenReturnLoginResponse() throws Exception {
-        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock()
+    void givenUserLoginRequest_whenLogin_thenReturnLoginResponse() {
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock()
                 .createMapping(WireMockEndpoint.login())
                 .matchesJson("requestLoginUserWithHappyPath.json")
                 .responseBody("responseLoginUserWithHappyPath.json")
@@ -43,7 +43,7 @@ class AuthControllerIT {
                 .plainUrl()
                 .create();
 
-        this.forgeit.mockMvc()
+        this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.login())
                 .request("loginRequest.json")
                 .response("loginResponse.json")
@@ -54,8 +54,8 @@ class AuthControllerIT {
     }
 
     @Test
-    void givenUserLoginRequest_whenLogin_thenReturnLoginResponseWithMutation() throws Exception {
-        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock()
+    void givenUserLoginRequest_whenLogin_thenReturnLoginResponseWithMutation() {
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock()
                 .createMapping(WireMockEndpoint.login())
                 .matchesJson("requestLoginUserWithHappyPath.json",
                         d -> {
@@ -68,7 +68,7 @@ class AuthControllerIT {
                 .plainUrl()
                 .create();
 
-        this.forgeit.mockMvc()
+        this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.login())
                 .request("loginRequest.json",
                         d -> {
@@ -83,13 +83,13 @@ class AuthControllerIT {
     }
 
     @Test
-    void givenUserLoginRequest_whenLogin_thenReturnDefaultLogin() throws Exception {
+    void givenUserLoginRequest_whenLogin_thenReturnDefaultLogin() {
 
-        final RequestBuilder<?, ?> request = this.forgeit.wiremock()
+        final RequestBuilder<?, ?> request = this.forgeIt.wiremock()
                 .createMapping(WireMockEndpoint.loginDefault())
                 .createDefault();
 
-        this.forgeit.mockMvc()
+        this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.loginDefault())
                 .assertDefault();
 
@@ -97,9 +97,9 @@ class AuthControllerIT {
     }
 
     @Test
-    void givenUserLoginRequest_whenLogin_thenReturnDefaultLoginWithMutation() throws Exception {
+    void givenUserLoginRequest_whenLogin_thenReturnDefaultLoginWithMutation() {
 
-        final RequestBuilder<?, ?> request = this.forgeit.wiremock()
+        final RequestBuilder<?, ?> request = this.forgeIt.wiremock()
                 .createMapping(WireMockEndpoint.loginDefault())
                 .createDefault(d -> d.mutateRequest(r -> {
                             r.setPassword("password");
@@ -107,7 +107,7 @@ class AuthControllerIT {
                         })
                         .mutateResponse(res -> res.setToken("mutated-token")));
 
-        this.forgeit.mockMvc()
+        this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.loginDefault())
                 .assertDefault(d -> d.mutateRequest(r -> {
                     r.setPassword("password");
@@ -119,7 +119,7 @@ class AuthControllerIT {
 
     @Test
     void givenPingRequest_whenNoBodyAndNoResponse_thenVerifyInvocation() throws Exception {
-        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock()
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock()
                 .createMapping(WireMockEndpoint.ping())
                 .responseStatus(HttpStatus.NO_CONTENT)
                 .plainUrl()
@@ -133,7 +133,7 @@ class AuthControllerIT {
 
     @Test
     void givenTokenRequest_whenQueryParametersProvided_thenReturnResponse() throws Exception {
-        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock().createMapping(WireMockEndpoint.token())
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.token())
                 .responseBody("responseTokenWithQuery.json")
                 .responseStatus(HttpStatus.OK)
                 .urlWithQueryParam(Map.of(
@@ -153,7 +153,7 @@ class AuthControllerIT {
 
     @Test
     void givenUserRequest_whenPathParametersProvided_thenResponseMatches() throws Exception {
-        final RequestBuilder<?, ?> requestBuilder = this.forgeit.wiremock().createMapping(WireMockEndpoint.userProfile())
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.userProfile())
                 .responseBody("responseUserProfile.json")
                 .responseStatus(HttpStatus.OK)
                 .pathPattern(Map.of(

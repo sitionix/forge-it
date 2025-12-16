@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.sitionix.forgeit</groupId>
         <artifactId>forgeit-parent</artifactId>
-        <version>0.0.10</version>
+        <version>0.0.11</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -29,6 +29,11 @@
         <dependency>
             <groupId>${project.parent.groupId}</groupId>
             <artifactId>forge-it-mockmvc</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.parent.groupId}</groupId>
+            <artifactId>forge-it-postgresql</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         <dependency>

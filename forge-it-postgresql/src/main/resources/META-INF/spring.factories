@@ -1,0 +1,4 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.postgresql.config.PostgresqlDefaultsEnvironmentPostProcessor
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.postgresql.internal.config.PostgresqlFeatureInstaller
