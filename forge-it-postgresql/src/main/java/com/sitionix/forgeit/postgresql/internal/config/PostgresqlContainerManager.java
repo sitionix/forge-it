@@ -30,44 +30,23 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
 
     @Override
     public void afterPropertiesSet() {
-        validateEnabled();
-        final PostgresqlProperties.Mode mode = requireMode();
+        this.validateEnabled();
+        final PostgresqlProperties.Mode mode = this.requireMode();
         if (mode == PostgresqlProperties.Mode.EXTERNAL) {
-            initialiseExternal();
+            this.initialiseExternal();
         } else {
-            startInternal();
+            this.startInternal();
         }
-        publishEnvironment();
+        this.publishEnvironment();
     }
 
     @Override
     public void destroy() {
-        cleanupResources();
-    }
-
-    public String getJdbcUrl() {
-        if (this.jdbcUrl == null) {
-            throw new IllegalStateException("Postgresql JDBC URL has not been initialised");
-        }
-        return this.jdbcUrl;
-    }
-
-    public Integer getPort() {
-        if (this.port == null) {
-            throw new IllegalStateException("Postgresql port has not been initialised");
-        }
-        return this.port;
-    }
-
-    public String getHost() {
-        if (this.host == null) {
-            throw new IllegalStateException("Postgresql host has not been initialised");
-        }
-        return this.host;
+        this.cleanupResources();
     }
 
     private void cleanupResources() {
-        removeEnvironment();
+        this.removeEnvironment();
         if (this.container != null) {
             this.container.stop();
             this.container = null;
@@ -86,12 +65,12 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
         final Map<String, Object> props = Map.of(
-                "forge-it.postgresql.jdbc-url", this.jdbcUrl,
-                "forge-it.postgresql.port", this.port,
-                "forge-it.postgresql.host", this.host,
-                "forge-it.postgresql.database", Objects.requireNonNullElse(this.properties.getDatabase(), "forgeit"),
-                "forge-it.postgresql.username", Objects.requireNonNullElse(this.properties.getUsername(), "forgeit"),
-                "forge-it.postgresql.password", Objects.requireNonNullElse(this.properties.getPassword(), "forgeit")
+                "forge-it.postgresql.connection.jdbc-url", this.jdbcUrl,
+                "forge-it.postgresql.connection.port", this.port,
+                "forge-it.postgresql.connection.host", this.host,
+                "forge-it.postgresql.connection.database", Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"),
+                "forge-it.postgresql.connection.username", Objects.requireNonNullElse(this.properties.getConnection().getUsername(), "forge-it"),
+                "forge-it.postgresql.connection.password", Objects.requireNonNullElse(this.properties.getConnection().getPassword(), "forge-it")
         );
         final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, props);
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
@@ -126,34 +105,34 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
     }
 
     private void initialiseExternal() {
-        final String configuredHost = this.properties.getHost();
+        final String configuredHost = this.properties.getConnection().getHost();
         if (configuredHost == null || configuredHost.isBlank()) {
-            throw new IllegalStateException("forge-it.modules.postgresql.host must be provided for external mode");
+            throw new IllegalStateException("forge-it.modules.postgresql.connection.host must be provided for external mode");
         }
-        final Integer configuredPort = this.properties.getPort();
+        final Integer configuredPort = this.properties.getConnection().getPort();
         if (configuredPort == null || configuredPort <= 0) {
-            throw new IllegalStateException("forge-it.modules.postgresql.port must be provided for external mode");
+            throw new IllegalStateException("forge-it.modules.postgresql.connection.port must be provided for external mode");
         }
         this.host = configuredHost;
         this.port = configuredPort;
-        this.jdbcUrl = Objects.requireNonNullElseGet(this.properties.getJdbcUrl(),
+        this.jdbcUrl = Objects.requireNonNullElseGet(this.properties.getConnection().getJdbcUrl(),
                 () -> "jdbc:postgresql://" + this.host + ":" + this.port + "/" +
-                        Objects.requireNonNullElse(this.properties.getDatabase(), "forge-it"));
+                        Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"));
     }
 
     private void startInternal() {
         try {
             this.container = new PostgreSQLContainer<>(DockerImageName.parse(
-                    Objects.requireNonNullElse(this.properties.getImage(), DEFAULT_IMAGE)))
-                    .withDatabaseName(Objects.requireNonNullElse(this.properties.getDatabase(), "forge-it"))
-                    .withUsername(Objects.requireNonNullElse(this.properties.getUsername(), "forge-it"))
-                    .withPassword(Objects.requireNonNullElse(this.properties.getPassword(), "forge-it"));
+                    Objects.requireNonNullElse(this.properties.getContainer().getImage(), DEFAULT_IMAGE)))
+                    .withDatabaseName(Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"))
+                    .withUsername(Objects.requireNonNullElse(this.properties.getConnection().getUsername(), "forge-it"))
+                    .withPassword(Objects.requireNonNullElse(this.properties.getConnection().getPassword(), "forge-it"));
             this.container.start();
             this.jdbcUrl = this.container.getJdbcUrl();
             this.host = this.container.getHost();
             this.port = this.container.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT);
-        } catch (RuntimeException ex) {
-            cleanupResources();
+        } catch (final RuntimeException ex) {
+            this.cleanupResources();
             throw new IllegalStateException("Failed to start PostgreSQL Testcontainer", ex);
         }
     }

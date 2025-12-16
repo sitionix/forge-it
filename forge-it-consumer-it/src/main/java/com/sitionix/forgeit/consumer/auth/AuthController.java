@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.consumer.auth;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,13 +12,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthClient authClient;
-
-    public AuthController(final AuthClient authClient) {
-        this.authClient = authClient;
-    }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody final LoginRequest request) {

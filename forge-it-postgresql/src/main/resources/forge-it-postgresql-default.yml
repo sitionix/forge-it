@@ -3,10 +3,17 @@ forge-it:
     postgresql:
       enabled: true
       mode: internal
-      host: localhost
-      port: 5432
-      database: forgeit
-      username: forgeit
-      password: forgeit
-      image: postgres:16-alpine
-      template: postgresql-template
+      container:
+        image: postgres:16-alpine
+      connection:
+        database: forge-it
+        username: forge-it
+        password: forge-it-pwd
+        host: localhost
+        port: 5432
+      paths:
+        entity:
+          defaults: /db/postgresql/entities/default
+          custom: /db/postgresql/entities/custom
+        ddl:
+          path: /db/postgresql

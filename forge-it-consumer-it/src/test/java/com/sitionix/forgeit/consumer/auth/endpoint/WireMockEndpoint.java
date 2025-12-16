@@ -1,10 +1,11 @@
-package com.sitionix.forgeit.consumer.auth;
+package com.sitionix.forgeit.consumer.auth.endpoint;
 
+import com.sitionix.forgeit.consumer.auth.LoginRequest;
+import com.sitionix.forgeit.consumer.auth.LoginResponse;
+import com.sitionix.forgeit.consumer.auth.UserProfileResponse;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
-import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
-import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 
 public final class WireMockEndpoint {
 

@@ -1,6 +1,6 @@
 package com.sitionix.forgeit.wiremock.internal.loader;
 
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.wiremock.internal.configs.WireMockProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -11,27 +11,27 @@ public final class WireMockLoaderResources {
 
     private final WireMockProperties wireMockProperties;
 
-    private final ResourcesLoader resourcesLoader;
+    private final JsonLoader jsonLoader;
 
-    public ResourcesLoader mappingResponse() {
+    public JsonLoader mappingResponse() {
         return this.getLoaderWithBasePath(this.wireMockProperties.getMapping().getResponse());
     }
 
-    public ResourcesLoader mappingRequest() {
+    public JsonLoader mappingRequest() {
         return this.getLoaderWithBasePath(this.wireMockProperties.getMapping().getRequest());
     }
 
-    public ResourcesLoader mappingDefaultResponse() {
+    public JsonLoader mappingDefaultResponse() {
         return this.getLoaderWithBasePath(this.wireMockProperties.getMapping().getDefaultResponse());
     }
 
-    public ResourcesLoader mappingDefaultRequest() {
+    public JsonLoader mappingDefaultRequest() {
         return this.getLoaderWithBasePath(this.wireMockProperties.getMapping().getDefaultRequest());
     }
 
-    private ResourcesLoader getLoaderWithBasePath(final String basePath) {
-        this.resourcesLoader.setBasePath(basePath);
-        return this.resourcesLoader;
+    private JsonLoader getLoaderWithBasePath(final String basePath) {
+        this.jsonLoader.setBasePath(basePath);
+        return this.jsonLoader;
     }
 
 }

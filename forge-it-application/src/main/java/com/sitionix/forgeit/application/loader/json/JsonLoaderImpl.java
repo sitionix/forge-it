@@ -1,35 +1,34 @@
-package com.sitionix.forgeit.application.loader;
+package com.sitionix.forgeit.application.loader.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sitionix.forgeit.domain.loader.ResourcesLoader;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sitionix.forgeit.application.loader.file.FileLoader;
+import com.sitionix.forgeit.domain.loader.JsonLoader;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-import static com.sitionix.forgeit.application.loader.JsonLoader.load;
-
 @Component
-public class ResourcesLoaderImpl implements ResourcesLoader {
+@RequiredArgsConstructor
+public class JsonLoaderImpl implements JsonLoader {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     private String basePath;
 
     @Override
-    public <T> T getFromFile(String fileName, Class<T> tClass) {
+    public <T> T getFromFile(final String fileName, final Class<T> tClass) {
         final String file = this.loadResource(fileName);
         return this.getResourceAsObject(file, tClass);
     }
 
     @Override
-    public String getFromFile(String fileName) {
+    public String getFromFile(final String fileName) {
         return this.loadResource(fileName);
     }
 
     @Override
-    public void setBasePath(String basePath) {
+    public void setBasePath(final String basePath) {
         this.basePath = basePath;
     }
 
@@ -42,6 +41,6 @@ public class ResourcesLoaderImpl implements ResourcesLoader {
     }
 
     private String loadResource(final String fileName) {
-        return load(this.basePath + "/" +fileName);
+        return FileLoader.load(this.basePath + "/" + fileName);
     }
 }
