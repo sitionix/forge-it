@@ -63,7 +63,13 @@ jobs:
           VERSION=$(./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create git tag (if not exists)
+      - name: Configure git identity
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create git tag
         if: github.ref == 'refs/heads/main'
         run: |
           TAG="v${{ steps.version.outputs.version }}"
