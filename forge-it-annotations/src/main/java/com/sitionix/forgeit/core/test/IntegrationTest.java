@@ -12,7 +12,6 @@ import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import org.springframework.test.context.support.DirtiesContextBeforeModesTestExecutionListener;
 import org.springframework.test.context.support.DirtiesContextTestExecutionListener;
-import org.springframework.test.context.support.ServletTestExecutionListener;
 import org.springframework.test.context.jdbc.SqlScriptsTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +30,6 @@ import java.lang.annotation.Target;
 @Rollback
 @TestExecutionListeners(
         listeners = {
-                ServletTestExecutionListener.class,
                 DirtiesContextBeforeModesTestExecutionListener.class,
                 DependencyInjectionTestExecutionListener.class,
                 DirtiesContextTestExecutionListener.class,
