@@ -19,11 +19,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class PostgresGraphExecutor {
@@ -36,7 +34,7 @@ public class PostgresGraphExecutor {
     @Autowired
     private ApplicationContext context;
 
-    @Transactional(propagation = Propagation.MANDATORY)
+    @Transactional(transactionManager = "transactionManager", propagation = Propagation.MANDATORY)
     public DbGraphResult execute(DbGraphContext context, List<DbContractInvocation<?>> chain) {
         log.info("[TX-PROBE] executor-entry thread={} actual={} name={} resources={}",
                 Thread.currentThread().getName(),
@@ -46,13 +44,8 @@ public class PostgresGraphExecutor {
         log.info(TxProbe.snapshot("executor-execute-entry"));
         log.info("[TX-PROBE] resourceKeys={}",
                 TransactionSynchronizationManager.getResourceMap().keySet().stream().map(PostgresGraphExecutor::resKey).toList());
-        log.info("[TX-PROBE] executor-beans tmByName={} tmPrimaryCandidates={} emfBeanNames={}",
-                TxProbe.describe(this.context.getBean("transactionManager")),
-                this.context.getBeansOfType(org.springframework.transaction.PlatformTransactionManager.class)
-                        .entrySet().stream()
-                        .map(entry -> entry.getKey() + "=" + TxProbe.describe(entry.getValue()))
-                        .collect(Collectors.toList()),
-                Arrays.toString(this.context.getBeanNamesForType(jakarta.persistence.EntityManagerFactory.class)));
+        log.info("[TX-PROBE] executor-tm-beans {}", TxProbe.describeTransactionManagers(this.context));
+        log.info("[TX-PROBE] executor-emf-beans {}", TxProbe.describeEntityManagerFactories(this.context));
         log.info("[CTX] bfId={}", System.identityHashCode(((ConfigurableApplicationContext) this.context).getBeanFactory()));
         log.info("[EXECUTOR] aopProxy={} cglibProxy={} class={} id={}",
                 AopUtils.isAopProxy(this),
@@ -85,4 +78,3 @@ public class PostgresGraphExecutor {
         return key.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(key));
     }
 }
-

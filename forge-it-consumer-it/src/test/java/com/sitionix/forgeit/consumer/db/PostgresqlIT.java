@@ -47,6 +47,9 @@ class PostgresqlIT {
                 System.identityHashCode(((ConfigurableApplicationContext) this.context).getBeanFactory()),
                 TxProbe.describe(this.context.getBean("transactionManager")),
                 java.util.Arrays.toString(this.context.getBeanNamesForType(jakarta.persistence.EntityManagerFactory.class)));
+        log.info("[CTX] tmBeans={} emfBeans={}",
+                TxProbe.describeTransactionManagers(this.context),
+                TxProbe.describeEntityManagerFactories(this.context));
 
         Assertions.assertTrue(
                 TransactionSynchronizationManager.isActualTransactionActive(),

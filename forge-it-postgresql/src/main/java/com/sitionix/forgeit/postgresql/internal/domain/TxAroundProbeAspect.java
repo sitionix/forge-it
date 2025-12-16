@@ -9,6 +9,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -21,7 +22,7 @@ public class TxAroundProbeAspect {
 
     private final PlatformTransactionManager transactionManager;
 
-    public TxAroundProbeAspect(final PlatformTransactionManager transactionManager) {
+    public TxAroundProbeAspect(@Qualifier("transactionManager") final PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 

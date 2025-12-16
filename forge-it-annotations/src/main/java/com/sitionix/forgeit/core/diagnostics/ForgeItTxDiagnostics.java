@@ -96,6 +96,14 @@ public final class ForgeItTxDiagnostics {
                 .map(entry -> " - %s -> %s".formatted(entry.getKey(), describe(entry.getValue())))
                 .toList();
 
+        final List<String> jpaTmBindings = context.getBeansOfType(JpaTransactionManager.class)
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> " - %s -> %s using EMF %s"
+                        .formatted(entry.getKey(), describe(entry.getValue()), describe(entry.getValue().getEntityManagerFactory())))
+                .toList();
+
         final List<String> emfBeans = context.getBeansOfType(EntityManagerFactory.class)
                 .entrySet()
                 .stream()
@@ -131,6 +139,11 @@ public final class ForgeItTxDiagnostics {
 
         builder.append("PlatformTransactionManager beans:\n");
         tmBeans.forEach(line -> builder.append(line).append('\n'));
+
+        if (!jpaTmBindings.isEmpty()) {
+            builder.append("JpaTransactionManager bindings:\n");
+            jpaTmBindings.forEach(line -> builder.append(line).append('\n'));
+        }
 
         builder.append("EntityManagerFactory beans:\n");
         emfBeans.forEach(line -> builder.append(line).append('\n'));
