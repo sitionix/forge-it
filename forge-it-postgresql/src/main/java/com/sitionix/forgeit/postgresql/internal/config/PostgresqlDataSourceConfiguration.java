@@ -1,20 +1,19 @@
-package com.sitionix.forgeit.consumer.config;
+package com.sitionix.forgeit.postgresql.internal.config;
 
-import com.sitionix.forgeit.postgresql.internal.config.PostgresqlProperties;
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 
 import javax.sql.DataSource;
 import java.util.Objects;
 
-@Configuration
-public class PostgresDataSourceConfig {
+@Configuration(proxyBeanMethods = false)
+public class PostgresqlDataSourceConfiguration {
 
     private static final String POSTGRES_PROPERTIES_PREFIX = "forge-it.postgresql.connection";
     private static final String JDBC_URL_PROPERTY = POSTGRES_PROPERTIES_PREFIX + ".jdbc-url";
@@ -23,12 +22,14 @@ public class PostgresDataSourceConfig {
 
     @Bean
     @DependsOn("postgresqlContainerManager")
-    public DataSourceProperties postgresDataSourceProperties(final Environment environment,
-                                                            final PostgresqlProperties postgresqlProperties) {
+    DataSourceProperties postgresDataSourceProperties(final Environment environment,
+                                                      final PostgresqlProperties postgresqlProperties) {
         final DataSourceProperties properties = new DataSourceProperties();
         properties.setUrl(this.resolveJdbcUrl(environment, postgresqlProperties));
-        properties.setUsername(this.resolveWithDefault(environment, USERNAME_PROPERTY, postgresqlProperties.getConnection().getUsername()));
-        properties.setPassword(this.resolveWithDefault(environment, PASSWORD_PROPERTY, postgresqlProperties.getConnection().getPassword()));
+        properties.setUsername(this.resolveWithDefault(environment, USERNAME_PROPERTY,
+                postgresqlProperties.getConnection().getUsername()));
+        properties.setPassword(this.resolveWithDefault(environment, PASSWORD_PROPERTY,
+                postgresqlProperties.getConnection().getPassword()));
         properties.setDriverClassName("org.postgresql.Driver");
         return properties;
     }
@@ -36,14 +37,16 @@ public class PostgresDataSourceConfig {
     @Bean
     @Primary
     @DependsOn("postgresqlContainerManager")
-    public DataSource dataSource(final DataSourceProperties postgresDataSourceProperties) {
+    DataSource dataSource(final DataSourceProperties postgresDataSourceProperties) {
         return this.postgresDataSource(postgresDataSourceProperties);
     }
 
     @Bean(name = "postgresDataSource")
     @DependsOn("postgresqlContainerManager")
-    public DataSource postgresDataSource(final DataSourceProperties postgresDataSourceProperties) {
-        return postgresDataSourceProperties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+    DataSource postgresDataSource(final DataSourceProperties postgresDataSourceProperties) {
+        return postgresDataSourceProperties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     private String resolveJdbcUrl(final Environment environment, final PostgresqlProperties postgresqlProperties) {
