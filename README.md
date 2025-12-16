@@ -235,6 +235,80 @@ When defaults exist, `applyDefault(...)` can override the default request/respon
 status before execution. If you skip request/response bodies altogether, the builder still
 performs status-only assertions.
 
+## PostgreSQL support
+
+### Configuration
+The PostgreSQL feature starts a `postgres:16-alpine` Testcontainers instance by default and
+initialises schema/constraints/data from SQL under `/db/postgresql` (see the consumer
+fixtures in `forge-it-consumer-it/src/test/resources/forge-it/db/postgresql/**`). Override
+paths or connection details via:
+
+```yaml
+forge-it:
+  modules:
+    postgresql:
+      enabled: true             # set false to skip the module
+      mode: internal            # or external to point at an existing DB
+      connection:
+        host: localhost
+        port: 5432
+        database: forge-it
+        username: forge-it
+        password: forge-it-pwd
+      paths:
+        ddl:
+          path: /db/postgresql
+        entity:
+          defaults: /db/postgresql/entities/default
+          custom: /db/postgresql/entities/custom
+      tx-policy: REQUIRES_NEW    # REQUIRED | REQUIRES_NEW | MANDATORY
+```
+
+### Declaring contracts and building graphs
+Use `DbContractsDsl` to describe entities, defaults, and dependencies. Cleanup defaults to
+`DELETE_ALL` so the cleanup listener removes rows after each test; use `NONE` for lookup
+tables you seed once.
+
+```java
+public static final DbContract<UserStatusEntity> STATUS =
+        DbContractsDsl.entity(UserStatusEntity.class)
+                .cleanupPolicy(CleanupPolicy.NONE)
+                .build();
+
+public static final DbContract<UserEntity> USER =
+        DbContractsDsl.entity(UserEntity.class)
+                .dependsOn(STATUS, UserEntity::setStatus)
+                .withDefaultBody("default_user_entity.json")
+                .cleanupPolicy(CleanupPolicy.DELETE_ALL)
+                .build();
+```
+
+Create graphs that attach parents first, then dependents. Supply defaults, a custom JSON
+fixture, or a fully constructed entity:
+
+```java
+DbGraphResult result = forgeit.postgresql()
+        .create()
+        .to(STATUS.getById(1L))                            // attach ACTIVE status
+        .to(USER.withJson("custom_user_entity.json"))      // or .withEntity(new UserEntity(...))
+        .build();
+
+UserEntity created = result.entity(USER);
+List<UserEntity> persisted = forgeit.postgresql().get(UserEntity.class).getAll();
+```
+
+### Cleanup, verification, and transactions
+- `@IntegrationTest` registers a cleanup listener that executes `DELETE_ALL` contracts
+  after each test; override phases with `cleanupPhase` or `@DbCleanup` when you need
+  different timing.
+- `CleanupPolicy.NONE` leaves reference data intact between tests; keep lookups (e.g.,
+  statuses) on this policy and dependents on `DELETE_ALL`.
+- Use `forgeit.postgresql().get(Entity.class)` to verify rows (`getAll()`, `getById(id)`)
+  and `DbGraphResult` to assert on freshly persisted entities.
+- Transaction boundaries for graph execution are controlled by `tx-policy`
+  (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
+  `@Transactional` block.
+
 ## Release flow
 
 The repository is set up to automatically cut releases whenever changes are pushed to the
