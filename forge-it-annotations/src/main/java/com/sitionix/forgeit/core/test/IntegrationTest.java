@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.core.test;
 
 import com.sitionix.forgeit.application.executor.ForgeItDbCleanupTestExecutionListener;
+import com.sitionix.forgeit.core.internal.test.ForgeItContextTestExecutionListener;
 import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,6 +21,7 @@ import java.lang.annotation.Target;
 @ForgeItTest
 @TestExecutionListeners(
         listeners = {
+                ForgeItContextTestExecutionListener.class,
                 ForgeItDbCleanupTestExecutionListener.class
         },
         mergeMode = TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS
@@ -32,4 +34,3 @@ public @interface IntegrationTest {
     @AliasFor(annotation = DbCleanup.class, attribute = "phase")
     CleanupPhase cleanupPhase() default CleanupPhase.AFTER_EACH;
 }
-
