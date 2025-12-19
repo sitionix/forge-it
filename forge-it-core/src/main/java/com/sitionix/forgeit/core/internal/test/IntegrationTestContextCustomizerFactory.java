@@ -65,6 +65,9 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         if (!visited.add(type)) {
             return;
         }
+        if (GENERATED_FEATURES_PACKAGE.equals(type.getPackageName())) {
+            return;
+        }
         final ForgeFeatures annotation = AnnotatedElementUtils.findMergedAnnotation(type, ForgeFeatures.class);
         if (annotation != null) {
             features.addAll(Arrays.asList(annotation.value()));

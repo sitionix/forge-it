@@ -72,6 +72,9 @@ public final class ForgeItTestRegistrar implements ImportBeanDefinitionRegistrar
         if (!visited.add(type)) {
             return;
         }
+        if (GENERATED_FEATURES_PACKAGE.equals(type.getPackageName())) {
+            return;
+        }
         final ForgeFeatures annotation = AnnotatedElementUtils.findMergedAnnotation(type, ForgeFeatures.class);
         if (annotation != null) {
             for (Class<? extends FeatureSupport> feature : annotation.value()) {
