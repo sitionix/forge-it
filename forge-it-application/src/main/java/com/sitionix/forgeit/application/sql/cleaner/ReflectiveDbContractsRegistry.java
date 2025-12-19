@@ -3,8 +3,10 @@ package com.sitionix.forgeit.application.sql.cleaner;
 import com.sitionix.forgeit.core.contract.ForgeDbContracts;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractsRegistry;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public final class ReflectiveDbContractsRegistry implements DbContractsRegistry {
 
     private static final Logger log =

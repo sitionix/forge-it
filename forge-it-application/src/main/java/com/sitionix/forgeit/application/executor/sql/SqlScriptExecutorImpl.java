@@ -2,8 +2,10 @@ package com.sitionix.forgeit.application.executor.sql;
 
 import com.sitionix.forgeit.domain.executor.SqlScriptExecutor;
 import com.sitionix.forgeit.domain.loader.SqlLoader;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import com.sitionix.forgeit.domain.model.sql.SqlScriptDescriptor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public class SqlScriptExecutorImpl implements SqlScriptExecutor {
 
     private final SqlLoader sqlLoader;

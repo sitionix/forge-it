@@ -54,11 +54,17 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
     }
 
     private void performCleanup(final TestContext testContext) {
-        final DbContractsRegistry registry = testContext.getApplicationContext()
-                .getBean(DbContractsRegistry.class);
+        if (testContext.getApplicationContext().getBeansOfType(DbCleaner.class).isEmpty()
+                || testContext.getApplicationContext().getBeansOfType(DbContractsRegistry.class).isEmpty()) {
+            log.debug("Skipping DB cleanup because required beans are not registered.");
+            return;
+        }
 
-        final DbCleaner cleaner = testContext.getApplicationContext()
-                .getBean(DbCleaner.class);
+        final DbContractsRegistry registry =
+                testContext.getApplicationContext().getBean(DbContractsRegistry.class);
+
+        final DbCleaner cleaner =
+                testContext.getApplicationContext().getBean(DbCleaner.class);
 
         final List<DbContract<?>> contracts = registry.allContracts();
         cleaner.clearTables(contracts);
