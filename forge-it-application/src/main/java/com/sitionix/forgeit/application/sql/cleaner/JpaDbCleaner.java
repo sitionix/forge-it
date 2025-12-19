@@ -2,8 +2,10 @@ package com.sitionix.forgeit.application.sql.cleaner;
 
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.clean.DbCleaner;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public class JpaDbCleaner implements DbCleaner {
 
 

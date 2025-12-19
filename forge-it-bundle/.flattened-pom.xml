@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sitionix.forgeit</groupId>
   <artifactId>forgeit</artifactId>
-  <version>0.0.17</version>
+  <version>0.0.18</version>
   <name>ForgeIT Bundle</name>
   <description>Single distributable artifact containing all ForgeIT modules.</description>
   <url>https://spring.io/projects/spring-boot/forgeit-parent/forgeit</url>
@@ -39,42 +39,42 @@
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-core</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-wiremock</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-mockmvc</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-postgresql</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-application</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-annotation-processor</artifactId>
-      <version>0.0.17</version>
+      <version>0.0.18</version>
       <scope>compile</scope>
       <optional>true</optional>
     </dependency>

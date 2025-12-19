@@ -1,14 +1,17 @@
 package com.sitionix.forgeit.application.sql;
 
 import com.sitionix.forgeit.domain.model.sql.DbRetrieveFactory;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public class DbRetrieveFactoryIml implements DbRetrieveFactory {
 
     private final EntityManager entityManager;

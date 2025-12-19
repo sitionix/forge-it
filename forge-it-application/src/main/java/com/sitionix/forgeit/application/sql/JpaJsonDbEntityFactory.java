@@ -5,13 +5,16 @@ import com.sitionix.forgeit.domain.contract.DbEntityFactory;
 import com.sitionix.forgeit.domain.contract.body.BodySpecification;
 import com.sitionix.forgeit.domain.contract.body.JsonBodySource;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import com.sitionix.forgeit.domain.model.sql.RelationalModuleProperties;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public class JpaJsonDbEntityFactory implements DbEntityFactory {
 
     private final EntityManager entityManager;

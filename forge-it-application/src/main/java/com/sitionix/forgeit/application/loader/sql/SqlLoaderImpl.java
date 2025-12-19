@@ -1,9 +1,11 @@
 package com.sitionix.forgeit.application.loader.sql;
 
 import com.sitionix.forgeit.domain.loader.SqlLoader;
+import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
 import com.sitionix.forgeit.domain.model.sql.ScriptPhase;
 import com.sitionix.forgeit.domain.model.sql.SqlScriptDescriptor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ import java.util.Objects;
 
 @RequiredArgsConstructor
 @Component
+@ConditionalOnBean(RelationalFeatureMarker.class)
 public class SqlLoaderImpl implements SqlLoader {
 
     private static final String BASE_FORGE_IT_PATH = "forge-it";
