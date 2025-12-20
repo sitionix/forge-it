@@ -4,7 +4,6 @@ import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
 import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
-import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,10 +44,10 @@ class AuthControllerIT {
 
         this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.login())
-                .request("loginRequest.json")
-                .response("loginResponse.json")
-                .status(HttpStatus.OK)
-                .createAndAssert();
+                .withRequest("loginRequest.json")
+                .expectResponse("loginResponse.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }
@@ -70,14 +69,14 @@ class AuthControllerIT {
 
         this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.login())
-                .request("loginRequest.json",
+                .withRequest("loginRequest.json",
                         d -> {
                             d.setUsername("username");
                             d.setPassword("password");
                         })
-                .response("loginResponse.json", d -> d.setToken("mutated-token"))
-                .status(HttpStatus.OK)
-                .createAndAssert();
+                .expectResponse("loginResponse.json", d -> d.setToken("mutated-token"))
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }

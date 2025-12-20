@@ -24,9 +24,9 @@ public class MockMvcEndpoint {
                 LoginRequest.class,
                 LoginResponse.class,
                 (MockmvcDefault) context -> context
-                        .request("loginRequest.json")
-                        .response("loginResponse.json")
-                        .status(200)
+                        .withRequest("loginRequest.json")
+                        .expectResponse("loginResponse.json")
+                        .expectStatus(200)
         );
     }
 }

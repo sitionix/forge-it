@@ -13,7 +13,7 @@ public class EndpointContract {
             UserEntity.class,
             UserEntity.class,
             (MockmvcDefault) context -> context
-                    .request("userCreateRequest.json")
-                    .status(200)
+                    .withRequest("userCreateRequest.json")
+                    .expectStatus(200)
     );
 }
