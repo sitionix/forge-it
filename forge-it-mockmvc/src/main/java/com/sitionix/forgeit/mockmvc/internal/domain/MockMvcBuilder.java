@@ -65,14 +65,14 @@ public class MockMvcBuilder<Req, Res> {
         this.responseFieldsToIgnore = new ArrayList<>();
     }
 
-    public MockMvcBuilder<Req, Res> request(final String requestName) {
+    public MockMvcBuilder<Req, Res> withRequest(final String requestName) {
         if (nonNull(requestName)) {
             this.loadRequest(requestName, null, false);
         }
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> request(final String requestName, final Consumer<Req> requestMutator) {
+    public MockMvcBuilder<Req, Res> withRequest(final String requestName, final Consumer<Req> requestMutator) {
         if (nonNull(requestName)) {
             this.loadRequest(requestName, requestMutator, false);
         }
@@ -86,14 +86,14 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> response(final String responseName, final Consumer<Res> responseMutator) {
+    public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final Consumer<Res> responseMutator) {
         if (nonNull(responseName)) {
             this.loadResponse(responseName, responseMutator, false);
         }
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> response(final String responseName, final String... fieldsToIgnore) {
+    public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final String... fieldsToIgnore) {
         if (nonNull(responseName)) {
             this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
             this.loadResponse(responseName, null, false);
@@ -101,7 +101,7 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> response(final String responseName, final Consumer<Res> responseMutator, final String... fieldsToIgnore) {
+    public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final Consumer<Res> responseMutator, final String... fieldsToIgnore) {
         if (nonNull(responseName)) {
             this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
             this.loadResponse(responseName, responseMutator, false);
@@ -116,7 +116,7 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> status(final HttpStatus status) {
+    public MockMvcBuilder<Req, Res> expectStatus(final HttpStatus status) {
         if (nonNull(status)) {
             this.expectedStatus = status;
         }
@@ -156,10 +156,10 @@ public class MockMvcBuilder<Req, Res> {
             this.endpoint.getMockmvcDefault().applyDefaults(this.defaultContext);
         }
 
-        this.createAndAssert();
+        this.assertAndCreate();
     }
 
-    public void createAndAssert() {
+    public void assertAndCreate() {
         try {
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
             if (nonNull(this.token)) {
@@ -252,20 +252,20 @@ public class MockMvcBuilder<Req, Res> {
     public final class DefaultContext implements MockmvcDefaultContext {
 
         @Override
-        public DefaultContext request(final String json) {
+        public DefaultContext withRequest(final String json) {
             MockMvcBuilder.this.defaultRequest(json);
             return this;
         }
 
         @Override
-        public DefaultContext response(final String json) {
+        public DefaultContext expectResponse(final String json) {
             MockMvcBuilder.this.defaultResponse(json);
             return this;
         }
 
         @Override
-        public DefaultContext status(final int status) {
-            MockMvcBuilder.this.status(HttpStatus.resolve(status));
+        public DefaultContext expectStatus(final int status) {
+            MockMvcBuilder.this.expectStatus(HttpStatus.resolve(status));
             return this;
         }
     }
