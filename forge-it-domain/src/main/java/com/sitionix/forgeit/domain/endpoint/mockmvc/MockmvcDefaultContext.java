@@ -2,9 +2,9 @@ package com.sitionix.forgeit.domain.endpoint.mockmvc;
 
 public interface MockmvcDefaultContext {
 
-    MockmvcDefaultContext request(String json);
+    MockmvcDefaultContext withRequest(String json);
 
-    MockmvcDefaultContext response(String json);
+    MockmvcDefaultContext expectResponse(String json);
 
-    MockmvcDefaultContext status(int status);
+    MockmvcDefaultContext expectStatus(int status);
 }

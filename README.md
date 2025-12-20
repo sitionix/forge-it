@@ -193,7 +193,7 @@ forge-it:
 ```
 
 Request and response JSON files live under `src/test/resources/forge-it` by default, so
-`request("loginRequest.json")` resolves to `forge-it/mockmvc/request/loginRequest.json`.
+`withRequest("loginRequest.json")` resolves to `forge-it/mockmvc/request/loginRequest.json`.
 Defaults declared on an `Endpoint` or via `executeDefault(...)` read from the
 `default-request`/`default-response` folders, while per-test overrides sit under the main
 `request`/`response` paths. This separation keeps reusable templates tidy without blocking
@@ -208,17 +208,17 @@ execution:
 ```java
 forgeit.mockMvc()
         .ping(MockMvcEndpoint.login())
-        .request("loginRequest.json", req -> {
+        .withRequest("loginRequest.json", req -> {
             req.setUsername("username");
             req.setPassword("password");
         })
-        .response("loginResponse.json", res -> res.setToken("mutated-token"))
-        .status(HttpStatus.OK)
+        .expectResponse("loginResponse.json", res -> res.setToken("mutated-token"))
+        .expectStatus(HttpStatus.OK)
         .execute();
 ```
 
 Add `andExpectPath(...)` for extra matchers, or `token(...)` to attach an `Authorization`
-header. Response assertions can ignore fields via `response(..., fieldsToIgnore...)`.
+header. Response assertions can ignore fields via `expectResponse(..., fieldsToIgnore...)`.
 
 ### Defaults and reusable fixtures
 
@@ -234,9 +234,9 @@ public static Endpoint<LoginRequest, LoginResponse> loginDefault() {
             LoginRequest.class,
             LoginResponse.class,
             (MockmvcDefault) ctx -> ctx
-                    .request("loginRequest.json")
-                    .response("loginResponse.json")
-                    .status(200)
+                    .withRequest("loginRequest.json")
+                    .expectResponse("loginResponse.json")
+                    .expectStatus(200)
     );
 }
 
