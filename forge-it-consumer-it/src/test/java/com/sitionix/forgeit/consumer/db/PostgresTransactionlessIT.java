@@ -29,7 +29,8 @@ class PostgresTransactionlessIT {
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT)
                 .build()
-                .entity(DbContracts.USER_ENTITY_DB_CONTRACT);
+                .entity(DbContracts.USER_ENTITY_DB_CONTRACT)
+                .get();
 
         assertThat(created.getId()).isNotNull();
 

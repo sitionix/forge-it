@@ -8,7 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,31 +17,33 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import java.util.List;
-
 @Data
 @Builder
 @Entity
-@Table(name = "USERS")
+@Table(name = "PRODUCTS")
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserEntity {
+public class ProductEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "USERNAME")
-    private String username;
+    @Column(name = "NAME")
+    private String name;
+
+    @Column(name = "DESCRIPTION")
+    private String description;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "CATEGORY_ID")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private CategoryEntity category;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "STATUS_ID", nullable = false)
+    @JoinColumn(name = "USER_ID", nullable = false)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
-    private UserStatusEntity status;
-
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
-    @EqualsAndHashCode.Exclude
-    @ToString.Exclude
-    private List<ProductEntity> products;
+    private UserEntity user;
 }

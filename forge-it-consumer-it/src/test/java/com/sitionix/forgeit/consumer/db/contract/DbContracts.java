@@ -1,6 +1,8 @@
 package com.sitionix.forgeit.consumer.db.contract;
 
 
+import com.sitionix.forgeit.consumer.db.entity.CategoryEntity;
+import com.sitionix.forgeit.consumer.db.entity.ProductEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
 import com.sitionix.forgeit.core.contract.ForgeDbContracts;
@@ -20,6 +22,18 @@ public class DbContracts {
             DbContractsDsl.entity(UserEntity.class)
                     .dependsOn(USER_STATUS_ENTITY_DB_CONTRACT, UserEntity::setStatus)
                     .withDefaultBody("default_user_entity.json")
+                    .cleanupPolicy(CleanupPolicy.DELETE_ALL)
+                    .build();
+
+    public static final DbContract<CategoryEntity> CATEGORY_ENTITY_DB_CONTRACT =
+            DbContractsDsl.entity(CategoryEntity.class)
+                    .cleanupPolicy(CleanupPolicy.DELETE_ALL)
+                    .build();
+
+    public static final DbContract<ProductEntity> PRODUCT_ENTITY_DB_CONTRACT =
+            DbContractsDsl.entity(ProductEntity.class)
+                    .dependsOn(USER_ENTITY_DB_CONTRACT, ProductEntity::setUser)
+                    .dependsOnOptional(CATEGORY_ENTITY_DB_CONTRACT, ProductEntity::setCategory)
                     .cleanupPolicy(CleanupPolicy.DELETE_ALL)
                     .build();
 }
