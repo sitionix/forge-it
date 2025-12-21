@@ -109,7 +109,23 @@ class PostgresqlIT {
 
         this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .matchAllWithJsons("first_product_entity.json", "second_product_entity.json");
+                .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
+    }
+
+    @Test
+    @DisplayName("Given multiple products when asserting by entity type then all fixtures match")
+    void givenMultipleProducts_whenAssertingByEntityType_thenAllFixturesMatch() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        this.forgeIt.postgresql()
+                .assertEntities(ProductEntity.class)
+                .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
     }
 
     @Test
@@ -125,7 +141,7 @@ class PostgresqlIT {
 
         this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .matchExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+                .containsExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
     }
 
     @Test
@@ -141,7 +157,7 @@ class PostgresqlIT {
 
         assertThatThrownBy(() -> this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .matchExactlyWithJsons("first_product_entity.json"))
+                .containsExactlyWithJsons("first_product_entity.json"))
                 .isInstanceOf(AssertionError.class);
     }
 
@@ -158,7 +174,7 @@ class PostgresqlIT {
 
         assertThatThrownBy(() -> this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .matchExactlyWithJsons("first_product_entity.json", "first_product_entity.json"))
+                .containsExactlyWithJsons("first_product_entity.json", "first_product_entity.json"))
                 .isInstanceOf(AssertionError.class);
     }
 

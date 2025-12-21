@@ -15,6 +15,10 @@ public interface DbContract<E> {
 
     CleanupPolicy cleanupPolicy();
 
+    /**
+     * Fields to ignore when comparing persisted entities with JSON fixtures.
+     * Defaults to none.
+     */
     default List<String> fieldsToIgnoreOnMatch() {
         return List.of();
     }

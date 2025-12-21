@@ -376,6 +376,44 @@ result.entityAt(USER, 0)
   (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
   `@Transactional` block.
 
+### Entity assertions
+`PostgresForge` exposes builders for comparing entities with JSON fixtures. The default
+comparison checks only fields present in the fixture (extra entity fields are ignored),
+while strict matching compares the entire JSON structure after removing ignored fields.
+You can also match all entities for a contract without relying on call order.
+Assertions always load fixtures from the custom entity path.
+
+```java
+forgeit.postgresql()
+        .assertEntity(result.entityAt(PRODUCT, 0))
+        .withJson("first_product_entity.json")
+        .ignoreFields("id", "user")
+        .assertMatches();
+
+forgeit.postgresql()
+        .assertEntity(result.entityAt(PRODUCT, 0))
+        .withJson("first_product_entity.json")
+        .ignoreFields("id", "user")
+        .assertMatchesStrict();
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .containsExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .hasSize(2)
+        .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
+```
+
+`containsAllWithJsons(...)` asserts every fixture matches a distinct entity (extra entities
+are allowed). `containsExactlyWithJsons(...)` enforces an exact count match before matching.
+Use `hasSize(...)` to assert the total count regardless of which matching method you call.
+
 ## Release flow
 
 The repository is set up to automatically cut releases whenever changes are pushed to the

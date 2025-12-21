@@ -18,6 +18,9 @@ public final class DbEntityHandle<E> {
         return this.entity;
     }
 
+    /**
+     * Contract that produced this entity handle, when available.
+     */
     public DbContract<E> contract() {
         return this.contract;
     }

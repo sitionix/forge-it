@@ -32,32 +32,12 @@ public class RelationalEntityAssertions implements DbEntityAssertions {
     }
 
     @Override
-    public <E> void assertEntityMatchesDefaultJson(final DbEntityHandle<E> handle,
-                                                   final String jsonResourceName,
-                                                   final String... fieldsToIgnore) {
-        this.assertEntityMatchesJson(handle,
-                jsonResourceName,
-                this.properties.getPaths().getEntity().getDefaults(),
-                fieldsToIgnore);
-    }
-
-    @Override
     public <E> void assertEntityMatchesJsonStrict(final DbEntityHandle<E> handle,
                                                   final String jsonResourceName,
                                                   final String... fieldsToIgnore) {
         this.assertEntityMatchesJsonStrict(handle,
                 jsonResourceName,
                 this.properties.getPaths().getEntity().getCustom(),
-                fieldsToIgnore);
-    }
-
-    @Override
-    public <E> void assertEntityMatchesDefaultJsonStrict(final DbEntityHandle<E> handle,
-                                                         final String jsonResourceName,
-                                                         final String... fieldsToIgnore) {
-        this.assertEntityMatchesJsonStrict(handle,
-                jsonResourceName,
-                this.properties.getPaths().getEntity().getDefaults(),
                 fieldsToIgnore);
     }
 
