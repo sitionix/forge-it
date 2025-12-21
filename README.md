@@ -353,6 +353,12 @@ forgeit.postgresql()
         .to(USER.withJson("custom_user_entity.json")
                 .addChild(STATUS.getById(1L)))
         .build();
+
+result.entities(USER)
+        .forEach(user -> System.out.println(user.getUsername()));
+
+result.entityAt(USER, 0)
+        .update(user -> user.setUsername("first_user"));
 ```
 
 ### Cleanup, verification, and transactions
@@ -364,7 +370,8 @@ forgeit.postgresql()
 - Use `forgeit.postgresql().get(Entity.class)` to verify rows (`getAll()`, `getById(id)`)
   and `DbGraphResult` to assert on freshly persisted entities. When the same contract
   is invoked multiple times, `entity(contract)` returns the most recently stored one;
-  use labels on the invocation to retrieve a specific instance.
+  use labels on the invocation to retrieve a specific instance. Use
+  `dependsOnOptional(...)` for nullable relationships.
 - Transaction boundaries for graph execution are controlled by `tx-policy`
   (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
   `@Transactional` block.

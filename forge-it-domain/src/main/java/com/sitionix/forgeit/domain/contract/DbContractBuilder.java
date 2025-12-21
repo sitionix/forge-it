@@ -17,5 +17,10 @@ public interface DbContractBuilder<E> {
                 BiConsumer<E, P> attach
         );
 
+        <P> DbContractBuilder<E> dependsOnOptional(
+                DbContract<P> parent,
+                BiConsumer<E, P> attach
+        );
+
         DbContract<E> build();
 }

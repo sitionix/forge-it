@@ -69,6 +69,81 @@ class PostgresqlIT {
     }
 
     @Test
+    @DisplayName("Given multiple product invocations when entityAt called then order is preserved")
+    void givenMultipleProductInvocations_whenEntityAtCalled_thenOrderIsPreserved() {
+        final DbGraphResult result = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                        .withJson("first_product_entity.json")
+                        .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                .withJson("first_category_entity.json")))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                        .withJson("second_product_entity.json")
+                        .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                .withJson("second_category_entity.json")))
+                .build();
+
+        final ProductEntity first = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0).get();
+        final ProductEntity second = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1).get();
+
+        assertThat(first.getName()).isEqualTo("Starter Kit");
+        assertThat(second.getName()).isEqualTo("Pro Pack");
+    }
+
+    @Test
+    @DisplayName("Given products without categories when built then category is optional")
+    void givenProductsWithoutCategories_whenBuilt_thenCategoryIsOptional() {
+        final DbGraphResult result = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        final ProductEntity first = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0).get();
+        final ProductEntity second = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1).get();
+
+        assertThat(first.getCategory()).isNull();
+        assertThat(second.getCategory()).isNull();
+    }
+
+    @Test
+    @DisplayName("Given nested user graph when using addChild then labels resolve the exact nodes")
+    void givenNestedUserGraph_whenUsingAddChild_thenLabelsResolveExactNodes() {
+        final DbGraphResult result = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(2L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json")
+                        .label("user")
+                        .addChild(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                                .withJson("first_product_entity.json")
+                                .label("product-1")
+                                .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                        .withJson("first_category_entity.json")
+                                        .label("category-1")))
+                        .addChild(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                                .withJson("second_product_entity.json")
+                                .label("product-2")
+                                .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                        .withJson("second_category_entity.json")
+                                        .label("category-2"))))
+                .build();
+
+        final UserEntity user = result.entity(DbContracts.USER_ENTITY_DB_CONTRACT, "user").get();
+        final ProductEntity productOne = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "product-1").get();
+        final ProductEntity productTwo = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "product-2").get();
+        final CategoryEntity categoryOne = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "category-1").get();
+        final CategoryEntity categoryTwo = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "category-2").get();
+
+        assertThat(user.getStatus().getDescription()).isEqualTo("INACTIVE");
+        assertThat(productOne.getCategory()).isEqualTo(categoryOne);
+        assertThat(productTwo.getCategory()).isEqualTo(categoryTwo);
+    }
+
+    @Test
     void givenOneCreatedRecord_whenCreateUser_thenVerifySize() {
         this.forgeIt.postgresql()
                 .create()

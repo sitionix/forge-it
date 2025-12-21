@@ -44,6 +44,9 @@ public final class DefaultDbGraphContext implements DbGraphContext {
         final DbContract<P> parentContract = dependency.parent();
         @SuppressWarnings("unchecked")
         final P parent = (P) this.contractCache.get(parentContract);
+        if (parent == null && dependency.optional()) {
+            return;
+        }
         if (parent == null) {
             final DbContractInvocation<P> parentInvocation =
                     new DbContractInvocation<>(parentContract, null);

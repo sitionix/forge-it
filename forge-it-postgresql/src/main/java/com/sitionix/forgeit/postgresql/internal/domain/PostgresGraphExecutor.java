@@ -56,6 +56,7 @@ public class PostgresGraphExecutor {
             final Map<DbContractInvocation<?>, Object> original = context.snapshot();
             final Map<DbContract<?>, Object> managedMap = new LinkedHashMap<>();
             final Map<DbContract<?>, Map<String, Object>> labeledMap = new LinkedHashMap<>();
+            final Map<DbContract<?>, List<Object>> orderedMap = new LinkedHashMap<>();
             final var util = em.getEntityManagerFactory().getPersistenceUnitUtil();
 
             for (final var entry : original.entrySet()) {
@@ -67,6 +68,7 @@ public class PostgresGraphExecutor {
                 if (em.contains(entity)) {
                     managedMap.put(entry.getKey().getContract(), entity);
                     this.storeLabeledEntity(labeledMap, entry.getKey(), entity);
+                    this.storeOrderedEntity(orderedMap, entry.getKey(), entity);
                     continue;
                 }
 
@@ -75,16 +77,20 @@ public class PostgresGraphExecutor {
                     em.persist(entity);
                     managedMap.put(entry.getKey().getContract(), entity);
                     this.storeLabeledEntity(labeledMap, entry.getKey(), entity);
+                    this.storeOrderedEntity(orderedMap, entry.getKey(), entity);
                     continue;
                 }
 
                 final Object managed = em.merge(entity);
                 managedMap.put(entry.getKey().getContract(), managed);
                 this.storeLabeledEntity(labeledMap, entry.getKey(), managed);
+                this.storeOrderedEntity(orderedMap, entry.getKey(), managed);
             }
 
             em.flush();
-            return new DefaultDbGraphResult(Map.copyOf(managedMap), this.copyLabels(labeledMap));
+            return new DefaultDbGraphResult(Map.copyOf(managedMap),
+                    this.copyLabels(labeledMap),
+                    this.copyOrdered(orderedMap));
         });
     }
 
@@ -113,6 +119,23 @@ public class PostgresGraphExecutor {
         final Map<DbContract<?>, Map<String, Object>> snapshot = new LinkedHashMap<>();
         for (final var entry : labeledMap.entrySet()) {
             snapshot.put(entry.getKey(), Map.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(snapshot);
+    }
+
+    private void storeOrderedEntity(final Map<DbContract<?>, List<Object>> orderedMap,
+                                    final DbContractInvocation<?> invocation,
+                                    final Object entity) {
+        orderedMap
+                .computeIfAbsent(invocation.getContract(), key -> new java.util.ArrayList<>())
+                .add(entity);
+    }
+
+    private Map<DbContract<?>, List<Object>> copyOrdered(
+            final Map<DbContract<?>, List<Object>> orderedMap) {
+        final Map<DbContract<?>, List<Object>> snapshot = new LinkedHashMap<>();
+        for (final var entry : orderedMap.entrySet()) {
+            snapshot.put(entry.getKey(), List.copyOf(entry.getValue()));
         }
         return Map.copyOf(snapshot);
     }
