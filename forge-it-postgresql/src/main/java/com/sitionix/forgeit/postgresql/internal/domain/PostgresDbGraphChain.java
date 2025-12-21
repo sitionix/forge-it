@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.postgresql.internal.domain;
 
+import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.contract.DbContractInvocation;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphChain;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphContext;
@@ -82,8 +83,8 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
         }
     }
 
-    private boolean dependsOn(final com.sitionix.forgeit.domain.contract.DbContract<?> contract,
-                              final com.sitionix.forgeit.domain.contract.DbContract<?> parent) {
+    private boolean dependsOn(final DbContract<?> contract,
+                              final DbContract<?> parent) {
         if (contract.dependencies() == null) {
             return false;
         }
