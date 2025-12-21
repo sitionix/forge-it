@@ -85,11 +85,34 @@ class PostgresqlIT {
                                 .withJson("second_category_entity.json")))
                 .build();
 
-        final ProductEntity first = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0).get();
-        final ProductEntity second = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1).get();
+        this.forgeIt.postgresql()
+                .assertEntity(result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0))
+                .withJson("first_product_entity.json")
+                .assertMatches();
+        this.forgeIt.postgresql()
+                .assertEntity(result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1))
+                .withJson("second_product_entity.json")
+                .assertMatches();
+    }
 
-        assertThat(first.getName()).isEqualTo("Starter Kit");
-        assertThat(second.getName()).isEqualTo("Pro Pack");
+    @Test
+    @DisplayName("Given product fixture when strict assertion used then matches json")
+    void givenProductFixture_whenStrictAssertionUsed_thenMatchesJson() {
+        final DbGraphResult result = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                        .withJson("first_product_entity.json")
+                        .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                .withJson("first_category_entity.json")))
+                .build();
+
+        this.forgeIt.postgresql()
+                .assertEntity(result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0))
+                .withJson("first_product_entity.json")
+                .ignoreFields("id", "category", "user")
+                .assertMatchesStrict();
     }
 
     @Test
