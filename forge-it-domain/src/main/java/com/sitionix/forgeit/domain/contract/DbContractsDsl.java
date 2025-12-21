@@ -25,6 +25,11 @@ public final class DbContractsDsl {
                 BiConsumer<E, P> attach
         );
 
+        <P> DbContractBuilder<E> dependsOnOptional(
+                DbContract<P> parent,
+                BiConsumer<E, P> attach
+        );
+
         <P> DbContractBuilder <E> withDefaultBody(String jsonNome);
 
         DbContractBuilder<E> cleanupPolicy(CleanupPolicy policy);
@@ -49,6 +54,15 @@ public final class DbContractsDsl {
                 final BiConsumer<E, P> attach
         ) {
             this.dependencies.add(new DbDependency<>(parent, attach));
+            return this;
+        }
+
+        @Override
+        public <P> DbContractBuilder<E> dependsOnOptional(
+                final DbContract<P> parent,
+                final BiConsumer<E, P> attach
+        ) {
+            this.dependencies.add(new DbDependency<>(parent, attach, true));
             return this;
         }
 

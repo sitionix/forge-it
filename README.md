@@ -335,11 +335,30 @@ fixture, or a fully constructed entity:
 DbGraphResult result = forgeit.postgresql()
         .create()
         .to(STATUS.getById(1L))                            // attach ACTIVE status
-        .to(USER.withJson("custom_user_entity.json"))      // or .withEntity(new UserEntity(...))
+        .to(USER.withJson("custom_user_entity.json")       // or .withEntity(new UserEntity(...))
+                .label("primary"))
         .build();
 
-UserEntity created = result.entity(USER);
+UserEntity created = result.entity(USER).get();
 List<UserEntity> persisted = forgeit.postgresql().get(UserEntity.class).getAll();
+
+result.entity(USER)
+        .update(user -> user.setUsername("updated_user"));
+
+result.entity(USER, "primary")
+        .update(user -> user.setUsername("labeled_user"));
+
+forgeit.postgresql()
+        .create()
+        .to(USER.withJson("custom_user_entity.json")
+                .addChild(STATUS.getById(1L)))
+        .build();
+
+result.entities(USER)
+        .forEach(user -> System.out.println(user.getUsername()));
+
+result.entityAt(USER, 0)
+        .update(user -> user.setUsername("first_user"));
 ```
 
 ### Cleanup, verification, and transactions
@@ -349,7 +368,10 @@ List<UserEntity> persisted = forgeit.postgresql().get(UserEntity.class).getAll()
 - `CleanupPolicy.NONE` leaves reference data intact between tests; keep lookups (e.g.,
   statuses) on this policy and dependents on `DELETE_ALL`.
 - Use `forgeit.postgresql().get(Entity.class)` to verify rows (`getAll()`, `getById(id)`)
-  and `DbGraphResult` to assert on freshly persisted entities.
+  and `DbGraphResult` to assert on freshly persisted entities. When the same contract
+  is invoked multiple times, `entity(contract)` returns the most recently stored one;
+  use labels on the invocation to retrieve a specific instance. Use
+  `dependsOnOptional(...)` for nullable relationships.
 - Transaction boundaries for graph execution are controlled by `tx-policy`
   (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
   `@Transactional` block.

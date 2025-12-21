@@ -8,5 +8,5 @@ import java.util.Map;
 public interface DbGraphContext {
     <E> E getOrCreate(DbContractInvocation<E> contract);
 
-    Map<DbContract<?>, Object> snapshot();
+    Map<DbContractInvocation<?>, Object> snapshot();
 }

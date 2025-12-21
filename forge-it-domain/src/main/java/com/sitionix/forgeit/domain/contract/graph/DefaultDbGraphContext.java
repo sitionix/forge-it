@@ -14,7 +14,8 @@ import java.util.Map;
 public final class DefaultDbGraphContext implements DbGraphContext {
 
     private final DbEntityFactory entityFactory;
-    private final Map<DbContract<?>, Object> cache = new LinkedHashMap<>();
+    private final Map<DbContractInvocation<?>, Object> invocationCache = new LinkedHashMap<>();
+    private final Map<DbContract<?>, Object> contractCache = new LinkedHashMap<>();
 
 
     @Override
@@ -22,7 +23,7 @@ public final class DefaultDbGraphContext implements DbGraphContext {
     public synchronized <E> E getOrCreate(final DbContractInvocation<E> invocation) {
         final DbContract<E> contract = invocation.getContract();
 
-        return (E) this.cache.computeIfAbsent(contract, c -> {
+        return (E) this.invocationCache.computeIfAbsent(invocation, c -> {
             final E entity = this.entityFactory.create(invocation);
 
             final List<DbDependency<E, ?>> dependencies = contract.dependencies();
@@ -32,6 +33,7 @@ public final class DefaultDbGraphContext implements DbGraphContext {
                 }
             }
 
+            this.contractCache.put(contract, entity);
             return entity;
         });
     }
@@ -40,15 +42,23 @@ public final class DefaultDbGraphContext implements DbGraphContext {
             final DbDependency<E, P> dependency) {
 
         final DbContract<P> parentContract = dependency.parent();
-        final DbContractInvocation<P> parentInvocation =
-                new DbContractInvocation<>(parentContract, null);
-
-        final P parent = this.getOrCreate(parentInvocation);
+        @SuppressWarnings("unchecked")
+        final P parent = (P) this.contractCache.get(parentContract);
+        if (parent == null && dependency.optional()) {
+            return;
+        }
+        if (parent == null) {
+            final DbContractInvocation<P> parentInvocation =
+                    new DbContractInvocation<>(parentContract, null);
+            final P created = this.getOrCreate(parentInvocation);
+            dependency.attach().accept(child, created);
+            return;
+        }
         dependency.attach().accept(child, parent);
     }
 
     @Override
-    public Map<DbContract<?>, Object> snapshot() {
-        return Map.copyOf(this.cache);
+    public Map<DbContractInvocation<?>, Object> snapshot() {
+        return new LinkedHashMap<>(this.invocationCache);
     }
 }
