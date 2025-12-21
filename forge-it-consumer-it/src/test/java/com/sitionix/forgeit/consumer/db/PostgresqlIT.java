@@ -89,10 +89,77 @@ class PostgresqlIT {
                 .assertEntity(result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0))
                 .withJson("first_product_entity.json")
                 .assertMatches();
+
         this.forgeIt.postgresql()
                 .assertEntity(result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1))
                 .withJson("second_product_entity.json")
                 .assertMatches();
+    }
+
+    @Test
+    @DisplayName("Given multiple products when asserting by contract then all fixtures match")
+    void givenMultipleProducts_whenAssertingByContract_thenAllFixturesMatch() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        this.forgeIt.postgresql()
+                .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
+                .matchAllWithJsons("first_product_entity.json", "second_product_entity.json");
+    }
+
+    @Test
+    @DisplayName("Given multiple products when exact matching then counts align")
+    void givenMultipleProducts_whenExactMatching_thenCountsAlign() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        this.forgeIt.postgresql()
+                .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
+                .matchExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+    }
+
+    @Test
+    @DisplayName("Given extra products when exact matching then assertion fails")
+    void givenExtraProducts_whenExactMatching_thenAssertionFails() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        assertThatThrownBy(() -> this.forgeIt.postgresql()
+                .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
+                .matchExactlyWithJsons("first_product_entity.json"))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    @DisplayName("Given mismatched fixture when exact matching then assertion fails")
+    void givenMismatchedFixture_whenExactMatching_thenAssertionFails() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        assertThatThrownBy(() -> this.forgeIt.postgresql()
+                .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
+                .matchExactlyWithJsons("first_product_entity.json", "first_product_entity.json"))
+                .isInstanceOf(AssertionError.class);
     }
 
     @Test
