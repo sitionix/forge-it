@@ -347,6 +347,12 @@ result.entity(USER)
 
 result.entity(USER, "primary")
         .update(user -> user.setUsername("labeled_user"));
+
+forgeit.postgresql()
+        .create()
+        .to(USER.withJson("custom_user_entity.json")
+                .addChild(STATUS.getById(1L)))
+        .build();
 ```
 
 ### Cleanup, verification, and transactions

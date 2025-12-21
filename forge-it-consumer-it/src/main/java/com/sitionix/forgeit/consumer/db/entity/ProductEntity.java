@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,6 +34,12 @@ public class ProductEntity {
 
     @Column(name = "DESCRIPTION")
     private String description;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "CATEGORY_ID")
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private CategoryEntity category;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "USER_ID", nullable = false)

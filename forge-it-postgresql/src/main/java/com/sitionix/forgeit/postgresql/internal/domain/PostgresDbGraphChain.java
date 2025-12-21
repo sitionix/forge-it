@@ -49,11 +49,46 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
     @Override
     public <N> DbGraphChain<N> to(final DbContractInvocation<N> nextInvocation) {
         final List<DbContractInvocation<?>> nextChain = new ArrayList<>(this.chain);
-        nextChain.add(nextInvocation);
+        this.appendInvocation(nextChain, nextInvocation);
         return new PostgresDbGraphChain<>(this.context,
                 nextChain,
                 nextInvocation,
                 this.graphExecutor);
     }
-}
 
+    private void appendInvocation(final List<DbContractInvocation<?>> chain,
+                                  final DbContractInvocation<?> invocation) {
+        final List<DbContractInvocation<?>> before = new ArrayList<>();
+        final List<DbContractInvocation<?>> after = new ArrayList<>();
+
+        for (final DbContractInvocation<?> child : invocation.getChildren()) {
+            if (this.dependsOn(invocation.getContract(), child.getContract())) {
+                before.add(child);
+            } else if (this.dependsOn(child.getContract(), invocation.getContract())) {
+                after.add(child);
+            } else {
+                before.add(child);
+            }
+        }
+
+        for (final DbContractInvocation<?> child : before) {
+            this.appendInvocation(chain, child);
+        }
+
+        chain.add(invocation);
+
+        for (final DbContractInvocation<?> child : after) {
+            this.appendInvocation(chain, child);
+        }
+    }
+
+    private boolean dependsOn(final com.sitionix.forgeit.domain.contract.DbContract<?> contract,
+                              final com.sitionix.forgeit.domain.contract.DbContract<?> parent) {
+        if (contract.dependencies() == null) {
+            return false;
+        }
+        return contract.dependencies()
+                .stream()
+                .anyMatch(dep -> dep.parent().equals(parent));
+    }
+}

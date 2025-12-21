@@ -3,6 +3,7 @@ package com.sitionix.forgeit.consumer.db;
 import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.db.contract.DbContracts;
 import com.sitionix.forgeit.consumer.db.contract.EndpointContract;
+import com.sitionix.forgeit.consumer.db.entity.CategoryEntity;
 import com.sitionix.forgeit.consumer.db.entity.ProductEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
@@ -32,25 +33,39 @@ class PostgresqlIT {
         final DbGraphResult result = this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
-                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
-                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
-                        .withJson("first_product_entity.json")
-                        .label("first"))
-                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
-                        .withJson("second_product_entity.json")
-                        .label("second"))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json")
+                        .addChild(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                                .withJson("first_product_entity.json")
+                                .label("first-product")
+                                .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                        .withJson("first_category_entity.json")
+                                        .label("first-category")))
+                        .addChild(DbContracts.PRODUCT_ENTITY_DB_CONTRACT
+                                .withJson("second_product_entity.json")
+                                .label("second-product")
+                                .addChild(DbContracts.CATEGORY_ENTITY_DB_CONTRACT
+                                        .withJson("second_category_entity.json")
+                                        .label("second-category"))))
                 .build();
 
-        final ProductEntity firstProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "first")
+        final ProductEntity firstProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "first-product")
                 .update(product -> product.setDescription("Updated first"))
                 .get();
 
-        final ProductEntity secondProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "second")
+        final ProductEntity secondProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "second-product")
                 .update(product -> product.setDescription("Updated second"))
+                .get();
+
+        final CategoryEntity firstCategory = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "first-category")
+                .get();
+
+        final CategoryEntity secondCategory = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "second-category")
                 .get();
 
         assertThat(firstProduct.getDescription()).isEqualTo("Updated first");
         assertThat(secondProduct.getDescription()).isEqualTo("Updated second");
+        assertThat(firstProduct.getCategory()).isEqualTo(firstCategory);
+        assertThat(secondProduct.getCategory()).isEqualTo(secondCategory);
     }
 
     @Test
