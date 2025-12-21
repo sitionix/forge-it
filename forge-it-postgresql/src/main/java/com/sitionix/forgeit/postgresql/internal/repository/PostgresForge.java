@@ -37,6 +37,10 @@ public class PostgresForge {
         return this.retrieveFactory.forClass(entityClass);
     }
 
+    public <E> void update() {
+        // Method intentionally left blank for future implementation
+    }
+
     public void clearAllData(final List<DbContract<?>> contracts) {
         this.dbCleaner.clearTables(contracts);
     }
