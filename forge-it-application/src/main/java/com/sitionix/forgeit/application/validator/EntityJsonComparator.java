@@ -90,7 +90,11 @@ public class EntityJsonComparator {
         }
 
         final JsonNode actualNode = toScalarNode(actual);
-        if (!expected.equals(actualNode)) {
+        boolean matches = expected.equals(actualNode);
+        if (expected.isNumber() && actualNode.isNumber()) {
+            matches = expected.decimalValue().compareTo(actualNode.decimalValue()) == 0;
+        }
+        if (!matches) {
             throw new AssertionError(String.format("Mismatch at %s: expected %s but was %s",
                     path,
                     expected,

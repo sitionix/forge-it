@@ -281,6 +281,16 @@ forge-it:
       tx-policy: REQUIRES_NEW    # REQUIRED | REQUIRES_NEW | MANDATORY
 ```
 
+### Runtime wiring and failure modes
+- Internal mode starts a Testcontainer and publishes runtime connection values under
+  `forge-it.postgresql.connection.*` so the data source can bind to the container.
+- External mode requires `forge-it.modules.postgresql.connection.host` and
+  `forge-it.modules.postgresql.connection.port` (or an explicit `jdbc-url`); missing values
+  fail fast during context startup.
+- If `tx-policy` is `MANDATORY`, graph execution must run inside `@Transactional` or a
+  `ForgeItConfigurationException` is raised.
+- When `paths.ddl.path` is blank, schema initialization is skipped.
+
 ### Schema, constraints, and seed scripts
 SQL scripts execute deterministically: everything under `schema/`, then `constraints/`,
 then `data/`, and finally any other folder (treated as `custom`). Inside a phase,
@@ -414,6 +424,17 @@ forgeit.postgresql()
 `containsAllWithJsons(...)` asserts every fixture matches a distinct entity (extra entities
 are allowed). `containsExactlyWithJsons(...)` enforces an exact count match before matching.
 Use `hasSize(...)` to assert the total count regardless of which matching method you call.
+
+### PostgreSQL test coverage
+The sample integration tests exercise the critical flows and guard against common breakage:
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresqlIT.java`
+  covers graph creation, labels, ordering, JSON assertions, and fixtures.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTransactionlessIT.java`
+  verifies graphs can execute without an outer transaction (default policy).
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresCleanupSmokeIT.java`
+  ensures cleanup after each test.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTxPolicyMandatoryIT.java`
+  ensures `tx-policy=MANDATORY` fails without an active transaction.
 
 ## Release flow
 

@@ -35,7 +35,7 @@ public class PostgresqlSchemaInitializer {
         log.info("Initializing PostgreSQL schema from path: {}", basePath);
 
         try {
-            this.sqlScriptExecutor.executeAllForDataSource(this.dataSource, this.properties.getPaths().getDdl().getPath());
+            this.sqlScriptExecutor.executeAllForDataSource(this.dataSource, basePath);
             log.info("PostgreSQL schema initialization completed successfully");
         } catch (final Exception ex) {
             log.error("PostgreSQL schema initialization failed", ex);

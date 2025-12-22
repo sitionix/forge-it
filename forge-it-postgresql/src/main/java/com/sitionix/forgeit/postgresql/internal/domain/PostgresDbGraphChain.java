@@ -44,7 +44,7 @@ public final class PostgresDbGraphChain<E> implements DbGraphChain<E> {
 
     @Override
     public DbGraphResult build() {
-            return this.graphExecutor.execute(this.context, this.chain);
+        return this.graphExecutor.execute(this.context, this.chain);
     }
 
     @Override

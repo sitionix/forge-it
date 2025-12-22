@@ -47,7 +47,7 @@ public class RelationalEntityFetcher implements DbEntityFetcher {
         final List<E> loaded = template.execute(status -> {
             final List<E> entities = this.retrieveFactory.forClass(entityType).getAll();
             for (final E entity : entities) {
-                initializeDeepStructure(entity);
+                this.initializeDeepStructure(entity);
             }
             return entities;
         });
@@ -69,10 +69,10 @@ public class RelationalEntityFetcher implements DbEntityFetcher {
                 continue;
             }
             final Object value = wrapper.getPropertyValue(name);
-            if (value == null || isScalar(value)) {
+            if (value == null || this.isScalar(value)) {
                 continue;
             }
-            initializeHibernateProxy(value);
+            this.initializeHibernateProxy(value);
             if (value instanceof Iterable) {
                 for (final Object ignored : (Iterable<?>) value) {
                     // touching the iterator triggers initialization
