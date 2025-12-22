@@ -15,6 +15,14 @@ public interface DbContract<E> {
 
     CleanupPolicy cleanupPolicy();
 
+    /**
+     * Fields to ignore when comparing persisted entities with JSON fixtures.
+     * Defaults to none.
+     */
+    default List<String> fieldsToIgnoreOnMatch() {
+        return List.of();
+    }
+
     default DbContractInvocation<E> withJson(final String jsonResourceName) {
         if (jsonResourceName != null) {
             return new DbContractInvocation<>(this, BodySpecification.explicitJsonName(jsonResourceName));
@@ -30,5 +38,3 @@ public interface DbContract<E> {
         return new DbContractInvocation<>(this, BodySpecification.getById(id));
     }
 }
-
-
