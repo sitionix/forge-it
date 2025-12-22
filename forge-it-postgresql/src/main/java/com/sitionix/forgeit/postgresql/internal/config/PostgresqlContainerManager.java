@@ -64,13 +64,14 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
             throw new IllegalStateException("Postgresql container not initialised");
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
+        final PostgresqlProperties.Connection connection = this.requireConnection();
         final Map<String, Object> props = Map.of(
                 "forge-it.postgresql.connection.jdbc-url", this.jdbcUrl,
                 "forge-it.postgresql.connection.port", this.port,
                 "forge-it.postgresql.connection.host", this.host,
-                "forge-it.postgresql.connection.database", Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"),
-                "forge-it.postgresql.connection.username", Objects.requireNonNullElse(this.properties.getConnection().getUsername(), "forge-it"),
-                "forge-it.postgresql.connection.password", Objects.requireNonNullElse(this.properties.getConnection().getPassword(), "forge-it")
+                "forge-it.postgresql.connection.database", Objects.requireNonNullElse(connection.getDatabase(), "forge-it"),
+                "forge-it.postgresql.connection.username", Objects.requireNonNullElse(connection.getUsername(), "forge-it"),
+                "forge-it.postgresql.connection.password", Objects.requireNonNullElse(connection.getPassword(), "forge-it")
         );
         final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, props);
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
@@ -104,29 +105,44 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
         return mode;
     }
 
+    private PostgresqlProperties.Connection requireConnection() {
+        final PostgresqlProperties.Connection connection = this.properties.getConnection();
+        if (connection == null) {
+            throw new IllegalStateException("forge-it.modules.postgresql.connection must be configured");
+        }
+        return connection;
+    }
+
+    private PostgresqlProperties.Container resolveContainer() {
+        return this.properties.getContainer();
+    }
+
     private void initialiseExternal() {
-        final String configuredHost = this.properties.getConnection().getHost();
+        final PostgresqlProperties.Connection connection = this.requireConnection();
+        final String configuredHost = connection.getHost();
         if (configuredHost == null || configuredHost.isBlank()) {
             throw new IllegalStateException("forge-it.modules.postgresql.connection.host must be provided for external mode");
         }
-        final Integer configuredPort = this.properties.getConnection().getPort();
+        final Integer configuredPort = connection.getPort();
         if (configuredPort == null || configuredPort <= 0) {
             throw new IllegalStateException("forge-it.modules.postgresql.connection.port must be provided for external mode");
         }
         this.host = configuredHost;
         this.port = configuredPort;
-        this.jdbcUrl = Objects.requireNonNullElseGet(this.properties.getConnection().getJdbcUrl(),
+        this.jdbcUrl = Objects.requireNonNullElseGet(connection.getJdbcUrl(),
                 () -> "jdbc:postgresql://" + this.host + ":" + this.port + "/" +
-                        Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"));
+                        Objects.requireNonNullElse(connection.getDatabase(), "forge-it"));
     }
 
     private void startInternal() {
+        final PostgresqlProperties.Connection connection = this.requireConnection();
+        final PostgresqlProperties.Container containerConfig = this.resolveContainer();
         try {
             this.container = new PostgreSQLContainer<>(DockerImageName.parse(
-                    Objects.requireNonNullElse(this.properties.getContainer().getImage(), DEFAULT_IMAGE)))
-                    .withDatabaseName(Objects.requireNonNullElse(this.properties.getConnection().getDatabase(), "forge-it"))
-                    .withUsername(Objects.requireNonNullElse(this.properties.getConnection().getUsername(), "forge-it"))
-                    .withPassword(Objects.requireNonNullElse(this.properties.getConnection().getPassword(), "forge-it"));
+                    Objects.requireNonNullElse(containerConfig == null ? null : containerConfig.getImage(), DEFAULT_IMAGE)))
+                    .withDatabaseName(Objects.requireNonNullElse(connection.getDatabase(), "forge-it"))
+                    .withUsername(Objects.requireNonNullElse(connection.getUsername(), "forge-it"))
+                    .withPassword(Objects.requireNonNullElse(connection.getPassword(), "forge-it"));
             this.container.start();
             this.jdbcUrl = this.container.getJdbcUrl();
             this.host = this.container.getHost();

@@ -281,6 +281,16 @@ forge-it:
       tx-policy: REQUIRES_NEW    # REQUIRED | REQUIRES_NEW | MANDATORY
 ```
 
+### Runtime wiring and failure modes
+- Internal mode starts a Testcontainer and publishes runtime connection values under
+  `forge-it.postgresql.connection.*` so the data source can bind to the container.
+- External mode requires `forge-it.modules.postgresql.connection.host` and
+  `forge-it.modules.postgresql.connection.port` (or an explicit `jdbc-url`); missing values
+  fail fast during context startup.
+- If `tx-policy` is `MANDATORY`, graph execution must run inside `@Transactional` or a
+  `ForgeItConfigurationException` is raised.
+- When `paths.ddl.path` is blank, schema initialization is skipped.
+
 ### Schema, constraints, and seed scripts
 SQL scripts execute deterministically: everything under `schema/`, then `constraints/`,
 then `data/`, and finally any other folder (treated as `custom`). Inside a phase,
@@ -375,6 +385,56 @@ result.entityAt(USER, 0)
 - Transaction boundaries for graph execution are controlled by `tx-policy`
   (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
   `@Transactional` block.
+
+### Entity assertions
+`PostgresForge` exposes builders for comparing entities with JSON fixtures. The default
+comparison checks only fields present in the fixture (extra entity fields are ignored),
+while strict matching compares the entire JSON structure after removing ignored fields.
+You can also match all entities for a contract without relying on call order.
+Assertions always load fixtures from the custom entity path.
+
+```java
+forgeit.postgresql()
+        .assertEntity(result.entityAt(PRODUCT, 0))
+        .withJson("first_product_entity.json")
+        .ignoreFields("id", "user")
+        .assertMatches();
+
+forgeit.postgresql()
+        .assertEntity(result.entityAt(PRODUCT, 0))
+        .withJson("first_product_entity.json")
+        .ignoreFields("id", "user")
+        .withDeepStructure()
+        .assertMatchesStrict();
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .containsExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+
+forgeit.postgresql()
+        .assertEntities(PRODUCT)
+        .hasSize(2)
+        .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
+```
+
+`containsAllWithJsons(...)` asserts every fixture matches a distinct entity (extra entities
+are allowed). `containsExactlyWithJsons(...)` enforces an exact count match before matching.
+Use `hasSize(...)` to assert the total count regardless of which matching method you call.
+
+### PostgreSQL test coverage
+The sample integration tests exercise the critical flows and guard against common breakage:
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresqlIT.java`
+  covers graph creation, labels, ordering, JSON assertions, and fixtures.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTransactionlessIT.java`
+  verifies graphs can execute without an outer transaction (default policy).
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresCleanupSmokeIT.java`
+  ensures cleanup after each test.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTxPolicyMandatoryIT.java`
+  ensures `tx-policy=MANDATORY` fails without an active transaction.
 
 ## Release flow
 

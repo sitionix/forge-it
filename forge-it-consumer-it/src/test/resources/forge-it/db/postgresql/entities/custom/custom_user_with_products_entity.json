@@ -1,0 +1,16 @@
+{
+  "username": "custom_user",
+  "status": {
+    "description": "INACTIVE"
+  },
+  "products": [
+    {
+      "name": "Starter Kit",
+      "description": "Default bundle"
+    },
+    {
+      "name": "Pro Pack",
+      "description": "Extended features"
+    }
+  ]
+}

@@ -40,7 +40,7 @@ public class UserEntity {
     @ToString.Exclude
     private UserStatusEntity status;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private List<ProductEntity> products;

@@ -17,7 +17,7 @@ public final class DefaultDbGraphResult implements DbGraphResult {
     @Override
     @SuppressWarnings("unchecked")
     public <E> DbEntityHandle<E> entity(final DbContract<E> contract) {
-        return new DbEntityHandle<>((E) this.entities.get(contract));
+        return new DbEntityHandle<>((E) this.entities.get(contract), contract);
     }
 
     @Override
@@ -25,9 +25,9 @@ public final class DefaultDbGraphResult implements DbGraphResult {
     public <E> DbEntityHandle<E> entity(final DbContract<E> contract, final String label) {
         final Map<String, Object> labeled = this.labeledEntities.get(contract);
         if (labeled == null) {
-            return new DbEntityHandle<>(null);
+            return new DbEntityHandle<>(null, contract);
         }
-        return new DbEntityHandle<>((E) labeled.get(label));
+        return new DbEntityHandle<>((E) labeled.get(label), contract);
     }
 
     @Override
@@ -41,8 +41,8 @@ public final class DefaultDbGraphResult implements DbGraphResult {
     public <E> DbEntityHandle<E> entityAt(final DbContract<E> contract, final int index) {
         final List<Object> entries = this.orderedEntities.get(contract);
         if (entries == null || index < 0 || index >= entries.size()) {
-            return new DbEntityHandle<>(null);
+            return new DbEntityHandle<>(null, contract);
         }
-        return new DbEntityHandle<>((E) entries.get(index));
+        return new DbEntityHandle<>((E) entries.get(index), contract);
     }
 }

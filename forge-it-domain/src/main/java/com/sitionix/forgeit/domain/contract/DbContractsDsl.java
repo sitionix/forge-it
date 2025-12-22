@@ -34,6 +34,8 @@ public final class DbContractsDsl {
 
         DbContractBuilder<E> cleanupPolicy(CleanupPolicy policy);
 
+        DbContractBuilder<E> ignoreFieldsOnMatch(String... fields);
+
         DbContract<E> build();
     }
 
@@ -43,6 +45,7 @@ public final class DbContractsDsl {
         private final List<DbDependency<E, ?>> dependencies = new ArrayList<>();
         private String defaultJsonResourceName;
         private CleanupPolicy cleanupPolicy = CleanupPolicy.DELETE_ALL;
+        private final List<String> fieldsToIgnoreOnMatch = new ArrayList<>();
 
         private DefaultDbContractBuilder(final Class<E> entityType) {
             this.entityType = entityType;
@@ -79,12 +82,26 @@ public final class DbContractsDsl {
         }
 
         @Override
+        public DbContractBuilder<E> ignoreFieldsOnMatch(final String... fields) {
+            if (fields != null) {
+                for (final String field : fields) {
+                    if (field != null) {
+                        this.fieldsToIgnoreOnMatch.add(field);
+                    }
+                }
+            }
+            return this;
+        }
+
+        @Override
         public DbContract<E> build() {
             final List<DbDependency<E, ?>> immutableDeps = List.copyOf(this.dependencies);
+            final List<String> immutableIgnoredFields = List.copyOf(this.fieldsToIgnoreOnMatch);
             return new DefaultDbContract<>(this.entityType,
                     immutableDeps,
                     this.defaultJsonResourceName,
-                    this.cleanupPolicy);
+                    this.cleanupPolicy,
+                    immutableIgnoredFields);
         }
     }
 
@@ -95,6 +112,7 @@ public final class DbContractsDsl {
         private final List<DbDependency<E, ?>> dependencies;
         private final String defaultJsonResourceName;
         private final CleanupPolicy cleanupPolicy;
+        private final List<String> fieldsToIgnoreOnMatch;
 
         @Override
         public Class<E> entityType() {
@@ -114,6 +132,11 @@ public final class DbContractsDsl {
         @Override
         public CleanupPolicy cleanupPolicy() {
             return this.cleanupPolicy;
+        }
+
+        @Override
+        public List<String> fieldsToIgnoreOnMatch() {
+            return this.fieldsToIgnoreOnMatch;
         }
     }
 }
