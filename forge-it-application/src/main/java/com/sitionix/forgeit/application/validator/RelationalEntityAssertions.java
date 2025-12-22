@@ -87,7 +87,7 @@ public class RelationalEntityAssertions implements DbEntityAssertions {
 
         loader.setBasePath(basePath);
         final String expectedJson = loader.getFromFile(jsonResourceName);
-        final Set<String> ignoreFields = buildIgnoreFields(handle, fieldsToIgnore);
+        final Set<String> ignoreFields = this.buildIgnoreFields(handle, fieldsToIgnore);
         EntityJsonComparator.assertMatchesJsonStrict(handle.get(), expectedJson, ignoreFields);
     }
 

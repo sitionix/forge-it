@@ -22,7 +22,7 @@ public class WireMockValidator {
             if (check.atLeastTimes() <= 0) {
                 throw new IllegalArgumentException("atLeastTimes must be greater than zero");
             }
-            verifyExactTimesWithBackoff(liveCount, check.atLeastTimes());
+            this.verifyExactTimesWithBackoff(liveCount, check.atLeastTimes());
             if (nonNull(check.expectedJson())) {
                 final String[] fieldsForIgnore = check.ignoredFields().toArray(new String[0]);
                 final var actualJsons = this.journalClient.findBodiesByUrl(check.endpoint());

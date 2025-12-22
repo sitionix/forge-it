@@ -28,6 +28,36 @@ class PostgresqlIT {
     private ForgeItSupport forgeIt;
 
     @Test
+    @DisplayName("Given user with products when asserting strict json then matches")
+    void givenUserWithProducts_whenAssertingStrictJson_thenMatches() {
+        final DbGraphResult result = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(2L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json")
+                        .label("user"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
+                .build();
+
+        this.forgeIt.postgresql()
+                .assertEntity(result.entity(DbContracts.USER_ENTITY_DB_CONTRACT, "user"))
+                .withJson("custom_user_with_products_entity.json")
+                .ignoreFields("id")
+                .withFetchedRelations()
+                .assertMatchesStrict();
+
+        this.forgeIt.postgresql()
+                .assertEntities(DbContracts.USER_ENTITY_DB_CONTRACT)
+                .withFetchedRelations()
+                .containsAllWithJsons("custom_user_with_products_entity.json");
+
+        this.forgeIt.postgresql()
+                .assertEntities(UserEntity.class)
+                .withFetchedRelations()
+                .containsAllWithJsons("custom_user_with_products_entity.json");
+    }
+
+    @Test
     @DisplayName("Given user with status and products when created via json contracts then products persist")
     void givenUserWithStatusAndProducts_whenCreatedViaJsonContracts_thenPersistProducts() {
         final DbGraphResult result = this.forgeIt.postgresql()

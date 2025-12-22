@@ -2,6 +2,12 @@ package com.sitionix.forgeit.application.validator;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.LongNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import lombok.experimental.UtilityClass;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
@@ -9,39 +15,39 @@ import org.springframework.beans.BeanWrapperImpl;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @UtilityClass
 public class EntityJsonComparator {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false)
+            .configure(SerializationFeature.WRITE_SELF_REFERENCES_AS_NULL, true)
+            .configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
 
     public static void assertMatchesJson(final Object actual,
                                          final String expectedJson,
                                          final Set<String> fieldsToIgnore) {
-        if (actual == null) {
-            throw new AssertionError("Actual entity is null");
-        }
-        if (expectedJson == null) {
-            throw new IllegalArgumentException("Expected json must not be null");
-        }
-
-        final JsonNode expectedNode;
-        try {
-            expectedNode = MAPPER.readTree(expectedJson);
-        } catch (final IOException e) {
-            throw new IllegalStateException("Failed to parse expected json", e);
-        }
-
-        compareNode(expectedNode, actual, fieldsToIgnore, "$");
+        assertJson(actual, expectedJson, fieldsToIgnore, false);
     }
 
     public static void assertMatchesJsonStrict(final Object actual,
                                                final String expectedJson,
                                                final Set<String> fieldsToIgnore) {
+        assertJson(actual, expectedJson, fieldsToIgnore, true);
+    }
+
+    private static void assertJson(final Object actual,
+                                   final String expectedJson,
+                                   final Set<String> fieldsToIgnore,
+                                   final boolean strict) {
         if (actual == null) {
             throw new AssertionError("Actual entity is null");
         }
@@ -53,30 +59,26 @@ public class EntityJsonComparator {
         try {
             expectedNode = MAPPER.readTree(expectedJson);
         } catch (final IOException e) {
-            throw new IllegalStateException("Failed to parse expected json", e);
+            throw new IllegalStateException("Failed to parse json", e);
         }
 
-        final JsonNode actualNode = MAPPER.valueToTree(actual);
-        removeFields(expectedNode, fieldsToIgnore);
-        removeFields(actualNode, fieldsToIgnore);
-        if (!expectedNode.equals(actualNode)) {
-            throw new AssertionError(String.format("Strict match failed: expected %s but was %s",
-                    expectedNode,
-                    actualNode));
-        }
+        final Set<Object> visited = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        compareNode(expectedNode, actual, fieldsToIgnore, "$", strict, visited);
     }
 
     private static void compareNode(final JsonNode expected,
                                     final Object actual,
                                     final Set<String> fieldsToIgnore,
-                                    final String path) {
+                                    final String path,
+                                    final boolean strict,
+                                    final Set<Object> visited) {
         if (expected.isObject()) {
-            assertObjectNode(expected, actual, fieldsToIgnore, path);
+            assertObjectNode(expected, actual, fieldsToIgnore, path, strict, visited);
             return;
         }
 
         if (expected.isArray()) {
-            assertArrayNode(expected, actual, fieldsToIgnore, path);
+            assertArrayNode(expected, actual, fieldsToIgnore, path, strict, visited);
             return;
         }
 
@@ -87,7 +89,7 @@ public class EntityJsonComparator {
             return;
         }
 
-        final JsonNode actualNode = MAPPER.valueToTree(actual);
+        final JsonNode actualNode = toScalarNode(actual);
         if (!expected.equals(actualNode)) {
             throw new AssertionError(String.format("Mismatch at %s: expected %s but was %s",
                     path,
@@ -99,9 +101,15 @@ public class EntityJsonComparator {
     private static void assertObjectNode(final JsonNode expected,
                                          final Object actual,
                                          final Set<String> fieldsToIgnore,
-                                         final String path) {
+                                         final String path,
+                                         final boolean strict,
+                                         final Set<Object> visited) {
         if (actual == null) {
             throw new AssertionError(String.format("Expected object at %s but was null", path));
+        }
+
+        if (markVisited(actual, visited)) {
+            return;
         }
 
         final BeanWrapper wrapper = new BeanWrapperImpl(actual);
@@ -120,14 +128,25 @@ public class EntityJsonComparator {
                 throw new AssertionError(String.format("Failed to read field '%s' at %s", fieldName, path), e);
             }
 
-            compareNode(entry.getValue(), actualValue, fieldsToIgnore, path + "." + fieldName);
+            compareNode(entry.getValue(),
+                    actualValue,
+                    fieldsToIgnore,
+                    path + "." + fieldName,
+                    strict,
+                    visited);
+        }
+
+        if (strict) {
+            assertNoUnexpectedFields(expected, wrapper, fieldsToIgnore, path, visited);
         }
     }
 
     private static void assertArrayNode(final JsonNode expected,
                                         final Object actual,
                                         final Set<String> fieldsToIgnore,
-                                        final String path) {
+                                        final String path,
+                                        final boolean strict,
+                                        final Set<Object> visited) {
         if (actual == null) {
             throw new AssertionError(String.format("Expected array at %s but was null", path));
         }
@@ -141,8 +160,82 @@ public class EntityJsonComparator {
         }
 
         for (int index = 0; index < expected.size(); index++) {
-            compareNode(expected.get(index), actualList.get(index), fieldsToIgnore, path + "[" + index + "]");
+            compareNode(expected.get(index),
+                    actualList.get(index),
+                    fieldsToIgnore,
+                    path + "[" + index + "]",
+                    strict,
+                    visited);
         }
+    }
+
+    private static void assertNoUnexpectedFields(final JsonNode expected,
+                                                 final BeanWrapper wrapper,
+                                                 final Set<String> fieldsToIgnore,
+                                                 final String path,
+                                                 final Set<Object> visited) {
+        final Iterator<String> fieldNames = wrapper.getPropertyDescriptors() != null
+                ? Arrays.stream(wrapper.getPropertyDescriptors())
+                .map(pd -> pd.getName())
+                .filter(name -> !"class".equals(name))
+                .iterator()
+                : java.util.Collections.emptyIterator();
+
+        final Set<String> expectedFields = new HashSet<>();
+        expected.fieldNames().forEachRemaining(expectedFields::add);
+
+        while (fieldNames.hasNext()) {
+            final String fieldName = fieldNames.next();
+            if (fieldsToIgnore != null && fieldsToIgnore.contains(fieldName)) {
+                continue;
+            }
+            if (!expectedFields.contains(fieldName)) {
+                final Object value = wrapper.getPropertyValue(fieldName);
+                if (value != null && visited.contains(value)) {
+                    continue;
+                }
+                if (!isEmptyValue(value)) {
+                    throw new AssertionError(String.format("Unexpected field at %s: %s=%s",
+                            path,
+                            fieldName,
+                            value));
+                }
+            }
+        }
+    }
+
+    private static boolean isEmptyValue(final Object value) {
+        if (value == null) {
+            return true;
+        }
+        if (value instanceof Iterable) {
+            return !((Iterable<?>) value).iterator().hasNext();
+        }
+        if (value.getClass().isArray()) {
+            return Array.getLength(value) == 0;
+        }
+        if (value instanceof CharSequence) {
+            return ((CharSequence) value).length() == 0;
+        }
+        return Objects.equals(value, 0) || Objects.equals(value, 0L) || Objects.equals(value, 0.0);
+    }
+
+    private static boolean markVisited(final Object actual, final Set<Object> visited) {
+        if (actual == null || isScalar(actual)) {
+            return false;
+        }
+        if (visited.contains(actual)) {
+            return true;
+        }
+        visited.add(actual);
+        return false;
+    }
+
+    private static boolean isScalar(final Object actual) {
+        return actual instanceof String
+                || actual instanceof Number
+                || actual instanceof Boolean
+                || actual instanceof Enum<?>;
     }
 
     private static List<Object> toList(final Object actual, final String path) {
@@ -168,17 +261,25 @@ public class EntityJsonComparator {
                 actual.getClass().getName()));
     }
 
-    private static void removeFields(final JsonNode node, final Set<String> fieldsToIgnore) {
-        if (fieldsToIgnore == null || fieldsToIgnore.isEmpty()) {
-            return;
+    private static JsonNode toScalarNode(final Object actual) {
+        if (actual == null) {
+            return NullNode.getInstance();
         }
-        if (node.isObject()) {
-            for (final String field : fieldsToIgnore) {
-                ((com.fasterxml.jackson.databind.node.ObjectNode) node).remove(field);
-            }
-            node.fields().forEachRemaining(e -> removeFields(e.getValue(), fieldsToIgnore));
-        } else if (node.isArray()) {
-            node.elements().forEachRemaining(child -> removeFields(child, fieldsToIgnore));
+        if (actual instanceof String) {
+            return new TextNode((String) actual);
         }
+        if (actual instanceof Boolean) {
+            return BooleanNode.valueOf((Boolean) actual);
+        }
+        if (actual instanceof Integer || actual instanceof Long || actual instanceof Short || actual instanceof Byte) {
+            return LongNode.valueOf(((Number) actual).longValue());
+        }
+        if (actual instanceof Float || actual instanceof Double) {
+            return DoubleNode.valueOf(((Number) actual).doubleValue());
+        }
+        if (actual instanceof Enum<?>) {
+            return new TextNode(((Enum<?>) actual).name());
+        }
+        return new TextNode(actual.toString());
     }
 }

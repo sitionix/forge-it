@@ -394,6 +394,7 @@ forgeit.postgresql()
         .assertEntity(result.entityAt(PRODUCT, 0))
         .withJson("first_product_entity.json")
         .ignoreFields("id", "user")
+        .withDeepStructure()
         .assertMatchesStrict();
 
 forgeit.postgresql()
