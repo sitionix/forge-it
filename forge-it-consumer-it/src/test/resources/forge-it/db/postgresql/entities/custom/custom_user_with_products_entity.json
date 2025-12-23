@@ -1,6 +1,7 @@
 {
   "username": "custom_user",
   "status": {
+    "id": 2,
     "description": "INACTIVE"
   },
   "products": [
