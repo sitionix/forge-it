@@ -72,6 +72,19 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
     }
 
     /**
+     * Resolve and return the effective handles for debugging or inspection.
+     */
+    @Override
+    public List<DbEntityHandle<E>> actualHandles() {
+        final List<E> entities = this.loadEntities();
+        final List<DbEntityHandle<E>> handles = new ArrayList<>(entities.size());
+        for (final E entity : entities) {
+            handles.add(new DbEntityHandle<>(entity, this.contract));
+        }
+        return handles;
+    }
+
+    /**
      * Assert that every provided fixture matches a persisted entity (extra entities allowed).
      */
     @Override
@@ -81,14 +94,14 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
 
     /**
      * Assert that the number of persisted entities equals the fixture count and that each
-     * fixture matches a distinct entity.
+     * fixture strictly matches a distinct entity.
      */
     @Override
-    public void containsExactlyWithJsons(final String... jsonResourceNames) {
-        this.matchExactly(jsonResourceNames);
+    public void containsWithJsonsStrict(final String... jsonResourceNames) {
+        this.matchExactlyStrict(jsonResourceNames);
     }
 
-    private void matchAll(final String[] jsonResourceNames) {
+    private void matchAll(final String[] jsonResourceNames, final boolean strict) {
         if (jsonResourceNames == null) {
             throw new IllegalArgumentException("Json resource names must not be null");
         }
@@ -109,7 +122,11 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
                 final E entity = iterator.next();
                 final DbEntityHandle<E> handle = new DbEntityHandle<>(entity, this.contract);
                 try {
-                    this.entityAssertions.assertEntityMatchesJson(handle, jsonResourceName, ignoreFields);
+                    if (strict) {
+                        this.entityAssertions.assertEntityMatchesJsonStrict(handle, jsonResourceName, ignoreFields);
+                    } else {
+                        this.entityAssertions.assertEntityMatchesJson(handle, jsonResourceName, ignoreFields);
+                    }
                     iterator.remove();
                     matched = true;
                     break;
@@ -132,7 +149,7 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
         }
     }
 
-    private void matchExactly(final String[] jsonResourceNames) {
+    private void matchExactlyStrict(final String[] jsonResourceNames) {
         if (jsonResourceNames == null) {
             throw new IllegalArgumentException("Json resource names must not be null");
         }
@@ -146,7 +163,11 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
                     entities.size()));
         }
 
-        this.matchAll(jsonResourceNames);
+        this.matchAll(jsonResourceNames, true);
+    }
+
+    private void matchAll(final String[] jsonResourceNames) {
+        this.matchAll(jsonResourceNames, false);
     }
 
     private void assertExpectedSize(final List<E> entities) {
@@ -165,6 +186,9 @@ public final class EntitiesAssertionBuilder<E> implements DbEntitiesAssertionBui
         if (!this.deepStructure) {
             return this.entityFetcher.loadAll(this.entityType);
         }
-        return this.entityFetcher.loadAllWithRelations(this.entityType);
+        if (this.contract == null) {
+            return this.entityFetcher.loadAllWithRelations(this.entityType);
+        }
+        return this.entityFetcher.loadAllWithRelations(this.contract);
     }
 }

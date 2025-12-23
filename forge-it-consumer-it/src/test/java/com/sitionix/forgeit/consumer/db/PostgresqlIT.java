@@ -54,7 +54,8 @@ class PostgresqlIT {
         this.forgeIt.postgresql()
                 .assertEntities(UserEntity.class)
                 .withFetchedRelations()
-                .containsAllWithJsons("custom_user_with_products_entity.json");
+                .ignoreFields("id")
+                .containsWithJsonsStrict("custom_user_with_products_entity.json");
     }
 
     @Test
@@ -171,7 +172,7 @@ class PostgresqlIT {
 
         this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .containsExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+                .containsAllWithJsons("first_product_entity.json", "second_product_entity.json");
     }
 
     @Test
@@ -187,7 +188,7 @@ class PostgresqlIT {
 
         assertThatThrownBy(() -> this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .containsExactlyWithJsons("first_product_entity.json"))
+                .containsWithJsonsStrict("first_product_entity.json"))
                 .isInstanceOf(AssertionError.class);
     }
 
@@ -204,7 +205,24 @@ class PostgresqlIT {
 
         assertThatThrownBy(() -> this.forgeIt.postgresql()
                 .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
-                .containsExactlyWithJsons("first_product_entity.json", "first_product_entity.json"))
+                .containsWithJsonsStrict("first_product_entity.json", "first_product_entity.json"))
+                .isInstanceOf(AssertionError.class);
+    }
+
+    @Test
+    @DisplayName("Given fixture missing product description when strict matching then assertion fails")
+    void givenFixtureMissingProductDescription_whenStrictMatching_thenAssertionFails() {
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("first_product_entity.json"))
+                .build();
+
+        assertThatThrownBy(() -> this.forgeIt.postgresql()
+                .assertEntities(DbContracts.PRODUCT_ENTITY_DB_CONTRACT)
+                .ignoreFields("id", "user")
+                .containsWithJsonsStrict("first_product_missing_description_entity.json"))
                 .isInstanceOf(AssertionError.class);
     }
 

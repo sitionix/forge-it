@@ -25,6 +25,15 @@ class EntityJsonComparatorTests {
                 null));
     }
 
+    @Test
+    void givenMissingFieldInExpectedJsonWhenStrictMatchThenThrowsAssertionError() {
+        final StrictEntity actual = new StrictEntity("alpha", 7);
+        assertThrows(AssertionError.class, () -> EntityJsonComparator.assertMatchesJsonStrict(
+                actual,
+                "{\"name\":\"alpha\"}",
+                null));
+    }
+
     static final class SampleEntity {
         private final Long retryCount;
 
@@ -34,6 +43,24 @@ class EntityJsonComparatorTests {
 
         public Long getRetryCount() {
             return this.retryCount;
+        }
+    }
+
+    static final class StrictEntity {
+        private final String name;
+        private final int count;
+
+        StrictEntity(final String name, final int count) {
+            this.name = name;
+            this.count = count;
+        }
+
+        public String getName() {
+            return this.name;
+        }
+
+        public int getCount() {
+            return this.count;
         }
     }
 }

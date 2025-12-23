@@ -93,6 +93,7 @@ public class RelationalEntityAssertions implements DbEntityAssertions {
 
     private Set<String> buildIgnoreFields(final DbEntityHandle<?> handle, final String... fieldsToIgnore) {
         final Set<String> ignoreFields = new LinkedHashSet<>();
+        ignoreFields.add("hibernateLazyInitializer");
         if (handle != null && handle.contract() != null) {
             ignoreFields.addAll(handle.contract().fieldsToIgnoreOnMatch());
         }

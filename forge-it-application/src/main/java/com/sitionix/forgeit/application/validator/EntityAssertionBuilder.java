@@ -68,6 +68,14 @@ public final class EntityAssertionBuilder<E> implements DbEntityAssertionBuilder
     }
 
     /**
+     * Resolve and return the effective handle for debugging or inspection.
+     */
+    @Override
+    public DbEntityHandle<E> actualHandle() {
+        return this.resolveHandle();
+    }
+
+    /**
      * Compare only the fields present in the JSON fixture.
      */
     @Override
