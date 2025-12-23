@@ -13,4 +13,6 @@ public interface DbEntityFetcher {
     <E> List<E> loadAll(Class<E> entityType);
 
     <E> List<E> loadAllWithRelations(Class<E> entityType);
+
+    <E> List<E> loadAllWithRelations(DbContract<E> contract);
 }

@@ -1,5 +1,9 @@
 package com.sitionix.forgeit.domain.contract.assertion;
 
+import com.sitionix.forgeit.domain.contract.graph.DbEntityHandle;
+
+import java.util.List;
+
 public interface DbEntitiesAssertionBuilder<E> {
 
     DbEntitiesAssertionBuilder<E> ignoreFields(String... fields);
@@ -10,7 +14,9 @@ public interface DbEntitiesAssertionBuilder<E> {
 
     DbEntitiesAssertionBuilder<E> withFetchedRelations();
 
+    List<DbEntityHandle<E>> actualHandles();
+
     void containsAllWithJsons(String... jsonResourceNames);
 
-    void containsExactlyWithJsons(String... jsonResourceNames);
+    void containsWithJsonsStrict(String... jsonResourceNames);
 }

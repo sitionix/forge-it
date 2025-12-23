@@ -413,7 +413,7 @@ forgeit.postgresql()
 
 forgeit.postgresql()
         .assertEntities(PRODUCT)
-        .containsExactlyWithJsons("first_product_entity.json", "second_product_entity.json");
+        .containsWithJsonsStrict("first_product_entity.json", "second_product_entity.json");
 
 forgeit.postgresql()
         .assertEntities(PRODUCT)
@@ -422,7 +422,7 @@ forgeit.postgresql()
 ```
 
 `containsAllWithJsons(...)` asserts every fixture matches a distinct entity (extra entities
-are allowed). `containsExactlyWithJsons(...)` enforces an exact count match before matching.
+are allowed). `containsWithJsonsStrict(...)` enforces an exact count match and strict field matching.
 Use `hasSize(...)` to assert the total count regardless of which matching method you call.
 
 ### PostgreSQL test coverage
