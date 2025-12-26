@@ -1,6 +1,5 @@
 package com.sitionix.forgeit.consumer.kafka;
 
-import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +25,7 @@ class KafkaPipelineIT {
 
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
-                .expectPayload("userCreatedEvent.json", payload -> payload.setUserId(userId));
+                .assertPayload("userCreatedEvent.json", payload -> payload.setUserId(userId));
     }
 
     @Test
@@ -42,6 +41,6 @@ class KafkaPipelineIT {
 
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
-                .defaultExpectPayload(payload -> payload.setUserId(userId));
+                .assertDefaultPayload(payload -> payload.setUserId(userId));
     }
 }

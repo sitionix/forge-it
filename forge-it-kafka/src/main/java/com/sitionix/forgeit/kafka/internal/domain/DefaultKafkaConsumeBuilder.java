@@ -33,7 +33,7 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
-    public void expectPayload(final String payloadName) {
+    public void assertPayload(final String payloadName) {
         if (!nonNull(payloadName)) {
             return;
         }
@@ -44,7 +44,7 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
-    public void expectPayload(final String payloadName, final Consumer<T> mutator) {
+    public void assertPayload(final String payloadName, final Consumer<T> mutator) {
         if (!nonNull(payloadName)) {
             return;
         }
@@ -58,7 +58,7 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
-    public void defaultExpectPayload(final String payloadName) {
+    public void assertDefaultPayload(final String payloadName) {
         if (!nonNull(payloadName)) {
             return;
         }
@@ -69,7 +69,7 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
-    public void defaultExpectPayload(final String payloadName, final Consumer<T> mutator) {
+    public void assertDefaultPayload(final String payloadName, final Consumer<T> mutator) {
         if (!nonNull(payloadName)) {
             return;
         }
@@ -83,21 +83,21 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
-    public void defaultExpectPayload() {
+    public void assertDefaultPayload() {
         final String payloadName = this.contract.getDefaultExpectedPayloadName();
         if (payloadName == null || payloadName.isBlank()) {
             throw new IllegalStateException("Kafka default expected payload is not configured");
         }
-        this.defaultExpectPayload(payloadName);
+        this.assertDefaultPayload(payloadName);
     }
 
     @Override
-    public void defaultExpectPayload(final Consumer<T> mutator) {
+    public void assertDefaultPayload(final Consumer<T> mutator) {
         final String payloadName = this.contract.getDefaultExpectedPayloadName();
         if (payloadName == null || payloadName.isBlank()) {
             throw new IllegalStateException("Kafka default expected payload is not configured");
         }
-        this.defaultExpectPayload(payloadName, mutator);
+        this.assertDefaultPayload(payloadName, mutator);
     }
 
     private void consumeAndAssert(final String expectedJson) {

@@ -7,15 +7,15 @@ public interface KafkaConsumeBuilder<T> {
 
     KafkaConsumeBuilder<T> await(Duration timeout);
 
-    void expectPayload(String payloadName);
+    void assertPayload(String payloadName);
 
-    void expectPayload(String payloadName, Consumer<T> mutator);
+    void assertPayload(String payloadName, Consumer<T> mutator);
 
-    void defaultExpectPayload(String payloadName);
+    void assertDefaultPayload(String payloadName);
 
-    void defaultExpectPayload(String payloadName, Consumer<T> mutator);
+    void assertDefaultPayload(String payloadName, Consumer<T> mutator);
 
-    void defaultExpectPayload();
+    void assertDefaultPayload();
 
-    void defaultExpectPayload(Consumer<T> mutator);
+    void assertDefaultPayload(Consumer<T> mutator);
 }
