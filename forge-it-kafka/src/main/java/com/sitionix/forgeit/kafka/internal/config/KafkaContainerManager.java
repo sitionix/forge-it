@@ -11,14 +11,12 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.Map;
-import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
 public final class KafkaContainerManager implements InitializingBean, DisposableBean {
 
     private static final String PROPERTY_SOURCE_NAME = "forgeItKafka";
-    private static final String DEFAULT_IMAGE = "confluentinc/cp-kafka:7.6.1";
 
     private final ConfigurableEnvironment environment;
     private final KafkaProperties properties;
@@ -63,10 +61,13 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
         final KafkaProperties.Consumer consumer = this.properties.getConsumer();
+        if (consumer == null || consumer.getGroupId() == null || consumer.getGroupId().isBlank()) {
+            throw new IllegalStateException("forge-it.modules.kafka.consumer.group-id must be configured");
+        }
         final Map<String, Object> props = Map.of(
                 "forge-it.modules.kafka.bootstrap-servers", this.bootstrapServers,
                 "spring.kafka.bootstrap-servers", this.bootstrapServers,
-                "spring.kafka.consumer.group-id", consumer == null ? "forge-it-consumer" : consumer.getGroupId()
+                "spring.kafka.consumer.group-id", consumer.getGroupId()
         );
         final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, props);
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
@@ -98,10 +99,6 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
         return mode;
     }
 
-    private KafkaProperties.Container resolveContainer() {
-        return this.properties.getContainer();
-    }
-
     private void initialiseExternal() {
         final String configuredServers = this.properties.getBootstrapServers();
         if (configuredServers == null || configuredServers.isBlank()) {
@@ -111,11 +108,12 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
     }
 
     private void startInternal() {
-        final KafkaProperties.Container containerConfig = this.resolveContainer();
+        final KafkaProperties.Container containerConfig = this.properties.getContainer();
+        if (containerConfig == null || containerConfig.getImage() == null || containerConfig.getImage().isBlank()) {
+            throw new IllegalStateException("forge-it.modules.kafka.container.image must be configured for internal mode");
+        }
         try {
-            final String image = Objects.requireNonNullElse(containerConfig == null ? null : containerConfig.getImage(),
-                    DEFAULT_IMAGE);
-            this.container = new KafkaContainer(DockerImageName.parse(image));
+            this.container = new KafkaContainer(DockerImageName.parse(containerConfig.getImage()));
             this.container.start();
             this.bootstrapServers = this.container.getBootstrapServers();
         } catch (final RuntimeException ex) {
