@@ -19,10 +19,14 @@ import java.util.Set;
 final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
 
     private static final String POSTGRESQL_SUPPORT = "com.sitionix.forgeit.postgresql.api.PostgresqlSupport";
+    private static final String WIREMOCK_SUPPORT = "com.sitionix.forgeit.wiremock.api.WireMockSupport";
+    private static final String MOCKMVC_SUPPORT = "com.sitionix.forgeit.mockmvc.api.MockMvcSupport";
+    private static final String KAFKA_SUPPORT = "com.sitionix.forgeit.kafka.api.KafkaSupport";
     private static final String AUTOCONFIG_EXCLUDE_KEY = "spring.autoconfigure.exclude";
     private static final String DATASOURCE_AUTOCONFIG =
             "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration";
     private static final String PROPERTY_SOURCE_NAME = "forgeItAutoConfig";
+    private static final String FEATURE_TOGGLES_SOURCE = "forgeItFeatureToggles";
 
     private final Class<?> contractType;
     private final List<Class<? extends FeatureSupport>> features;
@@ -35,6 +39,7 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
 
     @Override
     public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
+        applyFeatureToggles(context);
         disableDataSourceAutoConfigurationIfUnused(context);
         final FeatureInstallationService installationService =
                 new FeatureInstallationService(context.getClassLoader());
@@ -85,6 +90,22 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         );
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
             sources.replace(PROPERTY_SOURCE_NAME, propertySource);
+        } else {
+            sources.addFirst(propertySource);
+        }
+    }
+
+    private void applyFeatureToggles(ConfigurableApplicationContext context) {
+        final Map<String, Object> toggles = Map.of(
+                "forge-it.modules.postgresql.enabled", hasFeature(POSTGRESQL_SUPPORT),
+                "forge-it.modules.wiremock.enabled", hasFeature(WIREMOCK_SUPPORT),
+                "forge-it.modules.mock-mvc.enabled", hasFeature(MOCKMVC_SUPPORT),
+                "forge-it.modules.kafka.enabled", hasFeature(KAFKA_SUPPORT)
+        );
+        final MutablePropertySources sources = context.getEnvironment().getPropertySources();
+        final MapPropertySource propertySource = new MapPropertySource(FEATURE_TOGGLES_SOURCE, toggles);
+        if (sources.contains(FEATURE_TOGGLES_SOURCE)) {
+            sources.replace(FEATURE_TOGGLES_SOURCE, propertySource);
         } else {
             sources.addFirst(propertySource);
         }

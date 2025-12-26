@@ -1,0 +1,6 @@
+forge-it:
+  modules:
+    kafka:
+      enabled: true
+      mode: internal
+      bootstrap-servers: localhost:9092
