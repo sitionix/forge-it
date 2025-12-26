@@ -12,6 +12,10 @@ public interface KafkaPublishBuilder<T> {
 
     KafkaPublishBuilder<T> defaultPayload(String payloadName, Consumer<T> mutator);
 
+    KafkaPublishBuilder<T> defaultPayload();
+
+    KafkaPublishBuilder<T> defaultPayload(Consumer<T> mutator);
+
     KafkaPublishBuilder<T> payloadJson(String payloadJson);
 
     KafkaPublishBuilder<T> mutate(Consumer<T> mutator);

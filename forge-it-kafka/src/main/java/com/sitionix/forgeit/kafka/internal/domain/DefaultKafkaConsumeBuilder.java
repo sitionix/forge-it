@@ -82,6 +82,24 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         this.consumeAndAssert(expectedJson);
     }
 
+    @Override
+    public void defaultExpectPayload() {
+        final String payloadName = this.contract.getDefaultExpectedPayloadName();
+        if (payloadName == null || payloadName.isBlank()) {
+            throw new IllegalStateException("Kafka default expected payload is not configured");
+        }
+        this.defaultExpectPayload(payloadName);
+    }
+
+    @Override
+    public void defaultExpectPayload(final Consumer<T> mutator) {
+        final String payloadName = this.contract.getDefaultExpectedPayloadName();
+        if (payloadName == null || payloadName.isBlank()) {
+            throw new IllegalStateException("Kafka default expected payload is not configured");
+        }
+        this.defaultExpectPayload(payloadName, mutator);
+    }
+
     private void consumeAndAssert(final String expectedJson) {
         final String payloadJson = this.consumerPort.consume(this.contract, this.timeout);
         try {

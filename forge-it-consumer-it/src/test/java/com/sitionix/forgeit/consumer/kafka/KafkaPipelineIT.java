@@ -10,7 +10,6 @@ import java.util.UUID;
 
 @IntegrationTest
 class KafkaPipelineIT {
-
     @Autowired
     private KafkaItSupport support;
 
@@ -28,5 +27,21 @@ class KafkaPipelineIT {
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
                 .expectPayload("userCreatedEvent.json", payload -> payload.setUserId(userId));
+    }
+
+    @Test
+    @DisplayName("Given default userCreated event When flowing through user listener and producer Then ForgeIT consumes default fixture")
+    void givenDefaultUserCreatedEvent_whenFlowingThroughUserListenerAndProducer_thenForgeItConsumesDefaultFixture() {
+        final String userId = UUID.randomUUID().toString();
+
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .defaultPayload(payload -> payload.setUserId(userId))
+                .key(userId)
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .defaultExpectPayload(payload -> payload.setUserId(userId));
     }
 }

@@ -14,4 +14,8 @@ public interface KafkaConsumeBuilder<T> {
     void defaultExpectPayload(String payloadName);
 
     void defaultExpectPayload(String payloadName, Consumer<T> mutator);
+
+    void defaultExpectPayload();
+
+    void defaultExpectPayload(Consumer<T> mutator);
 }

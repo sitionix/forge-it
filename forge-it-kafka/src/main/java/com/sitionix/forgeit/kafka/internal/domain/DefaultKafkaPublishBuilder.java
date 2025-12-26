@@ -69,6 +69,24 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
     }
 
     @Override
+    public KafkaPublishBuilder<T> defaultPayload() {
+        final String payloadName = this.contract.getDefaultPayloadName();
+        if (payloadName == null || payloadName.isBlank()) {
+            throw new IllegalStateException("Kafka default payload is not configured");
+        }
+        return this.defaultPayload(payloadName);
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> defaultPayload(final Consumer<T> mutator) {
+        final String payloadName = this.contract.getDefaultPayloadName();
+        if (payloadName == null || payloadName.isBlank()) {
+            throw new IllegalStateException("Kafka default payload is not configured");
+        }
+        return this.defaultPayload(payloadName, mutator);
+    }
+
+    @Override
     public KafkaPublishBuilder<T> payloadJson(final String payloadJson) {
         if (nonNull(payloadJson)) {
             this.payloadJson = payloadJson;
