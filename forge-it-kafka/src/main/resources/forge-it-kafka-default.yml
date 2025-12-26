@@ -4,3 +4,10 @@ forge-it:
       enabled: true
       mode: internal
       bootstrap-servers: localhost:9092
+      path:
+        payload: /kafka/payload
+      consumer:
+        group-id: forge-it-consumer
+        poll-timeout-ms: 5000
+      container:
+        image: confluentinc/cp-kafka:7.6.1

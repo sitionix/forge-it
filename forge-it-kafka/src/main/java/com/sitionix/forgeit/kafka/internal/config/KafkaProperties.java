@@ -17,9 +17,28 @@ public final class KafkaProperties {
     private Boolean enabled;
     private Mode mode;
     private String bootstrapServers;
+    private Path path;
+    private Consumer consumer;
+    private Container container;
 
     public enum Mode {
         INTERNAL,
         EXTERNAL
+    }
+
+    @Data
+    public static class Path {
+        private String payload;
+    }
+
+    @Data
+    public static class Consumer {
+        private String groupId;
+        private long pollTimeoutMs;
+    }
+
+    @Data
+    public static class Container {
+        private String image;
     }
 }

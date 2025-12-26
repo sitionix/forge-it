@@ -1,13 +1,16 @@
 package com.sitionix.forgeit.consumer.kafka;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
+@Component
 @ConfigurationProperties(prefix = "consumer.kafka")
 public class KafkaTopicConfig {
 
     private boolean enabled;
     private String bootstrapServers = "localhost:9092";
-    private String topic = "forge-it-demo-topic";
+    private String inputTopic = "forge-it-input-topic";
+    private String outputTopic = "forge-it-output-topic";
     private String groupId = "forge-it-consumer";
     private String clientId = "forge-it-client";
 
@@ -27,12 +30,20 @@ public class KafkaTopicConfig {
         this.bootstrapServers = bootstrapServers;
     }
 
-    public String getTopic() {
-        return this.topic;
+    public String getInputTopic() {
+        return this.inputTopic;
     }
 
-    public void setTopic(final String topic) {
-        this.topic = topic;
+    public void setInputTopic(final String inputTopic) {
+        this.inputTopic = inputTopic;
+    }
+
+    public String getOutputTopic() {
+        return this.outputTopic;
+    }
+
+    public void setOutputTopic(final String outputTopic) {
+        this.outputTopic = outputTopic;
     }
 
     public String getGroupId() {

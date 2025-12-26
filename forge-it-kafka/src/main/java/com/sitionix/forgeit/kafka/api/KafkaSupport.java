@@ -8,7 +8,7 @@ import com.sitionix.forgeit.core.marker.FeatureSupport;
  */
 public interface KafkaSupport extends FeatureSupport {
 
-    default KafkaBridge kafka() {
-        return FeatureContextHolder.getBean(KafkaBridge.class);
+    default KafkaMessaging kafka() {
+        return FeatureContextHolder.getBean(KafkaMessaging.class);
     }
 }

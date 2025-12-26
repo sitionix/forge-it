@@ -1,26 +1,41 @@
 package com.sitionix.forgeit.consumer.kafka.consumer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.consumer.kafka.KafkaTopicConfig;
+import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
+import com.sitionix.forgeit.consumer.kafka.producer.ForgeItKafkaProducer;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 @Service
 @ConditionalOnProperty(prefix = "consumer.kafka", name = "enabled", havingValue = "true")
+@RequiredArgsConstructor
 public class ForgeItKafkaConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ForgeItKafkaConsumer.class);
 
     private final KafkaTopicConfig config;
+    private final ObjectMapper objectMapper;
+    private final ForgeItKafkaProducer producer;
+    private final BlockingQueue<UserCreatedEvent> messages = new LinkedBlockingQueue<>();
 
-    public ForgeItKafkaConsumer(final KafkaTopicConfig config) {
-        this.config = config;
-    }
-
-    @KafkaListener(topics = "#{@kafkaTopicConfig.topic}")
+    @KafkaListener(topics = "#{@kafkaTopicConfig.inputTopic}")
     public void handleMessage(final String message) {
-        LOGGER.info("Kafka consumer received message from {}: {}", this.config.getTopic(), message);
+        try {
+            final UserCreatedEvent payload = this.objectMapper.readValue(message, UserCreatedEvent.class);
+            this.messages.add(payload);
+            LOGGER.info("Kafka consumer received message from {}: {}", this.config.getInputTopic(), message);
+            this.producer.sendUserCreated(payload);
+        } catch (final Exception ex) {
+            LOGGER.error("Kafka consumer failed to parse message from {}", this.config.getInputTopic(), ex);
+        }
     }
+
 }

@@ -5,3 +5,24 @@ forge-it:
   modules:
     mock-mvc:
       message: consumer-mock-mvc
+    kafka:
+      consumer:
+        group-id: forge-it-consumer
+consumer:
+  kafka:
+    enabled: true
+    input-topic: users.events.in
+    output-topic: users.events.out
+    bootstrap-servers: ${spring.kafka.bootstrap-servers}
+    group-id: forge-it-consumer
+    client-id: forge-it-client
+spring:
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      group-id: forge-it-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
