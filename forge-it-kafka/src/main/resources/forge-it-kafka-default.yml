@@ -6,6 +6,9 @@ forge-it:
       bootstrap-servers: localhost:9092
       path:
         payload: /kafka/payload
+        expected: /kafka/expected
+        default-payload: /kafka/default/payload
+        default-expected: /kafka/default/expected
       consumer:
         group-id: forge-it-consumer
         poll-timeout-ms: 5000

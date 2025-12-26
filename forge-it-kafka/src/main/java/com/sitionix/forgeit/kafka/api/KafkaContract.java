@@ -19,7 +19,7 @@ public final class KafkaContract<T> {
         return new KafkaContract<>(topic, payloadType);
     }
 
-    public static <T> KafkaContractBuilder<T> builder(final Class<T> payloadType) {
+    public static <T> KafkaContractBuilder<T> payloadClass(final Class<T> payloadType) {
         return KafkaContractBuilder.forPayload(payloadType);
     }
 }

@@ -2,9 +2,9 @@ package com.sitionix.forgeit.kafka.internal.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.kafka.api.KafkaContract;
 import com.sitionix.forgeit.kafka.api.KafkaPublishBuilder;
+import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
 import com.sitionix.forgeit.kafka.internal.port.KafkaPublisherPort;
 import lombok.RequiredArgsConstructor;
 
@@ -16,7 +16,7 @@ import static java.util.Objects.nonNull;
 public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<T> {
 
     private final KafkaContract<T> contract;
-    private final JsonLoader jsonLoader;
+    private final KafkaLoader kafkaLoader;
     private final ObjectMapper objectMapper;
     private final KafkaPublisherPort publisherPort;
 
@@ -27,7 +27,7 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
     @Override
     public KafkaPublishBuilder<T> payload(final String payloadName) {
         if (nonNull(payloadName)) {
-            this.payloadObject = this.jsonLoader.getFromFile(payloadName, this.contract.getPayloadType());
+            this.payloadObject = this.kafkaLoader.payloads().getFromFile(payloadName, this.contract.getPayloadType());
             this.payloadJson = this.writeValueAsString(this.payloadObject);
         }
         return this;
@@ -36,7 +36,30 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
     @Override
     public KafkaPublishBuilder<T> payload(final String payloadName, final Consumer<T> mutator) {
         if (nonNull(payloadName)) {
-            this.payloadObject = this.jsonLoader.getFromFile(payloadName, this.contract.getPayloadType());
+            this.payloadObject = this.kafkaLoader.payloads().getFromFile(payloadName, this.contract.getPayloadType());
+            if (nonNull(mutator)) {
+                mutator.accept(this.payloadObject);
+            }
+            this.payloadJson = this.writeValueAsString(this.payloadObject);
+        }
+        return this;
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> defaultPayload(final String payloadName) {
+        if (nonNull(payloadName)) {
+            this.payloadObject = this.kafkaLoader.defaultPayloads()
+                    .getFromFile(payloadName, this.contract.getPayloadType());
+            this.payloadJson = this.writeValueAsString(this.payloadObject);
+        }
+        return this;
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> defaultPayload(final String payloadName, final Consumer<T> mutator) {
+        if (nonNull(payloadName)) {
+            this.payloadObject = this.kafkaLoader.defaultPayloads()
+                    .getFromFile(payloadName, this.contract.getPayloadType());
             if (nonNull(mutator)) {
                 mutator.accept(this.payloadObject);
             }

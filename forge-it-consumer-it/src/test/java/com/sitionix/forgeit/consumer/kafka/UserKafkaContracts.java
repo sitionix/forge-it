@@ -6,12 +6,12 @@ import com.sitionix.forgeit.kafka.api.KafkaContract;
 public final class UserKafkaContracts {
 
     public static final KafkaContract<UserCreatedEvent> USER_CREATED_INPUT =
-            KafkaContract.builder(UserCreatedEvent.class)
-                    .topic("users.events.in")
+            KafkaContract.payloadClass(UserCreatedEvent.class)
+                    .topicFromProperty("consumer.kafka.input-topic")
                     .build();
 
     public static final KafkaContract<UserCreatedEvent> USER_CREATED_OUTPUT =
-            KafkaContract.builder(UserCreatedEvent.class)
+            KafkaContract.payloadClass(UserCreatedEvent.class)
                     .topic("users.events.out")
                     .build();
 

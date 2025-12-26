@@ -5,6 +5,7 @@ import com.sitionix.forgeit.kafka.internal.port.KafkaPublisherPort;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.env.Environment;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class KafkaTemplatePublisherAdapter implements KafkaPublisherPort {
 
     private final ObjectProvider<KafkaTemplate<String, String>> kafkaTemplateProvider;
+    private final Environment environment;
 
     @Override
     public <T> void publish(final KafkaContract<T> contract, final String payloadJson, final String key) {
@@ -20,7 +22,8 @@ public class KafkaTemplatePublisherAdapter implements KafkaPublisherPort {
         if (kafkaTemplate == null) {
             throw new IllegalStateException("KafkaTemplate bean is not available; ensure spring-kafka is configured");
         }
-        final ProducerRecord<String, String> record = new ProducerRecord<>(contract.getTopic(), key, payloadJson);
+        final String topic = this.environment.resolveRequiredPlaceholders(contract.getTopic());
+        final ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, payloadJson);
         kafkaTemplate.send(record);
     }
 }

@@ -29,6 +29,9 @@ public final class KafkaProperties {
     @Data
     public static class Path {
         private String payload;
+        private String defaultPayload;
+        private String expected;
+        private String defaultExpected;
     }
 
     @Data

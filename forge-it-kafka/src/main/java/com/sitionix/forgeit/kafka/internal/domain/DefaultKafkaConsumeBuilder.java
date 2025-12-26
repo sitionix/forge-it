@@ -3,9 +3,9 @@ package com.sitionix.forgeit.kafka.internal.domain;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.kafka.api.KafkaConsumeBuilder;
 import com.sitionix.forgeit.kafka.api.KafkaContract;
+import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
 import com.sitionix.forgeit.kafka.internal.port.KafkaConsumerPort;
 import lombok.RequiredArgsConstructor;
 
@@ -18,7 +18,7 @@ import static java.util.Objects.nonNull;
 public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<T> {
 
     private final KafkaContract<T> contract;
-    private final JsonLoader jsonLoader;
+    private final KafkaLoader kafkaLoader;
     private final ObjectMapper objectMapper;
     private final KafkaConsumerPort consumerPort;
 
@@ -37,7 +37,8 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         if (!nonNull(payloadName)) {
             return;
         }
-        final T payloadObject = this.jsonLoader.getFromFile(payloadName, this.contract.getPayloadType());
+        final T payloadObject = this.kafkaLoader.expectedPayloads()
+                .getFromFile(payloadName, this.contract.getPayloadType());
         final String expectedJson = this.writeValueAsString(payloadObject);
         this.consumeAndAssert(expectedJson);
     }
@@ -47,7 +48,33 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         if (!nonNull(payloadName)) {
             return;
         }
-        final T payloadObject = this.jsonLoader.getFromFile(payloadName, this.contract.getPayloadType());
+        final T payloadObject = this.kafkaLoader.expectedPayloads()
+                .getFromFile(payloadName, this.contract.getPayloadType());
+        if (nonNull(mutator)) {
+            mutator.accept(payloadObject);
+        }
+        final String expectedJson = this.writeValueAsString(payloadObject);
+        this.consumeAndAssert(expectedJson);
+    }
+
+    @Override
+    public void defaultExpectPayload(final String payloadName) {
+        if (!nonNull(payloadName)) {
+            return;
+        }
+        final T payloadObject = this.kafkaLoader.defaultExpectedPayloads()
+                .getFromFile(payloadName, this.contract.getPayloadType());
+        final String expectedJson = this.writeValueAsString(payloadObject);
+        this.consumeAndAssert(expectedJson);
+    }
+
+    @Override
+    public void defaultExpectPayload(final String payloadName, final Consumer<T> mutator) {
+        if (!nonNull(payloadName)) {
+            return;
+        }
+        final T payloadObject = this.kafkaLoader.defaultExpectedPayloads()
+                .getFromFile(payloadName, this.contract.getPayloadType());
         if (nonNull(mutator)) {
             mutator.accept(payloadObject);
         }

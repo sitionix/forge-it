@@ -25,7 +25,7 @@ public class KafkaMessagingFacade implements KafkaMessaging {
     @Override
     public <T> KafkaPublishBuilder<T> publish(final KafkaContract<T> contract) {
         return new DefaultKafkaPublishBuilder<>(contract,
-                this.kafkaLoader.payloads(),
+                this.kafkaLoader,
                 this.objectMapper,
                 this.publisherPort);
     }
@@ -33,7 +33,7 @@ public class KafkaMessagingFacade implements KafkaMessaging {
     @Override
     public <T> KafkaConsumeBuilder<T> consume(final KafkaContract<T> contract) {
         return new DefaultKafkaConsumeBuilder<>(contract,
-                this.kafkaLoader.payloads(),
+                this.kafkaLoader,
                 this.objectMapper,
                 this.consumerPort);
     }
