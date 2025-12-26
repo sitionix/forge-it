@@ -8,8 +8,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-
 @Component
 @RequiredArgsConstructor
 public class KafkaTemplatePublisherAdapter implements KafkaPublisherPort {
@@ -23,7 +21,6 @@ public class KafkaTemplatePublisherAdapter implements KafkaPublisherPort {
             throw new IllegalStateException("KafkaTemplate bean is not available; ensure spring-kafka is configured");
         }
         final ProducerRecord<String, String> record = new ProducerRecord<>(contract.getTopic(), key, payloadJson);
-        record.headers().add(KafkaHeaders.EVENT_TYPE, contract.getEventType().getBytes(StandardCharsets.UTF_8));
         kafkaTemplate.send(record);
     }
 }

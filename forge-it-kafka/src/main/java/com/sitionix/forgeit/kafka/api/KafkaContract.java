@@ -12,12 +12,14 @@ import lombok.RequiredArgsConstructor;
 public final class KafkaContract<T> {
 
     private final String topic;
-    private final String eventType;
     private final Class<T> payloadType;
 
     public static <T> KafkaContract<T> createContract(final String topic,
-                                                      final String eventType,
                                                       final Class<T> payloadType) {
-        return new KafkaContract<>(topic, eventType, payloadType);
+        return new KafkaContract<>(topic, payloadType);
+    }
+
+    public static <T> KafkaContractBuilder<T> builder(final Class<T> payloadType) {
+        return KafkaContractBuilder.forPayload(payloadType);
     }
 }

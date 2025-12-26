@@ -13,14 +13,11 @@ import org.springframework.stereotype.Service;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-import java.nio.charset.StandardCharsets;
-
 @Service
 @ConditionalOnProperty(prefix = "consumer.kafka", name = "enabled", havingValue = "true")
 public class ForgeItKafkaProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ForgeItKafkaProducer.class);
-    private static final String EVENT_TYPE_HEADER = "eventType";
 
     private final KafkaTopicConfig config;
     private final KafkaTemplate<String, String> kafkaTemplate;
@@ -40,7 +37,6 @@ public class ForgeItKafkaProducer {
         final ProducerRecord<String, String> record = new ProducerRecord<>(this.config.getOutputTopic(),
                 event.getUserId(),
                 payload);
-        record.headers().add(EVENT_TYPE_HEADER, "UserCreated".getBytes(StandardCharsets.UTF_8));
         this.kafkaTemplate.send(record)
                 .whenComplete((SendResult<String, String> result, Throwable exception) -> {
                     if (exception != null) {
