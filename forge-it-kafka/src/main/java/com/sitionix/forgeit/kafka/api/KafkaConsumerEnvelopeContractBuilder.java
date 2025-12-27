@@ -10,6 +10,8 @@ public interface KafkaConsumerEnvelopeContractBuilder<T> {
 
     <U> KafkaConsumerEnvelopeContractBuilder<T> defaultExpectedPayload(Class<U> payloadType, String payloadName);
 
+    <M> KafkaConsumerEnvelopeContractBuilder<T> defaultMetadata(Class<M> metadataType, String metadataName);
+
     KafkaConsumerEnvelopeContractBuilder<T> defaultEnvelope(Class<T> envelopeType, String envelopeName);
 
     KafkaContract<T> build();

@@ -21,5 +21,9 @@ class KafkaDefaultsEnvironmentPostProcessorTests {
         assertThat(environment.getProperty("forge-it.modules.kafka.mode")).isEqualTo("internal");
         assertThat(environment.getProperty("forge-it.modules.kafka.bootstrap-servers"))
                 .isEqualTo("localhost:9092");
+        assertThat(environment.getProperty("forge-it.modules.kafka.path.metadata"))
+                .isEqualTo("/kafka/metadata");
+        assertThat(environment.getProperty("forge-it.modules.kafka.path.default-metadata"))
+                .isEqualTo("/kafka/default/metadata");
     }
 }

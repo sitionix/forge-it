@@ -18,6 +18,8 @@ public final class KafkaContract<T> {
     private final String defaultExpectedPayloadName;
     private final String defaultEnvelopeName;
     private final Class<?> envelopeType;
+    private final String defaultMetadataName;
+    private final Class<?> metadataType;
 
     public static <T> KafkaContract<T> createContract(final String topic,
                                                       final Class<T> payloadType,
@@ -29,6 +31,8 @@ public final class KafkaContract<T> {
                 defaultPayloadName,
                 defaultExpectedPayloadName,
                 null,
+                null,
+                null,
                 null);
     }
 
@@ -39,13 +43,35 @@ public final class KafkaContract<T> {
                                                       final String defaultExpectedPayloadName,
                                                       final String defaultEnvelopeName,
                                                       final Class<?> envelopeType) {
+        return createContract(topic,
+                rootType,
+                payloadType,
+                defaultPayloadName,
+                defaultExpectedPayloadName,
+                defaultEnvelopeName,
+                envelopeType,
+                null,
+                null);
+    }
+
+    public static <T> KafkaContract<T> createContract(final String topic,
+                                                      final Class<?> rootType,
+                                                      final Class<?> payloadType,
+                                                      final String defaultPayloadName,
+                                                      final String defaultExpectedPayloadName,
+                                                      final String defaultEnvelopeName,
+                                                      final Class<?> envelopeType,
+                                                      final String defaultMetadataName,
+                                                      final Class<?> metadataType) {
         return new KafkaContract<>(topic,
                 castType(rootType),
                 payloadType,
                 defaultPayloadName,
                 defaultExpectedPayloadName,
                 defaultEnvelopeName,
-                envelopeType);
+                envelopeType,
+                defaultMetadataName,
+                metadataType);
     }
 
     @SuppressWarnings("unchecked")

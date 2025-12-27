@@ -19,6 +19,7 @@ class KafkaProducerContractBuilderTest {
         assertThat(contract.getDefaultPayloadName()).isEqualTo("payload.json");
         assertThat(contract.getEnvelopeType()).isNull();
         assertThat(contract.getDefaultEnvelopeName()).isNull();
+        assertThat(contract.getDefaultMetadataName()).isNull();
     }
 
     @Test
@@ -52,6 +53,18 @@ class KafkaProducerContractBuilderTest {
     }
 
     @Test
+    void shouldStoreDefaultMetadataName() {
+        final KafkaContract<UserCreatedEvent> contract = KafkaContract.producerContract()
+                .topic("topic")
+                .defaultPayload(UserCreatedEvent.class, "payload.json")
+                .defaultMetadata(UserCreatedMetadata.class, "metadata.json")
+                .build();
+
+        assertThat(contract.getDefaultMetadataName()).isEqualTo("metadata.json");
+        assertThat(contract.getMetadataType()).isEqualTo(UserCreatedMetadata.class);
+    }
+
+    @Test
     void shouldRejectMissingTopic() {
         assertThatThrownBy(() -> KafkaContract.producerContract()
                 .defaultPayload(UserCreatedEvent.class, "payload.json")
@@ -76,6 +89,26 @@ class KafkaProducerContractBuilderTest {
                 .defaultEnvelope(UserCreatedEnvelope.class, " "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("envelopeName must be provided");
+    }
+
+    @Test
+    void shouldRejectBlankMetadataName() {
+        assertThatThrownBy(() -> KafkaContract.producerContract()
+                .topic("topic")
+                .defaultMetadata(UserCreatedMetadata.class, " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("metadataName must be provided");
+    }
+
+    @Test
+    void shouldRejectChangingMetadataType() {
+        final KafkaProducerContractBuilder<?> builder = KafkaContract.producerContract()
+                .topic("topic")
+                .defaultMetadata(UserCreatedMetadata.class, "metadata.json");
+
+        assertThatThrownBy(() -> builder.defaultMetadata(AnotherMetadata.class, "metadata.json"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("metadataType is already set");
     }
 
     @Test
@@ -111,5 +144,11 @@ class KafkaProducerContractBuilderTest {
     }
 
     private static final class AnotherEnvelope {
+    }
+
+    private static final class UserCreatedMetadata {
+    }
+
+    private static final class AnotherMetadata {
     }
 }

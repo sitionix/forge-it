@@ -8,6 +8,8 @@ public interface KafkaProducerEnvelopeContractBuilder<T> {
 
     <U> KafkaProducerEnvelopeContractBuilder<T> defaultPayload(Class<U> payloadType, String payloadName);
 
+    <M> KafkaProducerEnvelopeContractBuilder<T> defaultMetadata(Class<M> metadataType, String metadataName);
+
     KafkaProducerEnvelopeContractBuilder<T> defaultEnvelope(Class<T> envelopeType, String envelopeName);
 
     KafkaContract<T> build();

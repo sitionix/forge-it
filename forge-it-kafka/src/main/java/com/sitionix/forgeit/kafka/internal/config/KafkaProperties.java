@@ -32,6 +32,8 @@ public final class KafkaProperties {
         private String defaultPayload;
         private String expected;
         private String defaultExpected;
+        private String metadata;
+        private String defaultMetadata;
     }
 
     @Data

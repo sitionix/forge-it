@@ -4,9 +4,11 @@ public final class KafkaConsumerContractBuilder<T> {
 
     private Class<?> payloadType;
     private Class<?> envelopeType;
+    private Class<?> metadataType;
     private String topic;
     private String defaultExpectedPayloadName;
     private String defaultEnvelopeName;
+    private String defaultMetadataName;
 
     private KafkaConsumerContractBuilder(final Class<?> payloadType) {
         this.payloadType = payloadType;
@@ -38,6 +40,12 @@ public final class KafkaConsumerContractBuilder<T> {
 
     public KafkaConsumerContractBuilder<T> defaultExpectedPayload(final String payloadName) {
         this.defaultExpectedPayloadName = payloadName;
+        return this;
+    }
+
+    public <M> KafkaConsumerContractBuilder<T> defaultMetadata(final Class<M> metadataType,
+                                                               final String metadataName) {
+        this.configureMetadata(metadataType, metadataName);
         return this;
     }
 
@@ -73,7 +81,9 @@ public final class KafkaConsumerContractBuilder<T> {
                 null,
                 this.defaultExpectedPayloadName,
                 this.defaultEnvelopeName,
-                this.envelopeType);
+                this.envelopeType,
+                this.defaultMetadataName,
+                this.metadataType);
     }
 
     private void assignPayloadType(final Class<?> payloadType) {
@@ -94,6 +104,24 @@ public final class KafkaConsumerContractBuilder<T> {
             throw new IllegalStateException("envelopeType is already set");
         }
         this.envelopeType = envelopeType;
+    }
+
+    private void assignMetadataType(final Class<?> metadataType) {
+        if (metadataType == null) {
+            throw new IllegalArgumentException("metadataType must be provided");
+        }
+        if (this.metadataType != null && !this.metadataType.equals(metadataType)) {
+            throw new IllegalStateException("metadataType is already set");
+        }
+        this.metadataType = metadataType;
+    }
+
+    private void configureMetadata(final Class<?> metadataType, final String metadataName) {
+        if (metadataName == null || metadataName.isBlank()) {
+            throw new IllegalArgumentException("metadataName must be provided");
+        }
+        this.assignMetadataType(metadataType);
+        this.defaultMetadataName = metadataName;
     }
 
     private void configureEnvelope(final Class<?> envelopeType, final String envelopeName) {
@@ -138,6 +166,13 @@ public final class KafkaConsumerContractBuilder<T> {
         public <U> KafkaConsumerEnvelopeContractBuilder<T> defaultExpectedPayload(final Class<U> payloadType,
                                                                                   final String payloadName) {
             this.delegate.defaultExpectedPayload(payloadType, payloadName);
+            return this;
+        }
+
+        @Override
+        public <M> KafkaConsumerEnvelopeContractBuilder<T> defaultMetadata(final Class<M> metadataType,
+                                                                           final String metadataName) {
+            this.delegate.defaultMetadata(metadataType, metadataName);
             return this;
         }
 

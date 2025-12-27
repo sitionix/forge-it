@@ -52,6 +52,32 @@ public class KafkaLoader {
         return loader;
     }
 
+    public JsonLoader metadata() {
+        final JsonLoader loader = this.jsonLoaderProvider.getIfAvailable();
+        if (loader == null) {
+            throw new IllegalStateException("JsonLoader bean is not available; ensure forge-it-application is on the classpath");
+        }
+        final KafkaProperties.Path path = this.properties.getPath();
+        if (path == null || path.getMetadata() == null) {
+            throw new IllegalStateException("Kafka metadata path is not configured");
+        }
+        loader.setBasePath(path.getMetadata());
+        return loader;
+    }
+
+    public JsonLoader defaultMetadata() {
+        final JsonLoader loader = this.jsonLoaderProvider.getIfAvailable();
+        if (loader == null) {
+            throw new IllegalStateException("JsonLoader bean is not available; ensure forge-it-application is on the classpath");
+        }
+        final KafkaProperties.Path path = this.properties.getPath();
+        if (path == null || path.getDefaultMetadata() == null) {
+            throw new IllegalStateException("Kafka default metadata path is not configured");
+        }
+        loader.setBasePath(path.getDefaultMetadata());
+        return loader;
+    }
+
     public JsonLoader defaultExpectedPayloads() {
         final JsonLoader loader = this.jsonLoaderProvider.getIfAvailable();
         if (loader == null) {
