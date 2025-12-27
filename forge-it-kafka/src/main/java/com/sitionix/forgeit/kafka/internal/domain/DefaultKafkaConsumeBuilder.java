@@ -34,6 +34,13 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     }
 
     @Override
+    public KafkaConsumeBuilder<T> assertPayload() {
+        final String payloadName = this.resolveDefaultExpectedPayloadName();
+        this.assertPayloadInternal(payloadName, null, true);
+        return this;
+    }
+
+    @Override
     public KafkaConsumeBuilder<T> assertPayload(final Consumer<T> mutator) {
         final String payloadName = this.resolveDefaultExpectedPayloadName();
         this.assertPayloadInternal(payloadName, mutator, true);

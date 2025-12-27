@@ -7,6 +7,8 @@ public interface KafkaConsumeBuilder<T> {
 
     KafkaConsumeBuilder<T> await(Duration timeout);
 
+    KafkaConsumeBuilder<T> assertPayload();
+
     KafkaConsumeBuilder<T> assertPayload(Consumer<T> mutator);
 
     KafkaConsumeBuilder<T> assertPayload(String payloadName);

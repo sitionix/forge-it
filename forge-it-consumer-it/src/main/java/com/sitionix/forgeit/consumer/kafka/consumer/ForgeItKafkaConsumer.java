@@ -2,6 +2,7 @@ package com.sitionix.forgeit.consumer.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.consumer.kafka.KafkaTopicConfig;
+import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
 import com.sitionix.forgeit.consumer.kafka.domain.UserEnvelope;
 import com.sitionix.forgeit.consumer.kafka.producer.ForgeItKafkaProducer;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,19 @@ public class ForgeItKafkaConsumer {
             this.producer.sendUserCreated(envelope);
         } catch (final Exception ex) {
             LOGGER.error("Kafka consumer failed to parse message from {}", this.config.getInputTopic(), ex);
+        }
+    }
+
+    @KafkaListener(topics = "#{@kafkaTopicConfig.payloadInputTopic}")
+    public void handlePayloadMessage(final String message) {
+        try {
+            final UserCreatedEvent event = this.objectMapper.readValue(message, UserCreatedEvent.class);
+            LOGGER.info("Kafka consumer received payload message from {}: {}", this.config.getPayloadInputTopic(),
+                    message);
+            this.producer.sendUserCreatedPayload(event);
+        } catch (final Exception ex) {
+            LOGGER.error("Kafka consumer failed to parse payload message from {}", this.config.getPayloadInputTopic(),
+                    ex);
         }
     }
 

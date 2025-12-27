@@ -13,6 +13,8 @@ consumer:
     enabled: true
     input-topic: users.events.in
     output-topic: users.events.out
+    payload-input-topic: users.events.payload.in
+    payload-output-topic: users.events.payload.out
     bootstrap-servers: ${spring.kafka.bootstrap-servers}
     group-id: forge-it-consumer
     client-id: forge-it-client

@@ -11,6 +11,8 @@ public class KafkaTopicConfig {
     private String bootstrapServers = "localhost:9092";
     private String inputTopic = "forge-it-input-topic";
     private String outputTopic = "forge-it-output-topic";
+    private String payloadInputTopic = "forge-it-payload-input-topic";
+    private String payloadOutputTopic = "forge-it-payload-output-topic";
     private String groupId = "forge-it-consumer";
     private String clientId = "forge-it-client";
 
@@ -44,6 +46,22 @@ public class KafkaTopicConfig {
 
     public void setOutputTopic(final String outputTopic) {
         this.outputTopic = outputTopic;
+    }
+
+    public String getPayloadInputTopic() {
+        return this.payloadInputTopic;
+    }
+
+    public void setPayloadInputTopic(final String payloadInputTopic) {
+        this.payloadInputTopic = payloadInputTopic;
+    }
+
+    public String getPayloadOutputTopic() {
+        return this.payloadOutputTopic;
+    }
+
+    public void setPayloadOutputTopic(final String payloadOutputTopic) {
+        this.payloadOutputTopic = payloadOutputTopic;
     }
 
     public String getGroupId() {

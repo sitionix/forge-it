@@ -23,6 +23,18 @@ public final class UserKafkaContracts {
                     .defaultMetadata(UserCreatedMetadata.class, "defaultUserCreatedMetadata.json")
                     .build();
 
+    public static final KafkaContract<UserCreatedEvent> USER_CREATED_PAYLOAD_INPUT =
+            KafkaContract.producerContract()
+                    .topicFromProperty("consumer.kafka.payload-input-topic")
+                    .defaultPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
+                    .build();
+
+    public static final KafkaContract<UserCreatedEvent> USER_CREATED_PAYLOAD_OUTPUT =
+            KafkaContract.consumerContract()
+                    .topicFromProperty("consumer.kafka.payload-output-topic")
+                    .defaultExpectedPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
+                    .build();
+
     private UserKafkaContracts() {
     }
 }
