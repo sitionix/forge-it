@@ -2,11 +2,11 @@ package com.sitionix.forgeit.kafka.api;
 
 public final class KafkaProducerContractBuilder<T> {
 
-    private final Class<T> payloadType;
+    private Class<?> payloadType;
     private String topic;
     private String defaultPayloadName;
 
-    private KafkaProducerContractBuilder(final Class<T> payloadType) {
+    private KafkaProducerContractBuilder(final Class<?> payloadType) {
         this.payloadType = payloadType;
     }
 
@@ -15,6 +15,10 @@ public final class KafkaProducerContractBuilder<T> {
             throw new IllegalArgumentException("payloadType must be provided");
         }
         return new KafkaProducerContractBuilder<>(payloadType);
+    }
+
+    public static KafkaProducerContractBuilder<?> empty() {
+        return new KafkaProducerContractBuilder<>(null);
     }
 
     public KafkaProducerContractBuilder<T> topic(final String topic) {
@@ -35,10 +39,33 @@ public final class KafkaProducerContractBuilder<T> {
         return this;
     }
 
+    public <U> KafkaProducerContractBuilder<U> defaultPayload(final Class<U> payloadType, final String payloadName) {
+        this.assignPayloadType(payloadType);
+        this.defaultPayloadName = payloadName;
+        @SuppressWarnings("unchecked")
+        final KafkaProducerContractBuilder<U> typedBuilder = (KafkaProducerContractBuilder<U>) this;
+        return typedBuilder;
+    }
+
     public KafkaContract<T> build() {
         if (this.topic == null || this.topic.isBlank()) {
             throw new IllegalStateException("Kafka topic must be provided");
         }
-        return KafkaContract.createContract(this.topic, this.payloadType, this.defaultPayloadName, null);
+        if (this.payloadType == null) {
+            throw new IllegalStateException("payloadType must be provided");
+        }
+        @SuppressWarnings("unchecked")
+        final Class<T> typedPayloadType = (Class<T>) this.payloadType;
+        return KafkaContract.createContract(this.topic, typedPayloadType, this.defaultPayloadName, null);
+    }
+
+    private void assignPayloadType(final Class<?> payloadType) {
+        if (payloadType == null) {
+            throw new IllegalArgumentException("payloadType must be provided");
+        }
+        if (this.payloadType != null && !this.payloadType.equals(payloadType)) {
+            throw new IllegalStateException("payloadType is already set");
+        }
+        this.payloadType = payloadType;
     }
 }

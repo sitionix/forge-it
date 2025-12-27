@@ -27,7 +27,15 @@ public final class KafkaContract<T> {
         return KafkaProducerContractBuilder.forPayload(payloadType);
     }
 
+    public static KafkaProducerContractBuilder<?> producerContract() {
+        return KafkaProducerContractBuilder.empty();
+    }
+
     public static <T> KafkaConsumerContractBuilder<T> consumerContract(final Class<T> payloadType) {
         return KafkaConsumerContractBuilder.forPayload(payloadType);
+    }
+
+    public static KafkaConsumerContractBuilder<?> consumerContract() {
+        return KafkaConsumerContractBuilder.empty();
     }
 }
