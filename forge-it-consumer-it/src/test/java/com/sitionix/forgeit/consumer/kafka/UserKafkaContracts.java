@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.consumer.kafka;
 
 import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
+import com.sitionix.forgeit.consumer.kafka.domain.UserEnvelope;
 import com.sitionix.forgeit.kafka.api.KafkaContract;
 
 public final class UserKafkaContracts {

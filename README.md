@@ -436,6 +436,20 @@ The sample integration tests exercise the critical flows and guard against commo
 - `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTxPolicyMandatoryIT.java`
   ensures `tx-policy=MANDATORY` fails without an active transaction.
 
+## Kafka support
+
+Build producer contracts with a default payload fixture and (optionally) an envelope
+fixture. When an envelope is configured, the contract type is the envelope type:
+
+```java
+public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_INPUT =
+        KafkaContract.producerContract()
+                .topicFromProperty("consumer.kafka.input-topic")
+                .defaultEnvelope(UserCreatedEnvelope.class, "defaultUserCreatedEnvelope.json")
+                .defaultPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
+                .build();
+```
+
 ## Release flow
 
 The repository is set up to automatically cut releases whenever changes are pushed to the

@@ -1,0 +1,14 @@
+package com.sitionix.forgeit.kafka.api;
+
+public interface KafkaProducerEnvelopeContractBuilder<T> {
+
+    KafkaProducerEnvelopeContractBuilder<T> topic(String topic);
+
+    KafkaProducerEnvelopeContractBuilder<T> topicFromProperty(String propertyKey);
+
+    <U> KafkaProducerEnvelopeContractBuilder<T> defaultPayload(Class<U> payloadType, String payloadName);
+
+    KafkaProducerEnvelopeContractBuilder<T> defaultEnvelope(Class<T> envelopeType, String envelopeName);
+
+    KafkaContract<T> build();
+}
