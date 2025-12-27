@@ -102,6 +102,24 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         return this;
     }
 
+    @Override
+    public KafkaConsumeBuilder<T> assertEnvelope(final String envelopeName) {
+        if (!nonNull(envelopeName)) {
+            return this;
+        }
+        this.assertEnvelopeInternal(envelopeName, null);
+        return this;
+    }
+
+    @Override
+    public KafkaConsumeBuilder<T> assertEnvelope(final String envelopeName, final Consumer<T> mutator) {
+        if (!nonNull(envelopeName)) {
+            return this;
+        }
+        this.assertEnvelopeInternal(envelopeName, mutator);
+        return this;
+    }
+
     private void assertPayloadInternal(final String payloadName,
                                        final Consumer<T> mutator,
                                        final boolean useDefaultPayloadPath) {
@@ -136,6 +154,14 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         this.compareObjects(expectedMetadataValue, actualMetadata);
     }
 
+    private void assertEnvelopeInternal(final String envelopeName, final Consumer<T> mutator) {
+        this.ensureEnvelopeConfigured("envelope");
+        final Object expectedEnvelope = this.loadExpectedEnvelope(envelopeName);
+        this.applyMutatorToEnvelope(expectedEnvelope, mutator);
+        final Object actualEnvelope = this.readRoot(this.consume());
+        this.compareObjects(expectedEnvelope, actualEnvelope);
+    }
+
     private Object createExpectedEnvelope(final Object payload) {
         final Object envelope = KafkaEnvelopeBinding.createEnvelope(this.contract.getEnvelopeType());
         KafkaEnvelopeBinding.injectPayload(envelope, payload, this.contract.getPayloadType());
@@ -168,6 +194,11 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         }
         return this.kafkaLoader.metadata()
                 .getFromFile(metadataName, this.contract.getMetadataType());
+    }
+
+    private Object loadExpectedEnvelope(final String envelopeName) {
+        return this.kafkaLoader.expectedPayloads()
+                .getFromFile(envelopeName, this.contract.getEnvelopeType());
     }
 
     private Object resolveDefaultPayloadIfConfigured() {

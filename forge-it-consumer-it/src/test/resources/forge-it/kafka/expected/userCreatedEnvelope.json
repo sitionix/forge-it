@@ -1,0 +1,11 @@
+{
+  "payload": {
+    "userId": "user-123",
+    "email": "user@example.com"
+  },
+  "metadata": {
+    "traceId": "trace-123",
+    "source": "forge-it"
+  },
+  "producedAt": 0
+}

@@ -22,4 +22,8 @@ public interface KafkaConsumeBuilder<T> {
     KafkaConsumeBuilder<T> assertMetadata(String metadataName, Consumer<T> mutator);
 
     KafkaConsumeBuilder<T> assertEnvelope(Consumer<T> mutator);
+
+    KafkaConsumeBuilder<T> assertEnvelope(String envelopeName);
+
+    KafkaConsumeBuilder<T> assertEnvelope(String envelopeName, Consumer<T> mutator);
 }

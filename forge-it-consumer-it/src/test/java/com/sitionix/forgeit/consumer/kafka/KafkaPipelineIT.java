@@ -106,6 +106,18 @@ class KafkaPipelineIT {
     }
 
     @Test
+    @DisplayName("Given userCreated event When asserting envelope fixture Then ForgeIT consumes envelope fixture")
+    void givenUserCreatedEvent_whenAssertingEnvelopeFixture_thenForgeItConsumesEnvelopeFixture() {
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .assertEnvelope("userCreatedEnvelope.json");
+    }
+
+    @Test
     @DisplayName("Given payload-only event When using default fixture Then ForgeIT consumes payload")
     void givenPayloadOnlyEvent_whenUsingDefaultFixture_thenForgeItConsumesPayload() {
         final String userId = UUID.randomUUID().toString();
