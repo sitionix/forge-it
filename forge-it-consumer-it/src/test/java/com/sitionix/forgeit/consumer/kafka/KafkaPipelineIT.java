@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @IntegrationTest
 class KafkaPipelineIT {
     @Autowired
@@ -61,6 +63,49 @@ class KafkaPipelineIT {
     }
 
     @Test
+    @DisplayName("Given userCreated event When overriding metadata fixture Then ForgeIT consumes metadata fixture")
+    void givenUserCreatedEvent_whenOverridingMetadataFixture_thenForgeItConsumesMetadataFixture() {
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .metadata("userCreatedMetadata.json")
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .assertMetadata("userCreatedMetadata.json");
+    }
+
+    @Test
+    @DisplayName("Given userCreated event When overriding metadata fixture with mutation Then ForgeIT consumes mutated metadata")
+    void givenUserCreatedEvent_whenOverridingMetadataFixtureWithMutation_thenForgeItConsumesMutatedMetadata() {
+        final String traceId = "trace-" + UUID.randomUUID();
+
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .metadata("userCreatedMetadata.json", envelope -> envelope.getMetadata().setTraceId(traceId))
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .assertMetadata("userCreatedMetadata.json", envelope -> envelope.getMetadata().setTraceId(traceId));
+    }
+
+    @Test
+    @DisplayName("Given userCreated event When mutating envelope Then ForgeIT consumes envelope fields")
+    void givenUserCreatedEvent_whenMutatingEnvelope_thenForgeItConsumesEnvelopeFields() {
+        final long producedAt = System.currentTimeMillis();
+
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .envelope(envelope -> envelope.setProducedAt(producedAt))
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .assertEnvelope(envelope -> assertThat(envelope.getProducedAt()).isEqualTo(producedAt));
+    }
+
+    @Test
     @DisplayName("Given payload-only event When using default fixture Then ForgeIT consumes payload")
     void givenPayloadOnlyEvent_whenUsingDefaultFixture_thenForgeItConsumesPayload() {
         final String userId = UUID.randomUUID().toString();
@@ -74,6 +119,18 @@ class KafkaPipelineIT {
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_PAYLOAD_OUTPUT)
                 .assertPayload(payload -> payload.setUserId(userId));
+    }
+
+    @Test
+    @DisplayName("Given payload-only event When using default fixture without mutation Then ForgeIT consumes payload fixture")
+    void givenPayloadOnlyEvent_whenUsingDefaultFixtureWithoutMutation_thenForgeItConsumesPayloadFixture() {
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_PAYLOAD_INPUT)
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_PAYLOAD_OUTPUT)
+                .assertPayload();
     }
 
     @Test
