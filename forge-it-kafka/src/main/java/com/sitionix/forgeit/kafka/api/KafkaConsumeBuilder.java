@@ -7,15 +7,17 @@ public interface KafkaConsumeBuilder<T> {
 
     KafkaConsumeBuilder<T> await(Duration timeout);
 
-    void assertPayload(String payloadName);
+    KafkaConsumeBuilder<T> assertPayload(Consumer<T> mutator);
 
-    void assertPayload(String payloadName, Consumer<T> mutator);
+    KafkaConsumeBuilder<T> assertPayload(String payloadName);
 
-    void assertDefaultPayload(String payloadName);
+    KafkaConsumeBuilder<T> assertPayload(String payloadName, Consumer<T> mutator);
 
-    void assertDefaultPayload(String payloadName, Consumer<T> mutator);
+    KafkaConsumeBuilder<T> assertMetadata(Consumer<T> mutator);
 
-    void assertDefaultPayload();
+    KafkaConsumeBuilder<T> assertMetadata(String metadataName);
 
-    void assertDefaultPayload(Consumer<T> mutator);
+    KafkaConsumeBuilder<T> assertMetadata(String metadataName, Consumer<T> mutator);
+
+    KafkaConsumeBuilder<T> assertEnvelope(Consumer<T> mutator);
 }

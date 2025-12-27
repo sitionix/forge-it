@@ -2,7 +2,7 @@ package com.sitionix.forgeit.consumer.kafka.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.consumer.kafka.KafkaTopicConfig;
-import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
+import com.sitionix.forgeit.consumer.kafka.domain.UserEnvelope;
 import com.sitionix.forgeit.consumer.kafka.producer.ForgeItKafkaProducer;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -24,15 +24,15 @@ public class ForgeItKafkaConsumer {
     private final KafkaTopicConfig config;
     private final ObjectMapper objectMapper;
     private final ForgeItKafkaProducer producer;
-    private final BlockingQueue<UserCreatedEvent> messages = new LinkedBlockingQueue<>();
+    private final BlockingQueue<UserEnvelope> messages = new LinkedBlockingQueue<>();
 
     @KafkaListener(topics = "#{@kafkaTopicConfig.inputTopic}")
     public void handleMessage(final String message) {
         try {
-            final UserCreatedEvent payload = this.objectMapper.readValue(message, UserCreatedEvent.class);
-            this.messages.add(payload);
+            final UserEnvelope envelope = this.objectMapper.readValue(message, UserEnvelope.class);
+            this.messages.add(envelope);
             LOGGER.info("Kafka consumer received message from {}: {}", this.config.getInputTopic(), message);
-            this.producer.sendUserCreated(payload);
+            this.producer.sendUserCreated(envelope);
         } catch (final Exception ex) {
             LOGGER.error("Kafka consumer failed to parse message from {}", this.config.getInputTopic(), ex);
         }

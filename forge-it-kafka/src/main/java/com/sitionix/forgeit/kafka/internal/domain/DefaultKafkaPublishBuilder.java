@@ -8,6 +8,8 @@ import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
 import com.sitionix.forgeit.kafka.internal.port.KafkaPublisherPort;
 import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 import static java.util.Objects.nonNull;
@@ -21,14 +23,32 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
     private final KafkaPublisherPort publisherPort;
 
     private String payloadJson;
-    private T payloadObject;
+    private Object payloadObject;
+    private Object metadataObject;
     private String key;
+    private final List<Consumer<T>> payloadMutators = new ArrayList<>();
+    private final List<Consumer<T>> metadataMutators = new ArrayList<>();
+    private final List<Consumer<T>> envelopeMutators = new ArrayList<>();
+
+    @Override
+    public KafkaPublishBuilder<T> payload(final Consumer<T> mutator) {
+        if (mutator == null) {
+            return this;
+        }
+        this.resolveDefaultPayload();
+        if (this.contract.getEnvelopeType() != null) {
+            this.payloadMutators.add(mutator);
+            return this;
+        }
+        this.applyPayloadMutator(mutator);
+        return this;
+    }
 
     @Override
     public KafkaPublishBuilder<T> payload(final String payloadName) {
         if (nonNull(payloadName)) {
             this.payloadObject = this.kafkaLoader.payloads().getFromFile(payloadName, this.contract.getPayloadType());
-            this.payloadJson = this.writeValueAsString(this.payloadObject);
+            this.payloadJson = null;
         }
         return this;
     }
@@ -37,74 +57,59 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
     public KafkaPublishBuilder<T> payload(final String payloadName, final Consumer<T> mutator) {
         if (nonNull(payloadName)) {
             this.payloadObject = this.kafkaLoader.payloads().getFromFile(payloadName, this.contract.getPayloadType());
+            this.payloadJson = null;
             if (nonNull(mutator)) {
-                mutator.accept(this.payloadObject);
+                if (this.contract.getEnvelopeType() != null) {
+                    this.payloadMutators.add(mutator);
+                } else {
+                    this.applyPayloadMutator(mutator);
+                }
             }
-            this.payloadJson = this.writeValueAsString(this.payloadObject);
         }
         return this;
     }
 
     @Override
-    public KafkaPublishBuilder<T> defaultPayload(final String payloadName) {
-        if (nonNull(payloadName)) {
-            this.payloadObject = this.kafkaLoader.defaultPayloads()
-                    .getFromFile(payloadName, this.contract.getPayloadType());
-            this.payloadJson = this.writeValueAsString(this.payloadObject);
-        }
-        return this;
-    }
-
-    @Override
-    public KafkaPublishBuilder<T> defaultPayload(final String payloadName, final Consumer<T> mutator) {
-        if (nonNull(payloadName)) {
-            this.payloadObject = this.kafkaLoader.defaultPayloads()
-                    .getFromFile(payloadName, this.contract.getPayloadType());
-            if (nonNull(mutator)) {
-                mutator.accept(this.payloadObject);
-            }
-            this.payloadJson = this.writeValueAsString(this.payloadObject);
-        }
-        return this;
-    }
-
-    @Override
-    public KafkaPublishBuilder<T> defaultPayload() {
-        final String payloadName = this.contract.getDefaultPayloadName();
-        if (payloadName == null || payloadName.isBlank()) {
-            throw new IllegalStateException("Kafka default payload is not configured");
-        }
-        return this.defaultPayload(payloadName);
-    }
-
-    @Override
-    public KafkaPublishBuilder<T> defaultPayload(final Consumer<T> mutator) {
-        final String payloadName = this.contract.getDefaultPayloadName();
-        if (payloadName == null || payloadName.isBlank()) {
-            throw new IllegalStateException("Kafka default payload is not configured");
-        }
-        return this.defaultPayload(payloadName, mutator);
-    }
-
-    @Override
-    public KafkaPublishBuilder<T> payloadJson(final String payloadJson) {
-        if (nonNull(payloadJson)) {
-            this.payloadJson = payloadJson;
-            this.payloadObject = null;
-        }
-        return this;
-    }
-
-    @Override
-    public KafkaPublishBuilder<T> mutate(final Consumer<T> mutator) {
+    public KafkaPublishBuilder<T> metadata(final Consumer<T> mutator) {
         if (mutator == null) {
             return this;
         }
-        if (this.payloadObject == null) {
-            this.payloadObject = this.readValue(this.payloadJson);
+        this.ensureEnvelopeConfigured("metadata");
+        this.resolveDefaultMetadata();
+        this.metadataMutators.add(mutator);
+        return this;
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> metadata(final String metadataName) {
+        if (nonNull(metadataName)) {
+            this.ensureEnvelopeConfigured("metadata");
+            this.metadataObject = this.kafkaLoader.metadata()
+                    .getFromFile(metadataName, this.contract.getMetadataType());
         }
-        mutator.accept(this.payloadObject);
-        this.payloadJson = this.writeValueAsString(this.payloadObject);
+        return this;
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> metadata(final String metadataName, final Consumer<T> mutator) {
+        if (nonNull(metadataName)) {
+            this.ensureEnvelopeConfigured("metadata");
+            this.metadataObject = this.kafkaLoader.metadata()
+                    .getFromFile(metadataName, this.contract.getMetadataType());
+            if (nonNull(mutator)) {
+                this.metadataMutators.add(mutator);
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public KafkaPublishBuilder<T> envelope(final Consumer<T> mutator) {
+        if (mutator == null) {
+            return this;
+        }
+        this.ensureEnvelopeConfigured("envelope");
+        this.envelopeMutators.add(mutator);
         return this;
     }
 
@@ -118,10 +123,122 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
 
     @Override
     public void send() {
-        if (this.payloadJson == null) {
+        final Object payload = this.resolvePayloadObject();
+        if (payload == null) {
             throw new IllegalStateException("Kafka payload is not configured");
         }
-        this.publisherPort.publish(this.contract, this.payloadJson, this.key);
+        final String payloadJson = this.createPayloadJson(payload);
+        this.publisherPort.publish(this.contract, payloadJson, this.key);
+    }
+
+    private String createPayloadJson(final Object payload) {
+        if (this.contract.getEnvelopeType() == null) {
+            return this.writeValueAsString(payload);
+        }
+        final Object envelope = KafkaEnvelopeBinding.createEnvelope(this.contract.getEnvelopeType());
+        KafkaEnvelopeBinding.injectPayload(envelope, payload, this.contract.getPayloadType());
+        final Object metadata = this.resolveMetadataObject();
+        KafkaEnvelopeBinding.injectMetadata(envelope, metadata, this.contract.getMetadataType());
+        this.applyMutators(this.payloadMutators, envelope);
+        this.applyMutators(this.metadataMutators, envelope);
+        this.applyMutators(this.envelopeMutators, envelope);
+        return this.writeValueAsString(envelope);
+    }
+
+    private void applyMutators(final List<Consumer<T>> mutators, final Object target) {
+        if (mutators.isEmpty()) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        final T typed = (T) target;
+        for (final Consumer<T> mutator : mutators) {
+            if (mutator != null) {
+                mutator.accept(typed);
+            }
+        }
+    }
+
+    private void applyPayloadMutator(final Consumer<T> mutator) {
+        if (mutator == null) {
+            return;
+        }
+        @SuppressWarnings("unchecked")
+        final T typedPayload = (T) this.resolvePayloadObject();
+        mutator.accept(typedPayload);
+    }
+
+    private Object resolvePayloadObject() {
+        if (this.payloadObject != null) {
+            return this.payloadObject;
+        }
+        if (this.payloadJson != null) {
+            this.payloadObject = this.readValue(this.payloadJson);
+            return this.payloadObject;
+        }
+        final String defaultPayloadName = this.contract.getDefaultPayloadName();
+        if (defaultPayloadName == null || defaultPayloadName.isBlank()) {
+            return null;
+        }
+        this.payloadObject = this.kafkaLoader.defaultPayloads()
+                .getFromFile(defaultPayloadName, this.contract.getPayloadType());
+        return this.payloadObject;
+    }
+
+    private void resolveDefaultPayload() {
+        if (this.payloadObject != null || this.payloadJson != null) {
+            return;
+        }
+        this.payloadObject = this.kafkaLoader.defaultPayloads()
+                .getFromFile(this.resolveDefaultPayloadName(), this.contract.getPayloadType());
+    }
+
+    private String resolveDefaultPayloadName() {
+        final String payloadName = this.contract.getDefaultPayloadName();
+        if (payloadName == null || payloadName.isBlank()) {
+            throw new IllegalStateException("Kafka default payload is not configured");
+        }
+        return payloadName;
+    }
+
+    private Object resolveMetadataObject() {
+        if (this.contract.getMetadataType() == null) {
+            return null;
+        }
+        if (this.metadataObject != null) {
+            return this.metadataObject;
+        }
+        final String defaultMetadataName = this.contract.getDefaultMetadataName();
+        if (defaultMetadataName == null || defaultMetadataName.isBlank()) {
+            throw new IllegalStateException("Kafka default metadata is not configured");
+        }
+        this.metadataObject = this.kafkaLoader.defaultMetadata()
+                .getFromFile(defaultMetadataName, this.contract.getMetadataType());
+        return this.metadataObject;
+    }
+
+    private void resolveDefaultMetadata() {
+        if (this.metadataObject != null) {
+            return;
+        }
+        this.metadataObject = this.kafkaLoader.defaultMetadata()
+                .getFromFile(this.resolveDefaultMetadataName(), this.contract.getMetadataType());
+    }
+
+    private String resolveDefaultMetadataName() {
+        final String metadataName = this.contract.getDefaultMetadataName();
+        if (metadataName == null || metadataName.isBlank()) {
+            throw new IllegalStateException("Kafka default metadata is not configured");
+        }
+        return metadataName;
+    }
+
+    private void ensureEnvelopeConfigured(final String label) {
+        if (this.contract.getEnvelopeType() == null) {
+            throw new IllegalStateException("Kafka " + label + " requires an envelope type");
+        }
+        if (this.contract.getMetadataType() == null && "metadata".equals(label)) {
+            throw new IllegalStateException("Kafka metadata type is not configured");
+        }
     }
 
     private String writeValueAsString(final Object value) {
@@ -132,7 +249,7 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
         }
     }
 
-    private T readValue(final String payloadJson) {
+    private Object readValue(final String payloadJson) {
         if (payloadJson == null) {
             throw new IllegalStateException("Kafka payload is not configured");
         }

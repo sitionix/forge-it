@@ -19,13 +19,15 @@ class KafkaPipelineIT {
 
         this.support.kafka()
                 .publish(UserKafkaContracts.USER_CREATED_INPUT)
-                .payload("userCreatedEvent.json", payload -> payload.setUserId(userId))
+                .payload("userCreatedEvent.json", envelope -> envelope.getPayload().setUserId(userId))
+                .metadata(envelope -> envelope.getMetadata().setTraceId("t-" + userId))
                 .key(userId)
                 .send();
 
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
-                .assertPayload("userCreatedEvent.json", payload -> payload.setUserId(userId));
+                .assertPayload("userCreatedEvent.json", envelope -> envelope.getPayload().setUserId(userId))
+                .assertMetadata(envelope -> envelope.getMetadata().setTraceId("t-" + userId));
     }
 
     @Test
@@ -35,12 +37,14 @@ class KafkaPipelineIT {
 
         this.support.kafka()
                 .publish(UserKafkaContracts.USER_CREATED_INPUT)
-                .defaultPayload(payload -> payload.setUserId(userId))
+                .payload(envelope -> envelope.getPayload().setUserId(userId))
+                .metadata(envelope -> envelope.getMetadata().setTraceId("t-" + userId))
                 .key(userId)
                 .send();
 
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
-                .assertDefaultPayload(payload -> payload.setUserId(userId));
+                .assertPayload(envelope -> envelope.getPayload().setUserId(userId))
+                .assertMetadata(envelope -> envelope.getMetadata().setTraceId("t-" + userId));
     }
 }

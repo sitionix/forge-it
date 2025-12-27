@@ -438,15 +438,16 @@ The sample integration tests exercise the critical flows and guard against commo
 
 ## Kafka support
 
-Build producer contracts with a default payload fixture and (optionally) an envelope
-fixture. When an envelope is configured, the contract type is the envelope type:
+Build producer contracts with a default payload fixture and optional envelope metadata.
+When an envelope is configured, the contract type is the envelope type:
 
 ```java
 public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_INPUT =
         KafkaContract.producerContract()
                 .topicFromProperty("consumer.kafka.input-topic")
-                .defaultEnvelope(UserCreatedEnvelope.class, "defaultUserCreatedEnvelope.json")
+                .defaultEnvelope(UserCreatedEnvelope.class)
                 .defaultPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
+                .defaultMetadata(UserCreatedMetadata.class, "defaultUserCreatedMetadata.json")
                 .build();
 ```
 

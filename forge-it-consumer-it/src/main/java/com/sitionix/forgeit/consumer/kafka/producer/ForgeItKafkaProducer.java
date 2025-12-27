@@ -3,7 +3,7 @@ package com.sitionix.forgeit.consumer.kafka.producer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.consumer.kafka.KafkaTopicConfig;
-import com.sitionix.forgeit.consumer.kafka.domain.UserCreatedEvent;
+import com.sitionix.forgeit.consumer.kafka.domain.UserEnvelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,11 +31,12 @@ public class ForgeItKafkaProducer {
         this.objectMapper = objectMapper;
     }
 
-    public void sendUserCreated(final UserCreatedEvent event) {
-        final String payload = this.writeValueAsString(event);
+    public void sendUserCreated(final UserEnvelope envelope) {
+        final String payload = this.writeValueAsString(envelope);
+        final String key = envelope.getPayload() != null ? envelope.getPayload().getUserId() : null;
         LOGGER.info("Kafka producer sending message to {}: {}", this.config.getOutputTopic(), payload);
         final ProducerRecord<String, String> record = new ProducerRecord<>(this.config.getOutputTopic(),
-                event.getUserId(),
+                key,
                 payload);
         this.kafkaTemplate.send(record)
                 .whenComplete((SendResult<String, String> result, Throwable exception) -> {
@@ -50,9 +51,9 @@ public class ForgeItKafkaProducer {
                 });
     }
 
-    private String writeValueAsString(final UserCreatedEvent event) {
+    private String writeValueAsString(final UserEnvelope envelope) {
         try {
-            return this.objectMapper.writeValueAsString(event);
+            return this.objectMapper.writeValueAsString(envelope);
         } catch (final JsonProcessingException ex) {
             throw new IllegalStateException("Failed to serialize Kafka message", ex);
         }

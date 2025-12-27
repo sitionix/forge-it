@@ -4,21 +4,19 @@ import java.util.function.Consumer;
 
 public interface KafkaPublishBuilder<T> {
 
+    KafkaPublishBuilder<T> payload(Consumer<T> mutator);
+
     KafkaPublishBuilder<T> payload(String payloadName);
 
     KafkaPublishBuilder<T> payload(String payloadName, Consumer<T> mutator);
 
-    KafkaPublishBuilder<T> defaultPayload(String payloadName);
+    KafkaPublishBuilder<T> metadata(Consumer<T> mutator);
 
-    KafkaPublishBuilder<T> defaultPayload(String payloadName, Consumer<T> mutator);
+    KafkaPublishBuilder<T> metadata(String metadataName);
 
-    KafkaPublishBuilder<T> defaultPayload();
+    KafkaPublishBuilder<T> metadata(String metadataName, Consumer<T> mutator);
 
-    KafkaPublishBuilder<T> defaultPayload(Consumer<T> mutator);
-
-    KafkaPublishBuilder<T> payloadJson(String payloadJson);
-
-    KafkaPublishBuilder<T> mutate(Consumer<T> mutator);
+    KafkaPublishBuilder<T> envelope(Consumer<T> mutator);
 
     KafkaPublishBuilder<T> key(String key);
 

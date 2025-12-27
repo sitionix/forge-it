@@ -26,13 +26,13 @@ class KafkaProducerContractBuilderTest {
     void shouldBuildEnvelopeThenPayloadContract() {
         final KafkaContract<UserCreatedEnvelope> contract = KafkaContract.producerContract()
                 .topic("topic")
-                .defaultEnvelope(UserCreatedEnvelope.class, "envelope.json")
+                .defaultEnvelope(UserCreatedEnvelope.class)
                 .defaultPayload(UserCreatedEvent.class, "payload.json")
                 .build();
 
         assertThat(contract.getRootType()).isEqualTo(UserCreatedEnvelope.class);
         assertThat(contract.getEnvelopeType()).isEqualTo(UserCreatedEnvelope.class);
-        assertThat(contract.getDefaultEnvelopeName()).isEqualTo("envelope.json");
+        assertThat(contract.getDefaultEnvelopeName()).isNull();
         assertThat(contract.getPayloadType()).isEqualTo(UserCreatedEvent.class);
         assertThat(contract.getDefaultPayloadName()).isEqualTo("payload.json");
     }
@@ -42,12 +42,12 @@ class KafkaProducerContractBuilderTest {
         final KafkaContract<UserCreatedEnvelope> contract = KafkaContract.producerContract()
                 .topic("topic")
                 .defaultPayload(UserCreatedEvent.class, "payload.json")
-                .defaultEnvelope(UserCreatedEnvelope.class, "envelope.json")
+                .defaultEnvelope(UserCreatedEnvelope.class)
                 .build();
 
         assertThat(contract.getRootType()).isEqualTo(UserCreatedEnvelope.class);
         assertThat(contract.getEnvelopeType()).isEqualTo(UserCreatedEnvelope.class);
-        assertThat(contract.getDefaultEnvelopeName()).isEqualTo("envelope.json");
+        assertThat(contract.getDefaultEnvelopeName()).isNull();
         assertThat(contract.getPayloadType()).isEqualTo(UserCreatedEvent.class);
         assertThat(contract.getDefaultPayloadName()).isEqualTo("payload.json");
     }
@@ -80,15 +80,6 @@ class KafkaProducerContractBuilderTest {
                 .build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("payloadType must be provided");
-    }
-
-    @Test
-    void shouldRejectBlankEnvelopeName() {
-        assertThatThrownBy(() -> KafkaContract.producerContract()
-                .topic("topic")
-                .defaultEnvelope(UserCreatedEnvelope.class, " "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("envelopeName must be provided");
     }
 
     @Test
@@ -127,9 +118,9 @@ class KafkaProducerContractBuilderTest {
         final KafkaProducerContractBuilder<?> builder = KafkaContract.producerContract()
                 .topic("topic");
 
-        builder.defaultEnvelope(UserCreatedEnvelope.class, "envelope.json");
+        builder.defaultEnvelope(UserCreatedEnvelope.class);
 
-        assertThatThrownBy(() -> builder.defaultEnvelope(AnotherEnvelope.class, "envelope-v2.json"))
+        assertThatThrownBy(() -> builder.defaultEnvelope(AnotherEnvelope.class))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("envelopeType is already set");
     }

@@ -6,4 +6,6 @@ import lombok.Data;
 public class UserEnvelope {
 
     private UserCreatedEvent payload;
+    private UserCreatedMetadata metadata;
+    private long producedAt;
 }

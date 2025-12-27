@@ -49,9 +49,8 @@ public final class KafkaConsumerContractBuilder<T> {
         return this;
     }
 
-    public <E> KafkaConsumerEnvelopeContractBuilder<E> defaultEnvelope(final Class<E> envelopeType,
-                                                                       final String envelopeName) {
-        this.configureEnvelope(envelopeType, envelopeName);
+    public <E> KafkaConsumerEnvelopeContractBuilder<E> defaultEnvelope(final Class<E> envelopeType) {
+        this.configureEnvelope(envelopeType);
         return new EnvelopeContractBuilder<>(this);
     }
 
@@ -70,9 +69,6 @@ public final class KafkaConsumerContractBuilder<T> {
         }
         if (this.payloadType == null) {
             throw new IllegalStateException("payloadType must be provided");
-        }
-        if (this.envelopeType != null && (this.defaultEnvelopeName == null || this.defaultEnvelopeName.isBlank())) {
-            throw new IllegalStateException("envelopeName must be provided");
         }
         final Class<?> rootType = this.envelopeType != null ? this.envelopeType : this.payloadType;
         return KafkaContract.createContract(this.topic,
@@ -124,11 +120,11 @@ public final class KafkaConsumerContractBuilder<T> {
         this.defaultMetadataName = metadataName;
     }
 
-    private void configureEnvelope(final Class<?> envelopeType, final String envelopeName) {
-        final DefaultEnvelope defaultEnvelope = new DefaultEnvelope(envelopeType, envelopeName);
-        this.assignEnvelopeType(defaultEnvelope.envelopeType());
-        this.defaultEnvelopeName = defaultEnvelope.envelopeName();
+    private void configureEnvelope(final Class<?> envelopeType) {
+        this.assignEnvelopeType(envelopeType);
+        this.defaultEnvelopeName = null;
     }
+
 
     private static <T> KafkaContract<T> castContract(final KafkaContract<?> contract) {
         @SuppressWarnings("unchecked")
@@ -177,9 +173,8 @@ public final class KafkaConsumerContractBuilder<T> {
         }
 
         @Override
-        public KafkaConsumerEnvelopeContractBuilder<T> defaultEnvelope(final Class<T> envelopeType,
-                                                                       final String envelopeName) {
-            this.delegate.configureEnvelope(envelopeType, envelopeName);
+        public KafkaConsumerEnvelopeContractBuilder<T> defaultEnvelope(final Class<T> envelopeType) {
+            this.delegate.configureEnvelope(envelopeType);
             return this;
         }
 
