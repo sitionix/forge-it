@@ -31,6 +31,19 @@ class KafkaEnvelopeBindingTest {
     }
 
     @Test
+    void shouldPreferExactPayloadType() {
+        final EnvelopeWithSpecificPayload envelope =
+                KafkaEnvelopeBinding.createEnvelope(EnvelopeWithSpecificPayload.class);
+        final UserCreatedPayload payload = new UserCreatedPayload("user-5");
+
+        KafkaEnvelopeBinding.injectPayload(envelope, payload, UserCreatedPayload.class);
+
+        assertThat(envelope.getUserCreatedEvent()).isEqualTo(payload);
+        assertThat(envelope.getPayload()).isNull();
+        assertThat(KafkaEnvelopeBinding.extractPayload(envelope, UserCreatedPayload.class)).isEqualTo(payload);
+    }
+
+    @Test
     void shouldRejectAmbiguousPayloadFields() {
         final AmbiguousPayloadEnvelope envelope = KafkaEnvelopeBinding.createEnvelope(AmbiguousPayloadEnvelope.class);
         final Payload payload = new Payload("user-3");
@@ -63,6 +76,12 @@ class KafkaEnvelopeBindingTest {
     record Metadata(String traceId) {
     }
 
+    interface BasePayload {
+    }
+
+    record UserCreatedPayload(String userId) implements BasePayload {
+    }
+
     static final class EnvelopeWithFields {
         private Payload payload;
         private Metadata metadata;
@@ -73,6 +92,27 @@ class KafkaEnvelopeBindingTest {
 
         public void setPayload(final Payload payload) {
             this.payload = payload;
+        }
+    }
+
+    static final class EnvelopeWithSpecificPayload {
+        private BasePayload payload;
+        private UserCreatedPayload userCreatedEvent;
+
+        public void setPayload(final BasePayload payload) {
+            this.payload = payload;
+        }
+
+        public void setUserCreatedEvent(final UserCreatedPayload userCreatedEvent) {
+            this.userCreatedEvent = userCreatedEvent;
+        }
+
+        public BasePayload getPayload() {
+            return this.payload;
+        }
+
+        public UserCreatedPayload getUserCreatedEvent() {
+            return this.userCreatedEvent;
         }
     }
 

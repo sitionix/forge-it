@@ -7,16 +7,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 final class KafkaEnvelopeBinding {
-
-    private static final List<String> PAYLOAD_SETTER_NAMES = List.of("setPayload", "setEvent");
-    private static final List<String> PAYLOAD_GETTER_NAMES = List.of("getPayload", "getEvent");
-    private static final List<String> PAYLOAD_FIELD_NAMES = List.of("payload", "event");
-    private static final List<String> METADATA_SETTER_NAMES = List.of("setMetadata");
-    private static final List<String> METADATA_GETTER_NAMES = List.of("getMetadata");
-    private static final List<String> METADATA_FIELD_NAMES = List.of("metadata");
 
     private KafkaEnvelopeBinding() {
     }
@@ -41,11 +33,7 @@ final class KafkaEnvelopeBinding {
         if (payload == null || payloadType == null) {
             return;
         }
-        final ValueWriter writer = resolveWriter(envelope.getClass(),
-                payloadType,
-                PAYLOAD_SETTER_NAMES,
-                PAYLOAD_FIELD_NAMES,
-                "payload");
+        final ValueWriter writer = resolveWriter(envelope.getClass(), payloadType, "payload");
         writer.write(envelope, payload);
     }
 
@@ -53,11 +41,7 @@ final class KafkaEnvelopeBinding {
         if (metadata == null || metadataType == null) {
             return;
         }
-        final ValueWriter writer = resolveWriter(envelope.getClass(),
-                metadataType,
-                METADATA_SETTER_NAMES,
-                METADATA_FIELD_NAMES,
-                "metadata");
+        final ValueWriter writer = resolveWriter(envelope.getClass(), metadataType, "metadata");
         writer.write(envelope, metadata);
     }
 
@@ -65,11 +49,7 @@ final class KafkaEnvelopeBinding {
         if (payloadType == null) {
             return null;
         }
-        final ValueReader reader = resolveReader(envelope.getClass(),
-                payloadType,
-                PAYLOAD_GETTER_NAMES,
-                PAYLOAD_FIELD_NAMES,
-                "payload");
+        final ValueReader reader = resolveReader(envelope.getClass(), payloadType, "payload");
         return reader.read(envelope);
     }
 
@@ -77,85 +57,83 @@ final class KafkaEnvelopeBinding {
         if (metadataType == null) {
             return null;
         }
-        final ValueReader reader = resolveReader(envelope.getClass(),
-                metadataType,
-                METADATA_GETTER_NAMES,
-                METADATA_FIELD_NAMES,
-                "metadata");
+        final ValueReader reader = resolveReader(envelope.getClass(), metadataType, "metadata");
         return reader.read(envelope);
     }
 
     private static ValueWriter resolveWriter(final Class<?> envelopeType,
                                              final Class<?> valueType,
-                                             final List<String> preferredMethodNames,
-                                             final List<String> preferredFieldNames,
                                              final String label) {
-        final List<Method> setters = findSetterCandidates(envelopeType, valueType);
-        final Optional<Method> preferredSetter = selectPreferredMethod(setters, preferredMethodNames);
-        if (preferredSetter.isPresent()) {
-            return new MethodWriter(preferredSetter.get());
+        final Method exactSetter = selectSingleMethod(findSetterCandidates(envelopeType, valueType, true),
+                envelopeType,
+                label,
+                "setter");
+        if (exactSetter != null) {
+            return new MethodWriter(exactSetter);
         }
-        if (setters.size() == 1) {
-            return new MethodWriter(setters.get(0));
-        }
-        if (setters.size() > 1) {
-            throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                    " has multiple " + label + " setters: " + describeMethods(setters));
-        }
-
-        final List<Field> fields = findReadableFieldCandidates(envelopeType, valueType);
-        final Optional<Field> preferredField = selectPreferredField(fields, preferredFieldNames);
-        if (preferredField.isPresent()) {
-            return new FieldWriter(preferredField.get());
-        }
-        if (fields.size() == 1) {
-            return new FieldWriter(fields.get(0));
-        }
-        if (fields.size() > 1) {
-            throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                    " has multiple " + label + " fields: " + describeFields(fields));
+        final Method assignableSetter = selectSingleMethod(findSetterCandidates(envelopeType, valueType, false),
+                envelopeType,
+                label,
+                "setter");
+        if (assignableSetter != null) {
+            return new MethodWriter(assignableSetter);
         }
 
-        throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                " does not expose a " + label + " setter or field compatible with " + valueType.getName());
+        final Field exactField = selectSingleField(findFieldCandidates(envelopeType, valueType, true),
+                envelopeType,
+                label);
+        if (exactField != null) {
+            return new FieldWriter(exactField);
+        }
+        final Field assignableField = selectSingleField(findFieldCandidates(envelopeType, valueType, false),
+                envelopeType,
+                label);
+        if (assignableField != null) {
+            return new FieldWriter(assignableField);
+        }
+
+        throw new IllegalStateException("Envelope type " + envelopeType.getName()
+                + " does not expose a " + label + " setter or field compatible with " + valueType.getName());
     }
 
     private static ValueReader resolveReader(final Class<?> envelopeType,
                                              final Class<?> valueType,
-                                             final List<String> preferredMethodNames,
-                                             final List<String> preferredFieldNames,
                                              final String label) {
-        final List<Method> getters = findGetterCandidates(envelopeType, valueType);
-        final Optional<Method> preferredGetter = selectPreferredMethod(getters, preferredMethodNames);
-        if (preferredGetter.isPresent()) {
-            return new MethodReader(preferredGetter.get());
+        final Method exactGetter = selectSingleMethod(findGetterCandidates(envelopeType, valueType, true),
+                envelopeType,
+                label,
+                "getter");
+        if (exactGetter != null) {
+            return new MethodReader(exactGetter);
         }
-        if (getters.size() == 1) {
-            return new MethodReader(getters.get(0));
-        }
-        if (getters.size() > 1) {
-            throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                    " has multiple " + label + " getters: " + describeMethods(getters));
-        }
-
-        final List<Field> fields = findFieldCandidates(envelopeType, valueType);
-        final Optional<Field> preferredField = selectPreferredField(fields, preferredFieldNames);
-        if (preferredField.isPresent()) {
-            return new FieldReader(preferredField.get());
-        }
-        if (fields.size() == 1) {
-            return new FieldReader(fields.get(0));
-        }
-        if (fields.size() > 1) {
-            throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                    " has multiple " + label + " fields: " + describeFields(fields));
+        final Method assignableGetter = selectSingleMethod(findGetterCandidates(envelopeType, valueType, false),
+                envelopeType,
+                label,
+                "getter");
+        if (assignableGetter != null) {
+            return new MethodReader(assignableGetter);
         }
 
-        throw new IllegalStateException("Envelope type " + envelopeType.getName() +
-                " does not expose a " + label + " getter or field compatible with " + valueType.getName());
+        final Field exactField = selectSingleField(findFieldCandidates(envelopeType, valueType, true),
+                envelopeType,
+                label);
+        if (exactField != null) {
+            return new FieldReader(exactField);
+        }
+        final Field assignableField = selectSingleField(findFieldCandidates(envelopeType, valueType, false),
+                envelopeType,
+                label);
+        if (assignableField != null) {
+            return new FieldReader(assignableField);
+        }
+
+        throw new IllegalStateException("Envelope type " + envelopeType.getName()
+                + " does not expose a " + label + " getter or field compatible with " + valueType.getName());
     }
 
-    private static List<Method> findSetterCandidates(final Class<?> type, final Class<?> valueType) {
+    private static List<Method> findSetterCandidates(final Class<?> type,
+                                                     final Class<?> valueType,
+                                                     final boolean exactMatch) {
         final List<Method> candidates = new ArrayList<>();
         Class<?> current = type;
         while (current != null && !Object.class.equals(current)) {
@@ -167,7 +145,7 @@ final class KafkaEnvelopeBinding {
                     continue;
                 }
                 final Class<?> paramType = method.getParameterTypes()[0];
-                if (!paramType.isAssignableFrom(valueType)) {
+                if (!matchesType(paramType, valueType, exactMatch)) {
                     continue;
                 }
                 method.setAccessible(true);
@@ -179,7 +157,9 @@ final class KafkaEnvelopeBinding {
         return candidates;
     }
 
-    private static List<Method> findGetterCandidates(final Class<?> type, final Class<?> valueType) {
+    private static List<Method> findGetterCandidates(final Class<?> type,
+                                                     final Class<?> valueType,
+                                                     final boolean exactMatch) {
         final List<Method> candidates = new ArrayList<>();
         Class<?> current = type;
         while (current != null && !Object.class.equals(current)) {
@@ -191,7 +171,7 @@ final class KafkaEnvelopeBinding {
                     continue;
                 }
                 final Class<?> returnType = method.getReturnType();
-                if (!valueType.isAssignableFrom(returnType)) {
+                if (!matchesReturnType(returnType, valueType, exactMatch)) {
                     continue;
                 }
                 method.setAccessible(true);
@@ -203,7 +183,9 @@ final class KafkaEnvelopeBinding {
         return candidates;
     }
 
-    private static List<Field> findFieldCandidates(final Class<?> type, final Class<?> valueType) {
+    private static List<Field> findFieldCandidates(final Class<?> type,
+                                                   final Class<?> valueType,
+                                                   final boolean exactMatch) {
         final List<Field> candidates = new ArrayList<>();
         Class<?> current = type;
         while (current != null && !Object.class.equals(current)) {
@@ -211,7 +193,7 @@ final class KafkaEnvelopeBinding {
                 if (Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
-                if (!field.getType().isAssignableFrom(valueType)) {
+                if (!matchesType(field.getType(), valueType, exactMatch)) {
                     continue;
                 }
                 field.setAccessible(true);
@@ -223,64 +205,49 @@ final class KafkaEnvelopeBinding {
         return candidates;
     }
 
-    private static List<Field> findReadableFieldCandidates(final Class<?> type, final Class<?> valueType) {
-        final List<Field> candidates = new ArrayList<>();
-        Class<?> current = type;
-        while (current != null && !Object.class.equals(current)) {
-            for (final Field field : current.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers())) {
-                    continue;
-                }
-                if (!valueType.isAssignableFrom(field.getType())) {
-                    continue;
-                }
-                field.setAccessible(true);
-                candidates.add(field);
-            }
-            current = current.getSuperclass();
+    private static Method selectSingleMethod(final List<Method> candidates,
+                                             final Class<?> envelopeType,
+                                             final String label,
+                                             final String kind) {
+        if (candidates.isEmpty()) {
+            return null;
         }
-        candidates.sort(Comparator.comparing(Field::getName));
-        return candidates;
+        if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+        throw new IllegalStateException("Envelope type " + envelopeType.getName() +
+                " has multiple " + label + " " + kind + "s: " + describeMethods(candidates));
     }
 
-    private static Optional<Method> selectPreferredMethod(final List<Method> candidates,
-                                                          final List<String> preferredNames) {
-        for (final String preferredName : preferredNames) {
-            final List<Method> matches = new ArrayList<>();
-            for (final Method candidate : candidates) {
-                if (candidate.getName().equals(preferredName)) {
-                    matches.add(candidate);
-                }
-            }
-            if (matches.size() == 1) {
-                return Optional.of(matches.get(0));
-            }
-            if (matches.size() > 1) {
-                throw new IllegalStateException("Multiple preferred methods named " + preferredName +
-                        ": " + describeMethods(matches));
-            }
+    private static Field selectSingleField(final List<Field> candidates,
+                                           final Class<?> envelopeType,
+                                           final String label) {
+        if (candidates.isEmpty()) {
+            return null;
         }
-        return Optional.empty();
+        if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+        throw new IllegalStateException("Envelope type " + envelopeType.getName() +
+                " has multiple " + label + " fields: " + describeFields(candidates));
     }
 
-    private static Optional<Field> selectPreferredField(final List<Field> candidates,
-                                                        final List<String> preferredNames) {
-        for (final String preferredName : preferredNames) {
-            final List<Field> matches = new ArrayList<>();
-            for (final Field candidate : candidates) {
-                if (candidate.getName().equals(preferredName)) {
-                    matches.add(candidate);
-                }
-            }
-            if (matches.size() == 1) {
-                return Optional.of(matches.get(0));
-            }
-            if (matches.size() > 1) {
-                throw new IllegalStateException("Multiple preferred fields named " + preferredName +
-                        ": " + describeFields(matches));
-            }
+    private static boolean matchesType(final Class<?> declaredType,
+                                       final Class<?> valueType,
+                                       final boolean exactMatch) {
+        if (exactMatch) {
+            return declaredType.equals(valueType);
         }
-        return Optional.empty();
+        return declaredType.isAssignableFrom(valueType);
+    }
+
+    private static boolean matchesReturnType(final Class<?> returnType,
+                                             final Class<?> valueType,
+                                             final boolean exactMatch) {
+        if (exactMatch) {
+            return returnType.equals(valueType);
+        }
+        return valueType.isAssignableFrom(returnType);
     }
 
     private static String describeMethods(final List<Method> methods) {
