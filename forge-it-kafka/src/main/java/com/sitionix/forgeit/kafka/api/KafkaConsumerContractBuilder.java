@@ -80,16 +80,18 @@ public final class KafkaConsumerContractBuilder<T> {
             throw new IllegalStateException("payloadType must be provided");
         }
         final Class<?> rootType = this.envelopeType != null ? this.envelopeType : this.payloadType;
-        return KafkaContract.createContract(this.topic,
-                rootType,
-                this.payloadType,
-                null,
-                this.defaultExpectedPayloadName,
-                this.groupId,
-                this.defaultEnvelopeName,
-                this.envelopeType,
-                this.defaultMetadataName,
-                this.metadataType);
+        @SuppressWarnings("unchecked")
+        final Class<T> typedRootType = (Class<T>) rootType;
+        return KafkaContract.builder(typedRootType)
+                .topic(this.topic)
+                .payloadType(this.payloadType)
+                .defaultExpectedPayloadName(this.defaultExpectedPayloadName)
+                .consumerGroupId(this.groupId)
+                .defaultEnvelopeName(this.defaultEnvelopeName)
+                .envelopeType(this.envelopeType)
+                .defaultMetadataName(this.defaultMetadataName)
+                .metadataType(this.metadataType)
+                .build();
     }
 
     private void assignPayloadType(final Class<?> payloadType) {

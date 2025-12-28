@@ -22,20 +22,19 @@ public final class KafkaContract<T> {
     private final String defaultMetadataName;
     private final Class<?> metadataType;
 
+    public static <T> Builder<T> builder(final Class<T> rootType) {
+        return new Builder<>(rootType);
+    }
+
     public static <T> KafkaContract<T> createContract(final String topic,
                                                       final Class<T> payloadType,
                                                       final String defaultPayloadName,
                                                       final String defaultExpectedPayloadName) {
-        return createContract(topic,
-                payloadType,
-                payloadType,
-                defaultPayloadName,
-                defaultExpectedPayloadName,
-                null,
-                null,
-                null,
-                null,
-                null);
+        return builder(payloadType)
+                .topic(topic)
+                .defaultPayloadName(defaultPayloadName)
+                .defaultExpectedPayloadName(defaultExpectedPayloadName)
+                .build();
     }
 
     public static <T> KafkaContract<T> createContract(final String topic,
@@ -45,16 +44,14 @@ public final class KafkaContract<T> {
                                                       final String defaultExpectedPayloadName,
                                                       final String defaultEnvelopeName,
                                                       final Class<?> envelopeType) {
-        return createContract(topic,
-                rootType,
-                payloadType,
-                defaultPayloadName,
-                defaultExpectedPayloadName,
-                null,
-                defaultEnvelopeName,
-                envelopeType,
-                null,
-                null);
+        return KafkaContract.<T>builder(castType(rootType))
+                .topic(topic)
+                .payloadType(payloadType)
+                .defaultPayloadName(defaultPayloadName)
+                .defaultExpectedPayloadName(defaultExpectedPayloadName)
+                .defaultEnvelopeName(defaultEnvelopeName)
+                .envelopeType(envelopeType)
+                .build();
     }
 
     public static <T> KafkaContract<T> createContract(final String topic,
@@ -67,16 +64,17 @@ public final class KafkaContract<T> {
                                                       final Class<?> envelopeType,
                                                       final String defaultMetadataName,
                                                       final Class<?> metadataType) {
-        return new KafkaContract<>(topic,
-                castType(rootType),
-                payloadType,
-                defaultPayloadName,
-                defaultExpectedPayloadName,
-                consumerGroupId,
-                defaultEnvelopeName,
-                envelopeType,
-                defaultMetadataName,
-                metadataType);
+        return KafkaContract.<T>builder(castType(rootType))
+                .topic(topic)
+                .payloadType(payloadType)
+                .defaultPayloadName(defaultPayloadName)
+                .defaultExpectedPayloadName(defaultExpectedPayloadName)
+                .consumerGroupId(consumerGroupId)
+                .defaultEnvelopeName(defaultEnvelopeName)
+                .envelopeType(envelopeType)
+                .defaultMetadataName(defaultMetadataName)
+                .metadataType(metadataType)
+                .build();
     }
 
     @SuppressWarnings("unchecked")
@@ -96,5 +94,97 @@ public final class KafkaContract<T> {
 
     public static KafkaConsumerContractBuilder<?> consumerContract() {
         return KafkaConsumerContractBuilder.empty();
+    }
+
+    public static final class Builder<T> {
+
+        private final Class<T> rootType;
+        private String topic;
+        private Class<?> payloadType;
+        private String defaultPayloadName;
+        private String defaultExpectedPayloadName;
+        private String consumerGroupId;
+        private String defaultEnvelopeName;
+        private Class<?> envelopeType;
+        private boolean envelopeTypeConfigured;
+        private String defaultMetadataName;
+        private Class<?> metadataType;
+
+        private Builder(final Class<T> rootType) {
+            this.rootType = rootType;
+        }
+
+        public Builder<T> topic(final String topic) {
+            this.topic = topic;
+            return this;
+        }
+
+        public Builder<T> payloadType(final Class<?> payloadType) {
+            this.payloadType = payloadType;
+            return this;
+        }
+
+        public Builder<T> defaultPayloadName(final String defaultPayloadName) {
+            this.defaultPayloadName = defaultPayloadName;
+            return this;
+        }
+
+        public Builder<T> defaultExpectedPayloadName(final String defaultExpectedPayloadName) {
+            this.defaultExpectedPayloadName = defaultExpectedPayloadName;
+            return this;
+        }
+
+        public Builder<T> consumerGroupId(final String consumerGroupId) {
+            this.consumerGroupId = consumerGroupId;
+            return this;
+        }
+
+        public Builder<T> defaultEnvelopeName(final String defaultEnvelopeName) {
+            this.defaultEnvelopeName = defaultEnvelopeName;
+            return this;
+        }
+
+        public Builder<T> envelopeType(final Class<?> envelopeType) {
+            this.envelopeType = envelopeType;
+            this.envelopeTypeConfigured = true;
+            return this;
+        }
+
+        public Builder<T> defaultMetadataName(final String defaultMetadataName) {
+            this.defaultMetadataName = defaultMetadataName;
+            return this;
+        }
+
+        public Builder<T> metadataType(final Class<?> metadataType) {
+            this.metadataType = metadataType;
+            return this;
+        }
+
+        public KafkaContract<T> build() {
+            final Class<?> resolvedPayloadType = this.payloadType != null ? this.payloadType : this.rootType;
+            final Class<?> resolvedEnvelopeType = this.resolveEnvelopeType(resolvedPayloadType);
+            return new KafkaContract<>(this.topic,
+                    this.rootType,
+                    resolvedPayloadType,
+                    this.defaultPayloadName,
+                    this.defaultExpectedPayloadName,
+                    this.consumerGroupId,
+                    this.defaultEnvelopeName,
+                    resolvedEnvelopeType,
+                    this.defaultMetadataName,
+                    this.metadataType);
+        }
+
+        private Class<?> resolveEnvelopeType(final Class<?> resolvedPayloadType) {
+            if (this.envelopeTypeConfigured) {
+                return this.envelopeType;
+            }
+            if (this.rootType != null
+                    && resolvedPayloadType != null
+                    && !this.rootType.equals(resolvedPayloadType)) {
+                return this.rootType;
+            }
+            return null;
+        }
     }
 }

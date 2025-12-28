@@ -84,16 +84,10 @@ class DefaultKafkaPublishBuilderTest {
         final FakeJsonLoader loader = new FakeJsonLoader();
         final KafkaLoader kafkaLoader = createKafkaLoader(loader);
 
-        final KafkaContract<Envelope> contract = KafkaContract.createContract("topic",
-                Envelope.class,
-                Payload.class,
-                null,
-                null,
-                null,
-                null,
-                Envelope.class,
-                null,
-                null);
+        final KafkaContract<Envelope> contract = KafkaContract.builder(Envelope.class)
+                .topic("topic")
+                .payloadType(Payload.class)
+                .build();
 
         final DefaultKafkaPublishBuilder<Envelope> builder = new DefaultKafkaPublishBuilder<>(contract,
                 kafkaLoader,

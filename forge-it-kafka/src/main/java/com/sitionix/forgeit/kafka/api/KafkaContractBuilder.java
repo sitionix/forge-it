@@ -33,6 +33,8 @@ public final class KafkaContractBuilder<T> {
         if (this.topic == null || this.topic.isBlank()) {
             throw new IllegalStateException("Kafka topic must be provided");
         }
-        return KafkaContract.createContract(this.topic, this.payloadType, null, null);
+        return KafkaContract.builder(this.payloadType)
+                .topic(this.topic)
+                .build();
     }
 }
