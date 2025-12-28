@@ -1,0 +1,19 @@
+forge-it:
+  modules:
+    kafka:
+      enabled: true
+      mode: internal
+      bootstrap-servers: localhost:9092
+      path:
+        payload: /kafka/payload
+        expected: /kafka/expected
+        metadata: /kafka/metadata
+        default-payload: /kafka/default/payload
+        default-expected: /kafka/default/expected
+        default-metadata: /kafka/default/metadata
+      consumer:
+        group-id: forge-it-consumer
+        poll-timeout-ms: 5000
+        auto-offset-reset: earliest
+      container:
+        image: confluentinc/cp-kafka:7.6.1

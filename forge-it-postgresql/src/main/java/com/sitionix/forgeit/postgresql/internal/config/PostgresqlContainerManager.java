@@ -30,7 +30,9 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
 
     @Override
     public void afterPropertiesSet() {
-        this.validateEnabled();
+        if (!this.isEnabled()) {
+            return;
+        }
         final PostgresqlProperties.Mode mode = this.requireMode();
         if (mode == PostgresqlProperties.Mode.EXTERNAL) {
             this.initialiseExternal();
@@ -91,10 +93,8 @@ public final class PostgresqlContainerManager implements InitializingBean, Dispo
         }
     }
 
-    private void validateEnabled() {
-        if (this.properties == null || !Boolean.TRUE.equals(this.properties.getEnabled())) {
-            throw new IllegalStateException("Postgresql module is disabled via forge-it.modules.postgresql.enabled=false");
-        }
+    private boolean isEnabled() {
+        return this.properties != null && Boolean.TRUE.equals(this.properties.getEnabled());
     }
 
     private PostgresqlProperties.Mode requireMode() {

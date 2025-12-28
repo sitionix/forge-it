@@ -1,6 +1,7 @@
 forge-it:
   modules:
     mock-mvc:
+      enabled: true
       path:
         request: /mockmvc/request
         response: /mockmvc/response

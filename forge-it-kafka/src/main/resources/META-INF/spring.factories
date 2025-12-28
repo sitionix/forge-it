@@ -1,0 +1,6 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.kafka.config.KafkaDefaultsEnvironmentPostProcessor
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.kafka.internal.config.KafkaFeatureInstaller
+org.springframework.test.context.TestExecutionListener=\
+com.sitionix.forgeit.kafka.internal.executor.KafkaResetTestExecutionListener

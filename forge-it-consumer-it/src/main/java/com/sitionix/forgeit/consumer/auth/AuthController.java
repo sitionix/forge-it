@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.consumer.auth;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@ConditionalOnProperty(prefix = "forge-it.modules.wiremock", name = "enabled", havingValue = "true")
 public class AuthController {
 
     private final AuthClient authClient;
