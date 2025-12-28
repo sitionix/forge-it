@@ -37,6 +37,16 @@ public interface ConsumerTests extends ForgeIT {
 
 ## WireMock support
 
+### Entry point
+
+Declare the feature on your test interface so ForgeIT installs WireMock support:
+
+```java
+@ForgeFeatures(WireMockSupport.class)
+public interface ConsumerWireMockTests extends ForgeIT {
+}
+```
+
 ### Configuration
 
 WireMock starts automatically through Testcontainers by default. You can override the
@@ -176,6 +186,16 @@ previous mappings and journal entries.
 `MockMvcSupport` offers a fluent builder for invoking your controllers with request/response
 fixtures while keeping assertions centralized in a single place.
 
+### Entry point
+
+Declare the feature on your test interface so ForgeIT installs MockMvc support:
+
+```java
+@ForgeFeatures(MockMvcSupport.class)
+public interface ConsumerMockMvcTests extends ForgeIT {
+}
+```
+
 ### Configuration
 
 The module ships with sensible defaults for loading request and response payloads from the
@@ -253,6 +273,16 @@ status before execution. If you skip request/response bodies altogether, the bui
 performs status-only assertions.
 
 ## PostgreSQL support
+
+### Entry point
+
+Declare the feature on your test interface so ForgeIT installs PostgreSQL support:
+
+```java
+@ForgeFeatures(PostgresqlSupport.class)
+public interface ConsumerPostgresTests extends ForgeIT {
+}
+```
 
 ### Configuration
 The PostgreSQL feature starts a `postgres:16-alpine` Testcontainers instance by default and
@@ -438,8 +468,55 @@ The sample integration tests exercise the critical flows and guard against commo
 
 ## Kafka support
 
-Build producer contracts with a default payload fixture and optional envelope metadata.
-When an envelope is configured, the contract type is the envelope type:
+Kafka support provides publish/consume helpers that load JSON fixtures and run against
+either a Testcontainers Kafka broker or an external cluster.
+
+### Entry point
+
+Declare the feature on your test interface so ForgeIT installs Kafka support:
+
+```java
+@ForgeFeatures(KafkaSupport.class)
+public interface ConsumerKafkaTests extends ForgeIT {
+}
+```
+
+### Configuration
+
+The module ships with defaults that start an internal broker and configure Spring Kafka
+for String payloads. Override only what you need:
+
+```yaml
+forge-it:
+  modules:
+    kafka:
+      enabled: true
+      mode: internal
+      bootstrap-servers: localhost:9092
+      consumer:
+        poll-timeout-ms: 5000
+        auto-offset-reset: earliest
+      path:
+        payload: /kafka/payload
+        expected: /kafka/expected
+        metadata: /kafka/metadata
+        default-payload: /kafka/default/payload
+        default-expected: /kafka/default/expected
+        default-metadata: /kafka/default/metadata
+      container:
+        image: confluentinc/cp-kafka:7.6.1
+```
+
+Notes:
+- `bootstrap-servers` is injected into `spring.kafka.bootstrap-servers` automatically.
+- Default serializers/deserializers are set to String unless you override them.
+- `consumer.group-id` is optional; you can supply the group id per consumer contract
+  via `.groupId(...)` instead of adding application YAML.
+
+### Contracts and fixtures
+
+Build producer and consumer contracts that point at topics and fixture defaults. If you
+use envelopes, the contract type is the envelope type:
 
 ```java
 public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_INPUT =
@@ -449,7 +526,53 @@ public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_INPUT =
                 .defaultPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
                 .defaultMetadata(UserCreatedMetadata.class, "defaultUserCreatedMetadata.json")
                 .build();
+
+public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_OUTPUT =
+        KafkaContract.consumerContract()
+                .topicFromProperty("consumer.kafka.output-topic")
+                .groupId("forge-it-consumer")
+                .defaultEnvelope(UserCreatedEnvelope.class)
+                .defaultExpectedPayload(UserCreatedEvent.class, "defaultUserCreatedEvent.json")
+                .defaultMetadata(UserCreatedMetadata.class, "defaultUserCreatedMetadata.json")
+                .build();
 ```
+
+Fixture resolution mirrors the configured paths under `forge-it.modules.kafka.path`. Files
+resolve relative to `src/test/resources/forge-it`, for example:
+
+- `defaultUserCreatedEvent.json` for payloads under `/kafka/default/payload`
+- `expectedUserCreatedEvent.json` for expected payloads under `/kafka/expected`
+- `defaultUserCreatedMetadata.json` for metadata under `/kafka/default/metadata`
+
+### Publishing messages
+
+Use the publish builder to load defaults, mutate payloads/metadata, or send raw fixtures:
+
+```java
+forgeit.kafka()
+        .publish(UserKafkaContracts.USER_CREATED_INPUT)
+        .payload(payload -> payload.setUserId("123"))
+        .metadata("defaultUserCreatedMetadata.json", meta -> meta.setSource("tests"))
+        .key("user-123")
+        .send();
+```
+
+### Consuming and asserting messages
+
+The consume builder waits for a message and asserts against expected fixtures:
+
+```java
+forgeit.kafka()
+        .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+        .await(Duration.ofSeconds(5))
+        .assertPayload()
+        .assertMetadata("defaultUserCreatedMetadata.json")
+        .ignoreFields("payload.createdAt", "metadata.traceId");
+```
+
+`assertPayload()` and `assertMetadata()` use the default expected fixture names from the
+contract. Use `assertEnvelope(...)` when you want to compare the entire envelope instead
+of the extracted payload or metadata.
 
 ## Release flow
 
