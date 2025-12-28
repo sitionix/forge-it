@@ -3,6 +3,8 @@ package com.sitionix.forgeit.kafka.internal.domain;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sitionix.forgeit.kafka.api.KafkaConsumeBuilder;
 import com.sitionix.forgeit.kafka.api.KafkaContract;
 import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
@@ -10,6 +12,10 @@ import com.sitionix.forgeit.kafka.internal.port.KafkaConsumerPort;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static java.util.Objects.nonNull;
@@ -24,6 +30,7 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
 
     private Duration timeout;
     private String consumedPayloadJson;
+    private final Set<String> ignoredFields = new LinkedHashSet<>();
 
     @Override
     public KafkaConsumeBuilder<T> await(final Duration timeout) {
@@ -117,6 +124,19 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
             return this;
         }
         this.assertEnvelopeInternal(envelopeName, mutator);
+        return this;
+    }
+
+    @Override
+    public KafkaConsumeBuilder<T> ignoreFields(final String... fields) {
+        if (fields == null) {
+            return this;
+        }
+        for (final String field : fields) {
+            if (field != null && !field.isBlank()) {
+                this.ignoredFields.add(field);
+            }
+        }
         return this;
     }
 
@@ -257,14 +277,45 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
 
     private void compareObjects(final Object expected, final Object actual) {
         try {
-            final JsonNode expectedNode = this.objectMapper.valueToTree(expected);
-            final JsonNode actualNode = this.objectMapper.valueToTree(actual);
+            JsonNode expectedNode = this.objectMapper.valueToTree(expected);
+            JsonNode actualNode = this.objectMapper.valueToTree(actual);
+            if (!this.ignoredFields.isEmpty()) {
+                expectedNode = this.removeIgnoredFields(expectedNode.deepCopy());
+                actualNode = this.removeIgnoredFields(actualNode.deepCopy());
+            }
             if (!expectedNode.equals(actualNode)) {
                 throw new IllegalStateException("Kafka payload does not match expected fixture");
             }
         } catch (final IllegalArgumentException ex) {
             throw new IllegalStateException("Failed to compare Kafka payload JSON", ex);
         }
+    }
+
+    private JsonNode removeIgnoredFields(final JsonNode node) {
+        if (node == null || this.ignoredFields.isEmpty()) {
+            return node;
+        }
+        if (node.isObject()) {
+            final ObjectNode objectNode = (ObjectNode) node;
+            final List<String> fieldsToRemove = new ArrayList<>();
+            objectNode.fieldNames().forEachRemaining(fieldName -> {
+                if (this.ignoredFields.contains(fieldName)) {
+                    fieldsToRemove.add(fieldName);
+                } else {
+                    this.removeIgnoredFields(objectNode.get(fieldName));
+                }
+            });
+            objectNode.remove(fieldsToRemove);
+            return objectNode;
+        }
+        if (node.isArray()) {
+            final ArrayNode arrayNode = (ArrayNode) node;
+            for (final JsonNode item : arrayNode) {
+                this.removeIgnoredFields(item);
+            }
+            return arrayNode;
+        }
+        return node;
     }
 
     private String resolveDefaultExpectedPayloadName() {

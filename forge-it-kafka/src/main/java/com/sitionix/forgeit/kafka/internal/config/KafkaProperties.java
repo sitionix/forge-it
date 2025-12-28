@@ -40,6 +40,7 @@ public final class KafkaProperties {
     public static class Consumer {
         private String groupId;
         private long pollTimeoutMs;
+        private String autoOffsetReset;
     }
 
     @Data

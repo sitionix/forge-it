@@ -65,6 +65,17 @@ class KafkaConsumerContractBuilderTest {
     }
 
     @Test
+    void shouldStoreConsumerGroupId() {
+        final KafkaContract<UserCreatedEvent> contract = KafkaContract.consumerContract()
+                .topic("topic")
+                .defaultExpectedPayload(UserCreatedEvent.class, "expected.json")
+                .groupId("group-id")
+                .build();
+
+        assertThat(contract.getConsumerGroupId()).isEqualTo("group-id");
+    }
+
+    @Test
     void shouldRejectMissingTopic() {
         assertThatThrownBy(() -> KafkaContract.consumerContract()
                 .defaultExpectedPayload(UserCreatedEvent.class, "expected.json")
@@ -89,6 +100,15 @@ class KafkaConsumerContractBuilderTest {
                 .defaultMetadata(UserCreatedMetadata.class, " "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("metadataName must be provided");
+    }
+
+    @Test
+    void shouldRejectBlankGroupId() {
+        assertThatThrownBy(() -> KafkaContract.consumerContract()
+                .topic("topic")
+                .groupId(" "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("groupId must be provided");
     }
 
     @Test

@@ -14,5 +14,6 @@ forge-it:
       consumer:
         group-id: forge-it-consumer
         poll-timeout-ms: 5000
+        auto-offset-reset: earliest
       container:
         image: confluentinc/cp-kafka:7.6.1

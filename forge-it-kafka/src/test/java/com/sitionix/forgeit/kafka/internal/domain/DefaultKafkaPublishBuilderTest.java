@@ -90,6 +90,7 @@ class DefaultKafkaPublishBuilderTest {
                 null,
                 null,
                 null,
+                null,
                 Envelope.class,
                 null,
                 null);

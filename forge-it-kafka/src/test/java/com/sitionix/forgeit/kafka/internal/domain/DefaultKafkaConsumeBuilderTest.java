@@ -50,6 +50,37 @@ class DefaultKafkaConsumeBuilderTest {
         assertThat(consumer.calls).isEqualTo(1);
     }
 
+    @Test
+    void shouldIgnoreMetadataFieldsWhenAsserting() throws Exception {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final FakeJsonLoader loader = new FakeJsonLoader();
+        loader.put("/default/expected/defaultPayload.json", new Payload("default-user"));
+        loader.put("/default/metadata/defaultMetadata.json", new Metadata("default-trace"));
+        final KafkaLoader kafkaLoader = createKafkaLoader(loader);
+
+        final KafkaContract<Envelope> contract = KafkaContract.consumerContract()
+                .topic("topic")
+                .defaultEnvelope(Envelope.class)
+                .defaultExpectedPayload(Payload.class, "defaultPayload.json")
+                .defaultMetadata(Metadata.class, "defaultMetadata.json")
+                .build();
+
+        final Envelope actualEnvelope = new Envelope();
+        actualEnvelope.setPayload(new Payload("default-user"));
+        actualEnvelope.setMetadata(new Metadata("actual-trace"));
+        final String payloadJson = objectMapper.writeValueAsString(actualEnvelope);
+
+        final CapturingConsumer consumer = new CapturingConsumer(payloadJson);
+        final DefaultKafkaConsumeBuilder<Envelope> builder = new DefaultKafkaConsumeBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                consumer);
+
+        builder.ignoreFields("traceId")
+                .assertMetadata(envelope -> {
+                });
+    }
+
     private static KafkaLoader createKafkaLoader(final FakeJsonLoader loader) {
         final KafkaProperties properties = new KafkaProperties();
         final KafkaProperties.Path path = new KafkaProperties.Path();

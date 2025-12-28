@@ -16,6 +16,7 @@ public final class KafkaContract<T> {
     private final Class<?> payloadType;
     private final String defaultPayloadName;
     private final String defaultExpectedPayloadName;
+    private final String consumerGroupId;
     private final String defaultEnvelopeName;
     private final Class<?> envelopeType;
     private final String defaultMetadataName;
@@ -30,6 +31,7 @@ public final class KafkaContract<T> {
                 payloadType,
                 defaultPayloadName,
                 defaultExpectedPayloadName,
+                null,
                 null,
                 null,
                 null,
@@ -48,6 +50,7 @@ public final class KafkaContract<T> {
                 payloadType,
                 defaultPayloadName,
                 defaultExpectedPayloadName,
+                null,
                 defaultEnvelopeName,
                 envelopeType,
                 null,
@@ -59,6 +62,7 @@ public final class KafkaContract<T> {
                                                       final Class<?> payloadType,
                                                       final String defaultPayloadName,
                                                       final String defaultExpectedPayloadName,
+                                                      final String consumerGroupId,
                                                       final String defaultEnvelopeName,
                                                       final Class<?> envelopeType,
                                                       final String defaultMetadataName,
@@ -68,6 +72,7 @@ public final class KafkaContract<T> {
                 payloadType,
                 defaultPayloadName,
                 defaultExpectedPayloadName,
+                consumerGroupId,
                 defaultEnvelopeName,
                 envelopeType,
                 defaultMetadataName,

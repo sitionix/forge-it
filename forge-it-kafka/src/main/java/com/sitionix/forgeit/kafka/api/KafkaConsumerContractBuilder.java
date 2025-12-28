@@ -9,6 +9,7 @@ public final class KafkaConsumerContractBuilder<T> {
     private String defaultExpectedPayloadName;
     private String defaultEnvelopeName;
     private String defaultMetadataName;
+    private String groupId;
 
     private KafkaConsumerContractBuilder(final Class<?> payloadType) {
         this.payloadType = payloadType;
@@ -40,6 +41,14 @@ public final class KafkaConsumerContractBuilder<T> {
 
     public KafkaConsumerContractBuilder<T> defaultExpectedPayload(final String payloadName) {
         this.defaultExpectedPayloadName = payloadName;
+        return this;
+    }
+
+    public KafkaConsumerContractBuilder<T> groupId(final String groupId) {
+        if (groupId == null || groupId.isBlank()) {
+            throw new IllegalArgumentException("groupId must be provided");
+        }
+        this.groupId = groupId;
         return this;
     }
 
@@ -76,6 +85,7 @@ public final class KafkaConsumerContractBuilder<T> {
                 this.payloadType,
                 null,
                 this.defaultExpectedPayloadName,
+                this.groupId,
                 this.defaultEnvelopeName,
                 this.envelopeType,
                 this.defaultMetadataName,
@@ -155,6 +165,12 @@ public final class KafkaConsumerContractBuilder<T> {
         @Override
         public KafkaConsumerEnvelopeContractBuilder<T> defaultExpectedPayload(final String payloadName) {
             this.delegate.defaultExpectedPayload(payloadName);
+            return this;
+        }
+
+        @Override
+        public KafkaConsumerEnvelopeContractBuilder<T> groupId(final String groupId) {
+            this.delegate.groupId(groupId);
             return this;
         }
 

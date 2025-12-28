@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 @Service
-@ConditionalOnProperty(prefix = "consumer.kafka", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "forge-it.modules.kafka", name = "enabled", havingValue = "true")
 public class ForgeItKafkaProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ForgeItKafkaProducer.class);

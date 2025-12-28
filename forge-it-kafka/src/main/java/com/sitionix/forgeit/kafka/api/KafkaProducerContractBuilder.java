@@ -63,6 +63,7 @@ public final class KafkaProducerContractBuilder<T> {
                 this.payloadType,
                 this.defaultPayloadName,
                 null,
+                null,
                 this.defaultEnvelopeName,
                 this.envelopeType,
                 this.defaultMetadataName,

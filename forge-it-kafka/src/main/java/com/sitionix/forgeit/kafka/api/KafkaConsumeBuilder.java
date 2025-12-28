@@ -26,4 +26,6 @@ public interface KafkaConsumeBuilder<T> {
     KafkaConsumeBuilder<T> assertEnvelope(String envelopeName);
 
     KafkaConsumeBuilder<T> assertEnvelope(String envelopeName, Consumer<T> mutator);
+
+    KafkaConsumeBuilder<T> ignoreFields(String... fields);
 }

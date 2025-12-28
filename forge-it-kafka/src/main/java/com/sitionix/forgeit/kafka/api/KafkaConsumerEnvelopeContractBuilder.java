@@ -8,6 +8,8 @@ public interface KafkaConsumerEnvelopeContractBuilder<T> {
 
     KafkaConsumerEnvelopeContractBuilder<T> defaultExpectedPayload(String payloadName);
 
+    KafkaConsumerEnvelopeContractBuilder<T> groupId(String groupId);
+
     <U> KafkaConsumerEnvelopeContractBuilder<T> defaultExpectedPayload(Class<U> payloadType, String payloadName);
 
     <M> KafkaConsumerEnvelopeContractBuilder<T> defaultMetadata(Class<M> metadataType, String metadataName);

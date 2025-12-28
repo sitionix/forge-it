@@ -1,8 +1,11 @@
 package com.sitionix.forgeit.kafka.internal.config;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
@@ -10,11 +13,12 @@ import org.springframework.stereotype.Component;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public final class KafkaContainerManager implements InitializingBean, DisposableBean {
+public final class KafkaContainerManager implements InitializingBean, SmartLifecycle, DisposableBean {
 
     private static final String PROPERTY_SOURCE_NAME = "forgeItKafka";
 
@@ -23,9 +27,18 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
 
     private KafkaContainer container;
     private String bootstrapServers;
+    private volatile boolean running;
 
     @Override
     public void afterPropertiesSet() {
+        this.start();
+    }
+
+    @Override
+    public void start() {
+        if (this.running) {
+            return;
+        }
         if (!this.isEnabled()) {
             return;
         }
@@ -36,11 +49,42 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
             this.startInternal();
         }
         this.publishEnvironment();
+        this.running = true;
+    }
+
+    @Override
+    public void stop() {
+        if (!this.running) {
+            return;
+        }
+        this.cleanupResources();
+        this.running = false;
+    }
+
+    @Override
+    public void stop(final Runnable callback) {
+        this.stop();
+        callback.run();
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.running;
+    }
+
+    @Override
+    public boolean isAutoStartup() {
+        return false;
+    }
+
+    @Override
+    public int getPhase() {
+        return Integer.MIN_VALUE;
     }
 
     @Override
     public void destroy() {
-        this.cleanupResources();
+        this.stop();
     }
 
     private void cleanupResources() {
@@ -61,14 +105,33 @@ public final class KafkaContainerManager implements InitializingBean, Disposable
         }
         final MutablePropertySources sources = this.environment.getPropertySources();
         final KafkaProperties.Consumer consumer = this.properties.getConsumer();
-        if (consumer == null || consumer.getGroupId() == null || consumer.getGroupId().isBlank()) {
-            throw new IllegalStateException("forge-it.modules.kafka.consumer.group-id must be configured");
+        final Map<String, Object> props = new LinkedHashMap<>();
+        props.put("forge-it.modules.kafka.bootstrap-servers", this.bootstrapServers);
+        props.put("spring.kafka.bootstrap-servers", this.bootstrapServers);
+        if (this.environment.getProperty("spring.kafka.consumer.key-deserializer") == null) {
+            props.put("spring.kafka.consumer.key-deserializer", StringDeserializer.class.getName());
         }
-        final Map<String, Object> props = Map.of(
-                "forge-it.modules.kafka.bootstrap-servers", this.bootstrapServers,
-                "spring.kafka.bootstrap-servers", this.bootstrapServers,
-                "spring.kafka.consumer.group-id", consumer.getGroupId()
-        );
+        if (this.environment.getProperty("spring.kafka.consumer.value-deserializer") == null) {
+            props.put("spring.kafka.consumer.value-deserializer", StringDeserializer.class.getName());
+        }
+        if (this.environment.getProperty("spring.kafka.producer.key-serializer") == null) {
+            props.put("spring.kafka.producer.key-serializer", StringSerializer.class.getName());
+        }
+        if (this.environment.getProperty("spring.kafka.producer.value-serializer") == null) {
+            props.put("spring.kafka.producer.value-serializer", StringSerializer.class.getName());
+        }
+        if (consumer != null) {
+            final String groupId = consumer.getGroupId();
+            if (groupId != null && !groupId.isBlank()
+                    && this.environment.getProperty("spring.kafka.consumer.group-id") == null) {
+                props.put("spring.kafka.consumer.group-id", groupId);
+            }
+            final String autoOffsetReset = consumer.getAutoOffsetReset();
+            if (autoOffsetReset != null && !autoOffsetReset.isBlank()
+                    && this.environment.getProperty("spring.kafka.consumer.auto-offset-reset") == null) {
+                props.put("spring.kafka.consumer.auto-offset-reset", autoOffsetReset);
+            }
+        }
         final MapPropertySource propertySource = new MapPropertySource(PROPERTY_SOURCE_NAME, props);
         if (sources.contains(PROPERTY_SOURCE_NAME)) {
             sources.replace(PROPERTY_SOURCE_NAME, propertySource);

@@ -1,10 +1,12 @@
 package com.sitionix.forgeit.consumer.kafka;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
 @ConfigurationProperties(prefix = "consumer.kafka")
+@ConditionalOnProperty(prefix = "forge-it.modules.kafka", name = "enabled", havingValue = "true")
 public class KafkaTopicConfig {
 
     private boolean enabled;

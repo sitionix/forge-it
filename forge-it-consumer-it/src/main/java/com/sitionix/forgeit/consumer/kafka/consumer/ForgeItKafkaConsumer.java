@@ -16,7 +16,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Service
-@ConditionalOnProperty(prefix = "consumer.kafka", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "forge-it.modules.kafka", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class ForgeItKafkaConsumer {
 
