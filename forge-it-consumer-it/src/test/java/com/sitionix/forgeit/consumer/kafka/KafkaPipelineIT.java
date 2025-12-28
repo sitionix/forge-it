@@ -91,6 +91,22 @@ class KafkaPipelineIT {
     }
 
     @Test
+    @DisplayName("Given userCreated event When ignoring metadata fields Then ForgeIT consumes metadata fixture")
+    void givenUserCreatedEvent_whenIgnoringMetadataFields_thenForgeItConsumesMetadataFixture() {
+        final String traceId = "trace-" + UUID.randomUUID();
+
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .metadata("userCreatedMetadata.json", envelope -> envelope.getMetadata().setTraceId(traceId))
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .ignoreFields("traceId")
+                .assertMetadata("userCreatedMetadata.json");
+    }
+
+    @Test
     @DisplayName("Given userCreated event When mutating envelope Then ForgeIT consumes envelope fields")
     void givenUserCreatedEvent_whenMutatingEnvelope_thenForgeItConsumesEnvelopeFields() {
         final long producedAt = System.currentTimeMillis();
