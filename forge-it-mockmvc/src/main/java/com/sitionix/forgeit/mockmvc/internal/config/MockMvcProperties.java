@@ -15,6 +15,7 @@ public class MockMvcProperties {
 
     static final String PROPERTY_PREFIX = "forge-it.modules.mock-mvc";
 
+    private Boolean enabled;
     private Path path;
     @Data
     public static class Path {

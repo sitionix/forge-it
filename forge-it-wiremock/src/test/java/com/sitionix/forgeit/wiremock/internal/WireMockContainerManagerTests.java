@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class WireMockContainerManagerTests extends MockExtension {
 
@@ -56,15 +56,15 @@ class WireMockContainerManagerTests extends MockExtension {
     }
 
     @Test
-    void shouldFailWhenFeatureDisabled() {
+    void shouldSkipWhenFeatureDisabled() {
         final WireMockProperties properties = new WireMockProperties();
         properties.setEnabled(false);
 
-        final WireMockContainerManager manager = new WireMockContainerManager(new MockEnvironment(), properties);
+        final MockEnvironment environment = new MockEnvironment();
+        final WireMockContainerManager manager = new WireMockContainerManager(environment, properties);
 
-        assertThatThrownBy(manager::afterPropertiesSet)
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("disabled");
+        assertThatCode(manager::afterPropertiesSet).doesNotThrowAnyException();
+        assertThat(captureWireMockProperties(environment)).isEmpty();
     }
 
     private static WireMockState captureRunningState(WireMockContainerManager manager, MockEnvironment environment) {

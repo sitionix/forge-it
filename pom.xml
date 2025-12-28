@@ -12,7 +12,7 @@
 
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forgeit-parent</artifactId>
-    <version>0.0.24</version>
+    <version>0.0.25</version>
     <packaging>pom</packaging>
 
     <name>ForgeIT Parent</name>
@@ -25,6 +25,7 @@
         <module>forge-it-wiremock</module>
         <module>forge-it-mockmvc</module>
         <module>forge-it-postgresql</module>
+        <module>forge-it-kafka</module>
         <module>forge-it-annotation-processor</module>
         <module>forge-it-core</module>
         <module>forge-it-bundle</module>
@@ -32,10 +33,12 @@
     </modules>
 
     <properties>
+        <spring-boot.version>3.3.4</spring-boot.version>
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <wiremock.version>3.6.0</wiremock.version>
     </properties>
+
 
     <distributionManagement>
         <repository>

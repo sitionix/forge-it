@@ -5,3 +5,9 @@ forge-it:
   modules:
     mock-mvc:
       message: consumer-mock-mvc
+consumer:
+  kafka:
+    input-topic: users.events.in
+    output-topic: users.events.out
+    payload-input-topic: users.events.payload.in
+    payload-output-topic: users.events.payload.out

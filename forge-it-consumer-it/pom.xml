@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.sitionix.forgeit</groupId>
         <artifactId>forgeit-parent</artifactId>
-        <version>0.0.24</version>
+        <version>0.0.25</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -56,6 +56,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-kafka</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.sitionix.forgeit</groupId>
@@ -74,6 +80,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

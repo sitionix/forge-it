@@ -33,7 +33,9 @@ public final class WireMockContainerManager implements InitializingBean, Disposa
 
     @Override
     public void afterPropertiesSet() {
-        validateEnabled();
+        if (!isEnabled()) {
+            return;
+        }
         final WireMockProperties.Mode mode = requireMode();
         if (mode == WireMockProperties.Mode.EXTERNAL) {
             initialiseExternalWireMock();
@@ -103,10 +105,8 @@ public final class WireMockContainerManager implements InitializingBean, Disposa
         }
     }
 
-    private void validateEnabled() {
-        if (this.properties == null || !Boolean.TRUE.equals(this.properties.getEnabled())) {
-            throw new IllegalStateException("WireMock module is disabled via forge-it.modules.wiremock.enabled=false");
-        }
+    private boolean isEnabled() {
+        return this.properties != null && Boolean.TRUE.equals(this.properties.getEnabled());
     }
 
     private WireMockProperties.Mode requireMode() {
