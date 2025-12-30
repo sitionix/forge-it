@@ -1,6 +1,5 @@
 package com.sitionix.forgeit.kafka.internal.domain;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -11,6 +10,7 @@ import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
 import com.sitionix.forgeit.kafka.internal.port.KafkaConsumerPort;
 import lombok.RequiredArgsConstructor;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -29,13 +29,32 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
     private final KafkaConsumerPort consumerPort;
 
     private Duration timeout;
-    private String consumedPayloadJson;
+    private Object consumedPayload;
     private final Set<String> ignoredFields = new LinkedHashSet<>();
 
     @Override
     public KafkaConsumeBuilder<T> await(final Duration timeout) {
         if (timeout != null) {
             this.timeout = timeout;
+        }
+        return this;
+    }
+
+    @Override
+    public KafkaConsumeBuilder<T> assertAny() {
+        if (this.consume() == null) {
+            throw new IllegalStateException("Kafka payload was not consumed");
+        }
+        return this;
+    }
+
+    @Override
+    public KafkaConsumeBuilder<T> assertNone() {
+        if (this.consumedPayload != null) {
+            throw new IllegalStateException("Kafka payload was already consumed");
+        }
+        if (this.consumeIfPresent() != null) {
+            throw new IllegalStateException("Kafka message was received but none was expected");
         }
         return this;
     }
@@ -260,25 +279,74 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
         mutator.accept(typedPayload);
     }
 
-    private String consume() {
-        if (this.consumedPayloadJson == null) {
-            this.consumedPayloadJson = this.consumerPort.consume(this.contract, this.timeout);
+    private Object consume() {
+        if (this.consumedPayload == null) {
+            this.consumedPayload = this.consumerPort.consume(this.contract, this.timeout);
         }
-        return this.consumedPayloadJson;
+        return this.consumedPayload;
     }
 
-    private Object readRoot(final String payloadJson) {
+    private Object consumeIfPresent() {
+        return this.consumerPort.consumeIfPresent(this.contract, this.timeout);
+    }
+
+    private Object readRoot(final Object payload) {
+        if (this.contract.getPayloadDeserializerClass() != null) {
+            return this.deserializeWithKafkaDeserializer(payload, this.contract.getRootType());
+        }
+        return this.deserializeWithObjectMapper(payload, this.contract.getRootType());
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Object deserializeWithKafkaDeserializer(final Object payload, final Class<?> targetType) {
+        if (payload == null) {
+            throw new IllegalStateException("Kafka payload is not configured");
+        }
+        if (targetType.isInstance(payload)) {
+            return payload;
+        }
+        if (!(payload instanceof byte[] payloadBytes)) {
+            throw new IllegalStateException("Kafka payload deserializer expects byte[] but received "
+                    + payload.getClass().getName());
+        }
+        final org.apache.kafka.common.serialization.Deserializer deserializer =
+                KafkaSerdeSupport.createDeserializer(this.contract.getPayloadDeserializerClass(), targetType);
+        final Object decoded = deserializer.deserialize(this.contract.getTopic(), payloadBytes);
+        if (decoded == null) {
+            throw new IllegalStateException("Kafka payload deserializer returned null");
+        }
+        if (!targetType.isInstance(decoded)) {
+            throw new IllegalStateException("Kafka payload deserializer returned unsupported type "
+                    + decoded.getClass().getName());
+        }
+        return decoded;
+    }
+
+    private Object deserializeWithObjectMapper(final Object payload, final Class<?> targetType) {
+        if (targetType.isInstance(payload)) {
+            return payload;
+        }
         try {
-            return this.objectMapper.readValue(payloadJson, this.contract.getRootType());
-        } catch (final JsonProcessingException ex) {
+            if (payload instanceof String payloadJson) {
+                return this.objectMapper.readValue(payloadJson, targetType);
+            }
+            if (payload instanceof byte[] payloadBytes) {
+                return this.objectMapper.readValue(payloadBytes, targetType);
+            }
+        } catch (final IOException ex) {
             throw new IllegalStateException("Failed to deserialize Kafka payload", ex);
         }
+        if (payload == null) {
+            throw new IllegalStateException("Kafka payload is not configured");
+        }
+        throw new IllegalStateException("Kafka payload value is not supported for deserialization: "
+                + payload.getClass().getName());
     }
 
     private void compareObjects(final Object expected, final Object actual) {
         try {
-            JsonNode expectedNode = this.objectMapper.valueToTree(expected);
-            JsonNode actualNode = this.objectMapper.valueToTree(actual);
+            JsonNode expectedNode = this.toJsonNode(expected);
+            JsonNode actualNode = this.toJsonNode(actual);
             if (!this.ignoredFields.isEmpty()) {
                 expectedNode = this.removeIgnoredFields(expectedNode.deepCopy());
                 actualNode = this.removeIgnoredFields(actualNode.deepCopy());
@@ -286,8 +354,27 @@ public final class DefaultKafkaConsumeBuilder<T> implements KafkaConsumeBuilder<
             if (!expectedNode.equals(actualNode)) {
                 throw new IllegalStateException("Kafka payload does not match expected fixture");
             }
-        } catch (final IllegalArgumentException ex) {
+        } catch (final IOException | IllegalArgumentException ex) {
             throw new IllegalStateException("Failed to compare Kafka payload JSON", ex);
+        }
+    }
+
+    private JsonNode toJsonNode(final Object value) throws IOException {
+        if (value == null) {
+            return this.objectMapper.nullNode();
+        }
+        if (this.isAvroSpecificRecord(value)) {
+            return this.objectMapper.readTree(value.toString());
+        }
+        return this.objectMapper.valueToTree(value);
+    }
+
+    private boolean isAvroSpecificRecord(final Object value) {
+        try {
+            final Class<?> specificRecord = Class.forName("org.apache.avro.specific.SpecificRecord");
+            return specificRecord.isInstance(value);
+        } catch (final ClassNotFoundException ex) {
+            return false;
         }
     }
 

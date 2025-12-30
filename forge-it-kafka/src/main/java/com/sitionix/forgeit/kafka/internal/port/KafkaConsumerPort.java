@@ -6,5 +6,7 @@ import java.time.Duration;
 
 public interface KafkaConsumerPort {
 
-    <T> String consume(KafkaContract<T> contract, Duration timeout);
+    <T> Object consume(KafkaContract<T> contract, Duration timeout);
+
+    <T> Object consumeIfPresent(KafkaContract<T> contract, Duration timeout);
 }

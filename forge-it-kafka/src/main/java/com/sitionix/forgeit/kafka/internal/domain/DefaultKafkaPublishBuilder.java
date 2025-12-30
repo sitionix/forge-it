@@ -127,13 +127,13 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
         if (payload == null) {
             throw new IllegalStateException("Kafka payload is not configured");
         }
-        final String payloadJson = this.createPayloadJson(payload);
-        this.publisherPort.publish(this.contract, payloadJson, this.key);
+        final Object payloadValue = this.createPayloadValue(payload);
+        this.publisherPort.publish(this.contract, payloadValue, this.key);
     }
 
-    private String createPayloadJson(final Object payload) {
+    private Object createPayloadValue(final Object payload) {
         if (this.contract.getEnvelopeType() == null) {
-            return this.writeValueAsString(payload);
+            return this.serializePayload(payload);
         }
         final Object envelope = KafkaEnvelopeBinding.createEnvelope(this.contract.getEnvelopeType());
         KafkaEnvelopeBinding.injectPayload(envelope, payload, this.contract.getPayloadType());
@@ -142,7 +142,25 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
         this.applyMutators(this.payloadMutators, envelope);
         this.applyMutators(this.metadataMutators, envelope);
         this.applyMutators(this.envelopeMutators, envelope);
-        return this.writeValueAsString(envelope);
+        return this.serializePayload(envelope);
+    }
+
+    private Object serializePayload(final Object value) {
+        if (this.contract.getPayloadSerializerClass() != null) {
+            return this.serializeWithKafkaSerializer(value);
+        }
+        return this.writeValueAsString(value);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private Object serializeWithKafkaSerializer(final Object value) {
+        final org.apache.kafka.common.serialization.Serializer serializer =
+                KafkaSerdeSupport.createSerializer(this.contract.getPayloadSerializerClass(), value.getClass());
+        final Object encoded = serializer.serialize(this.contract.getTopic(), value);
+        if (encoded != null && !(encoded instanceof byte[])) {
+            throw new IllegalStateException("Kafka payload serializer must return byte[]");
+        }
+        return encoded;
     }
 
     private void applyMutators(final List<Consumer<T>> mutators, final Object target) {

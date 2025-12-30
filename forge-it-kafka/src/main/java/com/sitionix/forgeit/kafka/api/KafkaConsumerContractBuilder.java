@@ -10,6 +10,7 @@ public final class KafkaConsumerContractBuilder<T> {
     private String defaultEnvelopeName;
     private String defaultMetadataName;
     private String groupId;
+    private Class<? extends org.apache.kafka.common.serialization.Deserializer> payloadDeserializerClass;
 
     private KafkaConsumerContractBuilder(final Class<?> payloadType) {
         this.payloadType = payloadType;
@@ -63,6 +64,12 @@ public final class KafkaConsumerContractBuilder<T> {
         return new EnvelopeContractBuilder<>(this);
     }
 
+    public KafkaConsumerContractBuilder<T> payloadDeserializer(
+            final Class<? extends org.apache.kafka.common.serialization.Deserializer> payloadDeserializerClass) {
+        this.payloadDeserializerClass = payloadDeserializerClass;
+        return this;
+    }
+
     public <U> KafkaConsumerContractBuilder<U> defaultExpectedPayload(final Class<U> payloadType,
                                                                       final String payloadName) {
         this.assignPayloadType(payloadType);
@@ -91,6 +98,7 @@ public final class KafkaConsumerContractBuilder<T> {
                 .envelopeType(this.envelopeType)
                 .defaultMetadataName(this.defaultMetadataName)
                 .metadataType(this.metadataType)
+                .payloadDeserializer(this.payloadDeserializerClass)
                 .build();
     }
 
@@ -187,6 +195,13 @@ public final class KafkaConsumerContractBuilder<T> {
         public <M> KafkaConsumerEnvelopeContractBuilder<T> defaultMetadata(final Class<M> metadataType,
                                                                            final String metadataName) {
             this.delegate.defaultMetadata(metadataType, metadataName);
+            return this;
+        }
+
+        @Override
+        public KafkaConsumerEnvelopeContractBuilder<T> payloadDeserializer(
+                final Class<? extends org.apache.kafka.common.serialization.Deserializer> payloadDeserializerClass) {
+            this.delegate.payloadDeserializer(payloadDeserializerClass);
             return this;
         }
 

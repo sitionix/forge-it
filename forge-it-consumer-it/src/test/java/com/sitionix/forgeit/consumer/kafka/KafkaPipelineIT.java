@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Duration;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +31,27 @@ class KafkaPipelineIT {
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
                 .assertPayload("userCreatedEvent.json", envelope -> envelope.getPayload().setUserId(userId))
                 .assertMetadata(envelope -> envelope.getMetadata().setTraceId("t-" + userId));
+    }
+
+    @Test
+    @DisplayName("Given userCreated event When only checking message presence Then ForgeIT consumes it")
+    void givenUserCreatedEvent_whenOnlyCheckingMessagePresence_thenForgeItConsumesIt() {
+        this.support.kafka()
+                .publish(UserKafkaContracts.USER_CREATED_INPUT)
+                .send();
+
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .assertAny();
+    }
+
+    @Test
+    @DisplayName("Given no events When waiting on output Then ForgeIT consumes nothing")
+    void givenNoEvents_whenWaitingOnOutput_thenForgeItConsumesNothing() {
+        this.support.kafka()
+                .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .await(Duration.ofSeconds(1))
+                .assertNone();
     }
 
     @Test
