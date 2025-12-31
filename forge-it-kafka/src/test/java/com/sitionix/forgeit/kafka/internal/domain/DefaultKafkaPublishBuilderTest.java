@@ -9,6 +9,7 @@ import com.sitionix.forgeit.kafka.internal.port.KafkaPublisherPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +44,7 @@ class DefaultKafkaPublishBuilderTest {
                 .envelope(envelope -> envelope.setProducedAt(42L))
                 .send();
 
-        final Envelope published = objectMapper.readValue(publisher.payloadJson, Envelope.class);
+        final Envelope published = objectMapper.readValue((String) publisher.payloadValue, Envelope.class);
         assertThat(published.getPayload().getUserId()).isEqualTo("mutated-user");
         assertThat(published.getMetadata().getTraceId()).isEqualTo("trace-1");
         assertThat(published.getProducedAt()).isEqualTo(42L);
@@ -73,7 +74,7 @@ class DefaultKafkaPublishBuilderTest {
         builder.payload("overridePayload.json")
                 .send();
 
-        final Envelope published = objectMapper.readValue(publisher.payloadJson, Envelope.class);
+        final Envelope published = objectMapper.readValue((String) publisher.payloadValue, Envelope.class);
         assertThat(published.getPayload().getUserId()).isEqualTo("override-user");
         assertThat(published.getMetadata().getTraceId()).isEqualTo("default-trace");
     }
@@ -99,6 +100,33 @@ class DefaultKafkaPublishBuilderTest {
                 .hasMessage("Kafka default payload is not configured");
     }
 
+    @Test
+    void shouldPublishUsingKafkaSerializerClass() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final FakeJsonLoader loader = new FakeJsonLoader();
+        loader.put("/default/payload/defaultPayload.json", new Payload("default-user"));
+        final KafkaLoader kafkaLoader = createKafkaLoader(loader);
+
+        final KafkaContract<Envelope> contract = KafkaContract.producerContract()
+                .topic("topic")
+                .defaultEnvelope(Envelope.class)
+                .defaultPayload(Payload.class, "defaultPayload.json")
+                .payloadSerializer(ConstantPayloadSerializer.class)
+                .build();
+
+        final CapturingPublisher publisher = new CapturingPublisher();
+        final DefaultKafkaPublishBuilder<Envelope> builder = new DefaultKafkaPublishBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                publisher);
+
+        builder.send();
+
+        assertThat(publisher.payloadValue).isInstanceOf(byte[].class);
+        final String encoded = new String((byte[]) publisher.payloadValue, StandardCharsets.UTF_8);
+        assertThat(encoded).isEqualTo("serialized");
+    }
+
     private static KafkaLoader createKafkaLoader(final FakeJsonLoader loader) {
         final KafkaProperties properties = new KafkaProperties();
         final KafkaProperties.Path path = new KafkaProperties.Path();
@@ -113,11 +141,11 @@ class DefaultKafkaPublishBuilderTest {
     }
 
     static final class CapturingPublisher implements KafkaPublisherPort {
-        private String payloadJson;
+        private Object payloadValue;
 
         @Override
-        public <T> void publish(final KafkaContract<T> contract, final String payloadJson, final String key) {
-            this.payloadJson = payloadJson;
+        public <T> void publish(final KafkaContract<T> contract, final Object payload, final String key) {
+            this.payloadValue = payload;
         }
     }
 
@@ -175,6 +203,13 @@ class DefaultKafkaPublishBuilderTest {
         @Override
         public T getIfUnique() {
             return this.instance;
+        }
+    }
+
+    static final class ConstantPayloadSerializer implements org.apache.kafka.common.serialization.Serializer<Object> {
+        @Override
+        public byte[] serialize(final String topic, final Object data) {
+            return "serialized".getBytes(StandardCharsets.UTF_8);
         }
     }
 

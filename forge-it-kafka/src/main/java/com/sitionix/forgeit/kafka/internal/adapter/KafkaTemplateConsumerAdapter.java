@@ -25,16 +25,29 @@ public class KafkaTemplateConsumerAdapter implements KafkaConsumerPort, Disposab
 
     private static final long DEFAULT_POLL_TIMEOUT_MS = 5000L;
 
-    private final ObjectProvider<ConsumerFactory<String, String>> consumerFactoryProvider;
+    @SuppressWarnings("rawtypes")
+    private final ObjectProvider<ConsumerFactory> consumerFactoryProvider;
     private final KafkaProperties properties;
     private final Environment environment;
     private final Object consumerLock = new Object();
-    private Consumer<String, String> consumer;
+    private Consumer<?, ?> consumer;
     private String consumerGroupId;
 
     @Override
-    public <T> String consume(final KafkaContract<T> contract, final Duration timeout) {
-        final ConsumerFactory<String, String> consumerFactory = this.consumerFactoryProvider.getIfAvailable();
+    public <T> Object consume(final KafkaContract<T> contract, final Duration timeout) {
+        final String topic = this.environment.resolveRequiredPlaceholders(contract.getTopic());
+        final Object payload = this.consumeIfPresent(contract, timeout);
+        if (payload == null) {
+            throw new IllegalStateException("Kafka message was not received within timeout for topic=" +
+                    topic);
+        }
+        return payload;
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public <T> Object consumeIfPresent(final KafkaContract<T> contract, final Duration timeout) {
+        final ConsumerFactory consumerFactory = this.consumerFactoryProvider.getIfAvailable();
         if (consumerFactory == null) {
             throw new IllegalStateException("ConsumerFactory bean is not available; ensure spring-kafka is configured");
         }
@@ -44,20 +57,19 @@ public class KafkaTemplateConsumerAdapter implements KafkaConsumerPort, Disposab
                 .orElse(Duration.ofMillis(this.resolvePollTimeoutMs(consumerConfig)));
         final String topic = this.environment.resolveRequiredPlaceholders(contract.getTopic());
 
-        final Consumer<String, String> consumer = this.resolveConsumer(consumerFactory, groupId);
+        final Consumer<?, ?> consumer = this.resolveConsumer(consumerFactory, groupId);
         consumer.unsubscribe();
         consumer.subscribe(List.of(topic));
         final long deadline = System.nanoTime() + effectiveTimeout.toNanos();
         while (System.nanoTime() < deadline) {
             final Duration pollDuration = Duration.ofMillis(Math.max(1L,
                     (deadline - System.nanoTime()) / 1_000_000L));
-            final ConsumerRecords<String, String> records = consumer.poll(pollDuration);
-            for (final ConsumerRecord<String, String> record : records) {
+            final ConsumerRecords<?, ?> records = consumer.poll(pollDuration);
+            for (final ConsumerRecord<?, ?> record : records) {
                 return record.value();
             }
         }
-        throw new IllegalStateException("Kafka message was not received within timeout for topic=" +
-                topic);
+        return null;
     }
 
     @Override
@@ -67,8 +79,8 @@ public class KafkaTemplateConsumerAdapter implements KafkaConsumerPort, Disposab
         }
     }
 
-    private Consumer<String, String> resolveConsumer(final ConsumerFactory<String, String> consumerFactory,
-                                                     final String groupId) {
+    @SuppressWarnings("rawtypes")
+    private Consumer<?, ?> resolveConsumer(final ConsumerFactory consumerFactory, final String groupId) {
         synchronized (this.consumerLock) {
             if (this.consumer == null || !groupId.equals(this.consumerGroupId)) {
                 this.closeConsumer();

@@ -14,6 +14,9 @@ public interface KafkaConsumerEnvelopeContractBuilder<T> {
 
     <M> KafkaConsumerEnvelopeContractBuilder<T> defaultMetadata(Class<M> metadataType, String metadataName);
 
+    KafkaConsumerEnvelopeContractBuilder<T> payloadDeserializer(
+            Class<? extends org.apache.kafka.common.serialization.Deserializer> payloadDeserializerClass);
+
     KafkaConsumerEnvelopeContractBuilder<T> defaultEnvelope(Class<T> envelopeType);
 
     KafkaContract<T> build();

@@ -70,6 +70,18 @@ class KafkaEnvelopeBindingTest {
                 .hasMessageContaining("must declare a no-args constructor");
     }
 
+    @Test
+    void shouldIgnoreComparableAndEqualsWhenResolvingPayloadSetter() {
+        final EnvelopeWithNonSetterMethods envelope =
+                KafkaEnvelopeBinding.createEnvelope(EnvelopeWithNonSetterMethods.class);
+        final Payload payload = new Payload("user-6");
+
+        KafkaEnvelopeBinding.injectPayload(envelope, payload, Payload.class);
+
+        assertThat(envelope.payload).isEqualTo(payload);
+        assertThat(KafkaEnvelopeBinding.extractPayload(envelope, Payload.class)).isEqualTo(payload);
+    }
+
     record Payload(String userId) {
     }
 
@@ -130,6 +142,18 @@ class KafkaEnvelopeBindingTest {
 
         NoDefaultConstructorEnvelope(final Payload payload) {
             this.payload = payload;
+        }
+    }
+
+    static final class EnvelopeWithNonSetterMethods {
+        private Payload payload;
+
+        public boolean equals(final Object other) {
+            return super.equals(other);
+        }
+
+        public int compareTo(final Object other) {
+            return 0;
         }
     }
 }

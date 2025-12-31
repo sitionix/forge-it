@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.kafka.internal.config;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.DisposableBean;
@@ -112,7 +113,7 @@ public final class KafkaContainerManager implements InitializingBean, SmartLifec
             props.put("spring.kafka.consumer.key-deserializer", StringDeserializer.class.getName());
         }
         if (this.environment.getProperty("spring.kafka.consumer.value-deserializer") == null) {
-            props.put("spring.kafka.consumer.value-deserializer", StringDeserializer.class.getName());
+            props.put("spring.kafka.consumer.value-deserializer", ByteArrayDeserializer.class.getName());
         }
         if (this.environment.getProperty("spring.kafka.producer.key-serializer") == null) {
             props.put("spring.kafka.producer.key-serializer", StringSerializer.class.getName());

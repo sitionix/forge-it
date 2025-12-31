@@ -9,6 +9,7 @@ public final class KafkaProducerContractBuilder<T> {
     private String defaultPayloadName;
     private String defaultEnvelopeName;
     private String defaultMetadataName;
+    private Class<? extends org.apache.kafka.common.serialization.Serializer> payloadSerializerClass;
 
     private KafkaProducerContractBuilder(final Class<?> payloadType) {
         this.payloadType = payloadType;
@@ -50,6 +51,12 @@ public final class KafkaProducerContractBuilder<T> {
         return new EnvelopeContractBuilder<>(this);
     }
 
+    public KafkaProducerContractBuilder<T> payloadSerializer(
+            final Class<? extends org.apache.kafka.common.serialization.Serializer> payloadSerializerClass) {
+        this.payloadSerializerClass = payloadSerializerClass;
+        return this;
+    }
+
     public KafkaContract<T> build() {
         if (this.topic == null || this.topic.isBlank()) {
             throw new IllegalStateException("Kafka topic must be provided");
@@ -68,6 +75,7 @@ public final class KafkaProducerContractBuilder<T> {
                 .envelopeType(this.envelopeType)
                 .defaultMetadataName(this.defaultMetadataName)
                 .metadataType(this.metadataType)
+                .payloadSerializer(this.payloadSerializerClass)
                 .build();
     }
 
@@ -152,6 +160,13 @@ public final class KafkaProducerContractBuilder<T> {
         public <M> KafkaProducerEnvelopeContractBuilder<T> defaultMetadata(final Class<M> metadataType,
                                                                            final String metadataName) {
             this.delegate.defaultMetadata(metadataType, metadataName);
+            return this;
+        }
+
+        @Override
+        public KafkaProducerEnvelopeContractBuilder<T> payloadSerializer(
+                final Class<? extends org.apache.kafka.common.serialization.Serializer> payloadSerializerClass) {
+            this.delegate.payloadSerializer(payloadSerializerClass);
             return this;
         }
 
