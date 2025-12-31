@@ -3,6 +3,8 @@ package com.sitionix.forgeit.kafka.api;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 
 /**
  * Public contract describing Kafka message metadata, payload type, and optional envelope details.
@@ -21,6 +23,8 @@ public final class KafkaContract<T> {
     private final Class<?> envelopeType;
     private final String defaultMetadataName;
     private final Class<?> metadataType;
+    private final Class<? extends Serializer> payloadSerializerClass;
+    private final Class<? extends Deserializer> payloadDeserializerClass;
 
     public static <T> Builder<T> builder(final Class<T> rootType) {
         return new Builder<>(rootType);
@@ -109,6 +113,8 @@ public final class KafkaContract<T> {
         private boolean envelopeTypeConfigured;
         private String defaultMetadataName;
         private Class<?> metadataType;
+        private Class<? extends Serializer> payloadSerializerClass;
+        private Class<? extends Deserializer> payloadDeserializerClass;
 
         private Builder(final Class<T> rootType) {
             this.rootType = rootType;
@@ -160,6 +166,16 @@ public final class KafkaContract<T> {
             return this;
         }
 
+        public Builder<T> payloadSerializer(final Class<? extends Serializer> payloadSerializerClass) {
+            this.payloadSerializerClass = payloadSerializerClass;
+            return this;
+        }
+
+        public Builder<T> payloadDeserializer(final Class<? extends Deserializer> payloadDeserializerClass) {
+            this.payloadDeserializerClass = payloadDeserializerClass;
+            return this;
+        }
+
         public KafkaContract<T> build() {
             final Class<?> resolvedPayloadType = this.payloadType != null ? this.payloadType : this.rootType;
             final Class<?> resolvedEnvelopeType = this.resolveEnvelopeType(resolvedPayloadType);
@@ -172,7 +188,9 @@ public final class KafkaContract<T> {
                     this.defaultEnvelopeName,
                     resolvedEnvelopeType,
                     this.defaultMetadataName,
-                    this.metadataType);
+                    this.metadataType,
+                    this.payloadSerializerClass,
+                    this.payloadDeserializerClass);
         }
 
         private Class<?> resolveEnvelopeType(final Class<?> resolvedPayloadType) {

@@ -9,6 +9,7 @@ import com.sitionix.forgeit.kafka.internal.port.KafkaConsumerPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +52,48 @@ class DefaultKafkaConsumeBuilderTest {
     }
 
     @Test
+    void shouldAssertAnyWhenMessageConsumed() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final KafkaLoader kafkaLoader = createKafkaLoader(new FakeJsonLoader());
+
+        final KafkaContract<Payload> contract = KafkaContract.consumerContract()
+                .topic("topic")
+                .defaultExpectedPayload(Payload.class, "defaultPayload.json")
+                .build();
+
+        final CapturingConsumer consumer = new CapturingConsumer("payload");
+        final DefaultKafkaConsumeBuilder<Payload> builder = new DefaultKafkaConsumeBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                consumer);
+
+        builder.assertAny();
+
+        assertThat(consumer.calls).isEqualTo(1);
+    }
+
+    @Test
+    void shouldAssertNoneWhenNoMessageConsumed() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final KafkaLoader kafkaLoader = createKafkaLoader(new FakeJsonLoader());
+
+        final KafkaContract<Payload> contract = KafkaContract.consumerContract()
+                .topic("topic")
+                .defaultExpectedPayload(Payload.class, "defaultPayload.json")
+                .build();
+
+        final CapturingConsumer consumer = new CapturingConsumer(null);
+        final DefaultKafkaConsumeBuilder<Payload> builder = new DefaultKafkaConsumeBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                consumer);
+
+        builder.assertNone();
+
+        assertThat(consumer.calls).isEqualTo(1);
+    }
+
+    @Test
     void shouldIgnoreMetadataFieldsWhenAsserting() throws Exception {
         final ObjectMapper objectMapper = new ObjectMapper();
         final FakeJsonLoader loader = new FakeJsonLoader();
@@ -81,6 +124,29 @@ class DefaultKafkaConsumeBuilderTest {
                 });
     }
 
+    @Test
+    void shouldUseKafkaDeserializerClass() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final FakeJsonLoader loader = new FakeJsonLoader();
+        loader.put("/default/expected/defaultPayload.json", new Payload("default-user"));
+        final KafkaLoader kafkaLoader = createKafkaLoader(loader);
+
+        final KafkaContract<Payload> contract = KafkaContract.consumerContract()
+                .topic("topic")
+                .defaultExpectedPayload(Payload.class, "defaultPayload.json")
+                .payloadDeserializer(PayloadDeserializer.class)
+                .build();
+
+        final byte[] payloadBytes = "default-user".getBytes(StandardCharsets.UTF_8);
+        final CapturingConsumer consumer = new CapturingConsumer(payloadBytes);
+        final DefaultKafkaConsumeBuilder<Payload> builder = new DefaultKafkaConsumeBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                consumer);
+
+        builder.assertPayload();
+    }
+
     private static KafkaLoader createKafkaLoader(final FakeJsonLoader loader) {
         final KafkaProperties properties = new KafkaProperties();
         final KafkaProperties.Path path = new KafkaProperties.Path();
@@ -95,17 +161,23 @@ class DefaultKafkaConsumeBuilderTest {
     }
 
     static final class CapturingConsumer implements KafkaConsumerPort {
-        private final String payloadJson;
+        private final Object payload;
         private int calls;
 
-        CapturingConsumer(final String payloadJson) {
-            this.payloadJson = payloadJson;
+        CapturingConsumer(final Object payload) {
+            this.payload = payload;
         }
 
         @Override
-        public <T> String consume(final KafkaContract<T> contract, final Duration timeout) {
+        public <T> Object consume(final KafkaContract<T> contract, final Duration timeout) {
             this.calls += 1;
-            return this.payloadJson;
+            return this.payload;
+        }
+
+        @Override
+        public <T> Object consumeIfPresent(final KafkaContract<T> contract, final Duration timeout) {
+            this.calls += 1;
+            return this.payload;
         }
     }
 
@@ -203,6 +275,17 @@ class DefaultKafkaConsumeBuilderTest {
 
         public void setUserId(final String userId) {
             this.userId = userId;
+        }
+    }
+
+    static final class PayloadDeserializer implements org.apache.kafka.common.serialization.Deserializer<Payload> {
+        @Override
+        public Payload deserialize(final String topic, final byte[] data) {
+            if (data == null) {
+                return null;
+            }
+            final String userId = new String(data, StandardCharsets.UTF_8);
+            return new Payload(userId);
         }
     }
 

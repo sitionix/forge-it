@@ -13,17 +13,19 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class KafkaTemplatePublisherAdapter implements KafkaPublisherPort {
 
-    private final ObjectProvider<KafkaTemplate<String, String>> kafkaTemplateProvider;
+    @SuppressWarnings("rawtypes")
+    private final ObjectProvider<KafkaTemplate> kafkaTemplateProvider;
     private final Environment environment;
 
     @Override
-    public <T> void publish(final KafkaContract<T> contract, final String payloadJson, final String key) {
-        final KafkaTemplate<String, String> kafkaTemplate = this.kafkaTemplateProvider.getIfAvailable();
+    @SuppressWarnings("rawtypes")
+    public <T> void publish(final KafkaContract<T> contract, final Object payload, final String key) {
+        final KafkaTemplate kafkaTemplate = this.kafkaTemplateProvider.getIfAvailable();
         if (kafkaTemplate == null) {
             throw new IllegalStateException("KafkaTemplate bean is not available; ensure spring-kafka is configured");
         }
         final String topic = this.environment.resolveRequiredPlaceholders(contract.getTopic());
-        final ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, payloadJson);
+        final ProducerRecord<String, Object> record = new ProducerRecord<>(topic, key, payload);
         kafkaTemplate.send(record);
     }
 }

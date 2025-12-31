@@ -141,7 +141,13 @@ final class KafkaEnvelopeBinding {
                 if (Modifier.isStatic(method.getModifiers())) {
                     continue;
                 }
+                if (method.isBridge() || method.isSynthetic()) {
+                    continue;
+                }
                 if (method.getParameterCount() != 1) {
+                    continue;
+                }
+                if (isIgnoredSetterMethod(method)) {
                     continue;
                 }
                 final Class<?> paramType = method.getParameterTypes()[0];
@@ -165,6 +171,9 @@ final class KafkaEnvelopeBinding {
         while (current != null && !Object.class.equals(current)) {
             for (final Method method : current.getDeclaredMethods()) {
                 if (Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                if (method.isBridge() || method.isSynthetic()) {
                     continue;
                 }
                 if (method.getParameterCount() != 0) {
@@ -256,6 +265,11 @@ final class KafkaEnvelopeBinding {
             names.add(method.getName() + "(" + method.getParameterCount() + ")");
         }
         return String.join(", ", names);
+    }
+
+    private static boolean isIgnoredSetterMethod(final Method method) {
+        final String name = method.getName();
+        return "equals".equals(name) || "compareTo".equals(name);
     }
 
     private static String describeFields(final List<Field> fields) {
