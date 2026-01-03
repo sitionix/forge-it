@@ -27,7 +27,7 @@ public class ForgeItKafkaConsumer {
     private final ForgeItKafkaProducer producer;
     private final BlockingQueue<UserEnvelope> messages = new LinkedBlockingQueue<>();
 
-    @KafkaListener(topics = "#{@kafkaTopicConfig.inputTopic}")
+    @KafkaListener(topics = "#{@kafkaTopicConfig.inputTopic}", groupId = "#{@kafkaTopicConfig.groupId}")
     public void handleMessage(final String message) {
         try {
             final UserEnvelope envelope = this.objectMapper.readValue(message, UserEnvelope.class);
@@ -39,7 +39,7 @@ public class ForgeItKafkaConsumer {
         }
     }
 
-    @KafkaListener(topics = "#{@kafkaTopicConfig.payloadInputTopic}")
+    @KafkaListener(topics = "#{@kafkaTopicConfig.payloadInputTopic}", groupId = "#{@kafkaTopicConfig.groupId}")
     public void handlePayloadMessage(final String message) {
         try {
             final UserCreatedEvent event = this.objectMapper.readValue(message, UserCreatedEvent.class);
