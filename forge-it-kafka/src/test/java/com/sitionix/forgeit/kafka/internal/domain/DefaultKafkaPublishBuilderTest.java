@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -125,6 +127,40 @@ class DefaultKafkaPublishBuilderTest {
         assertThat(publisher.payloadValue).isInstanceOf(byte[].class);
         final String encoded = new String((byte[]) publisher.payloadValue, StandardCharsets.UTF_8);
         assertThat(encoded).isEqualTo("serialized");
+    }
+
+    @Test
+    void shouldSendAndVerifyEnvelope() {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final FakeJsonLoader loader = new FakeJsonLoader();
+        loader.put("/default/payload/defaultPayload.json", new Payload("default-user"));
+        loader.put("/default/metadata/defaultMetadata.json", new Metadata("default-trace"));
+        final KafkaLoader kafkaLoader = createKafkaLoader(loader);
+
+        final KafkaContract<Envelope> contract = KafkaContract.producerContract()
+                .topic("topic")
+                .defaultEnvelope(Envelope.class)
+                .defaultPayload(Payload.class, "defaultPayload.json")
+                .defaultMetadata(Metadata.class, "defaultMetadata.json")
+                .build();
+
+        final CapturingPublisher publisher = new CapturingPublisher();
+        final DefaultKafkaPublishBuilder<Envelope> builder = new DefaultKafkaPublishBuilder<>(contract,
+                kafkaLoader,
+                objectMapper,
+                publisher);
+        final AtomicBoolean verified = new AtomicBoolean(false);
+
+        builder.payload(envelope -> envelope.getPayload().setUserId("mutated-user"))
+                .metadata(envelope -> envelope.getMetadata().setTraceId("trace-1"))
+                .sendAndVerify(Duration.ofSeconds(1), envelope -> {
+                    verified.set(true);
+                    assertThat(envelope.getPayload().getUserId()).isEqualTo("mutated-user");
+                    assertThat(envelope.getMetadata().getTraceId()).isEqualTo("trace-1");
+                });
+
+        assertThat(verified.get()).isTrue();
+        assertThat(publisher.payloadValue).isNotNull();
     }
 
     private static KafkaLoader createKafkaLoader(final FakeJsonLoader loader) {
