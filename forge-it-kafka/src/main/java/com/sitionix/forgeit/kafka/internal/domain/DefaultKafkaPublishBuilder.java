@@ -7,7 +7,9 @@ import com.sitionix.forgeit.kafka.api.KafkaPublishBuilder;
 import com.sitionix.forgeit.kafka.internal.loader.KafkaLoader;
 import com.sitionix.forgeit.kafka.internal.port.KafkaPublisherPort;
 import lombok.RequiredArgsConstructor;
+import org.awaitility.Awaitility;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -123,17 +125,45 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
 
     @Override
     public void send() {
+        this.publishMessage();
+    }
+
+    @Override
+    public void sendAndVerify(final Consumer<T> verifier) {
+        this.sendAndVerify(null, verifier);
+    }
+
+    @Override
+    public void sendAndVerify(final Duration timeout, final Consumer<T> verifier) {
+        final PublishOutcome<T> outcome = this.publishMessage();
+        if (verifier == null) {
+            return;
+        }
+        if (timeout != null) {
+            Awaitility.await()
+                    .atMost(timeout)
+                    .untilAsserted(() -> verifier.accept(outcome.root));
+            return;
+        }
+        Awaitility.await()
+                .untilAsserted(() -> verifier.accept(outcome.root));
+    }
+
+    private PublishOutcome<T> publishMessage() {
+        final PublishOutcome<T> outcome = this.createPublishOutcome();
+        this.publisherPort.publish(this.contract, outcome.payloadValue, this.key);
+        return outcome;
+    }
+
+    private PublishOutcome<T> createPublishOutcome() {
         final Object payload = this.resolvePayloadObject();
         if (payload == null) {
             throw new IllegalStateException("Kafka payload is not configured");
         }
-        final Object payloadValue = this.createPayloadValue(payload);
-        this.publisherPort.publish(this.contract, payloadValue, this.key);
-    }
-
-    private Object createPayloadValue(final Object payload) {
         if (this.contract.getEnvelopeType() == null) {
-            return this.serializePayload(payload);
+            @SuppressWarnings("unchecked")
+            final T rootPayload = (T) payload;
+            return new PublishOutcome<>(rootPayload, this.serializePayload(payload));
         }
         final Object envelope = KafkaEnvelopeBinding.createEnvelope(this.contract.getEnvelopeType());
         KafkaEnvelopeBinding.injectPayload(envelope, payload, this.contract.getPayloadType());
@@ -142,7 +172,9 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
         this.applyMutators(this.payloadMutators, envelope);
         this.applyMutators(this.metadataMutators, envelope);
         this.applyMutators(this.envelopeMutators, envelope);
-        return this.serializePayload(envelope);
+        @SuppressWarnings("unchecked")
+        final T rootEnvelope = (T) envelope;
+        return new PublishOutcome<>(rootEnvelope, this.serializePayload(envelope));
     }
 
     private Object serializePayload(final Object value) {
@@ -275,6 +307,16 @@ public final class DefaultKafkaPublishBuilder<T> implements KafkaPublishBuilder<
             return this.objectMapper.readValue(payloadJson, this.contract.getPayloadType());
         } catch (final JsonProcessingException ex) {
             throw new IllegalStateException("Failed to deserialize Kafka payload", ex);
+        }
+    }
+
+    private static final class PublishOutcome<T> {
+        private final T root;
+        private final Object payloadValue;
+
+        private PublishOutcome(final T root, final Object payloadValue) {
+            this.root = root;
+            this.payloadValue = payloadValue;
         }
     }
 }

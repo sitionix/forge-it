@@ -1,5 +1,6 @@
 package com.sitionix.forgeit.kafka.api;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
 public interface KafkaPublishBuilder<T> {
@@ -21,4 +22,8 @@ public interface KafkaPublishBuilder<T> {
     KafkaPublishBuilder<T> key(String key);
 
     void send();
+
+    void sendAndVerify(Consumer<T> verifier);
+
+    void sendAndVerify(Duration timeout, Consumer<T> verifier);
 }
