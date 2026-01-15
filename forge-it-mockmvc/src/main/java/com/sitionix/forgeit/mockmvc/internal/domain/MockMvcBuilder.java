@@ -181,7 +181,7 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     private void loadRequest(final String jsonName, final Consumer<Req> mutator, final boolean isDefault) {
-        if (jsonName == null) {
+        if (jsonName == null || jsonName.isBlank()) {
             return;
         }
 
@@ -211,7 +211,7 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     private void loadResponse(final String jsonName, final Consumer<Res> mutator, final boolean isDefault) {
-        if (jsonName == null) {
+        if (jsonName == null || jsonName.isBlank()) {
             return;
         }
 

@@ -35,7 +35,7 @@ class MockMvcBuilderDefaultsTest {
                         .expectResponse(" ")
                         .expectStatus(200));
 
-        assertDoesNotThrow(builder::assertDefault);
+        assertDoesNotThrow(() -> builder.assertDefault());
     }
 
     @Test

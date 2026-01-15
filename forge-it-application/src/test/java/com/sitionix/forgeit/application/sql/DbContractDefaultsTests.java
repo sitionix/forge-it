@@ -43,7 +43,12 @@ class DbContractDefaultsTests {
                 .dependsOn(parent, (childEntity, parentEntity) -> attached.set(true))
                 .build();
 
-        final DbEntityFactory factory = invocation -> null;
+        final DbEntityFactory factory = new DbEntityFactory() {
+            @Override
+            public <E> E create(final DbContractInvocation<E> invocation) {
+                return null;
+            }
+        };
         final DefaultDbGraphContext context = new DefaultDbGraphContext(factory);
         final DbContractInvocation<ChildEntity> invocation = child.withEntity(null);
 
