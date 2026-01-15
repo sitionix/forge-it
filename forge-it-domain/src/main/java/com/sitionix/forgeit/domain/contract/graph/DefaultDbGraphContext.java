@@ -21,21 +21,27 @@ public final class DefaultDbGraphContext implements DbGraphContext {
     @Override
     @SuppressWarnings("unchecked")
     public synchronized <E> E getOrCreate(final DbContractInvocation<E> invocation) {
+        if (this.invocationCache.containsKey(invocation)) {
+            return (E) this.invocationCache.get(invocation);
+        }
+
         final DbContract<E> contract = invocation.getContract();
+        final E entity = this.entityFactory.create(invocation);
+        this.invocationCache.put(invocation, entity);
+        this.contractCache.put(contract, entity);
 
-        return (E) this.invocationCache.computeIfAbsent(invocation, c -> {
-            final E entity = this.entityFactory.create(invocation);
+        if (entity == null) {
+            return null;
+        }
 
-            final List<DbDependency<E, ?>> dependencies = contract.dependencies();
-            if (dependencies != null && !dependencies.isEmpty()) {
-                for (final DbDependency<E, ?> dependency : dependencies) {
-                    this.attachDependency(entity, dependency);
-                }
+        final List<DbDependency<E, ?>> dependencies = contract.dependencies();
+        if (dependencies != null && !dependencies.isEmpty()) {
+            for (final DbDependency<E, ?> dependency : dependencies) {
+                this.attachDependency(entity, dependency);
             }
+        }
 
-            this.contractCache.put(contract, entity);
-            return entity;
-        });
+        return entity;
     }
 
     private <E, P> void attachDependency(final E child,
@@ -49,8 +55,11 @@ public final class DefaultDbGraphContext implements DbGraphContext {
         }
         if (parent == null) {
             final DbContractInvocation<P> parentInvocation =
-                    new DbContractInvocation<>(parentContract, null);
+                    parentContract.withJson(null);
             final P created = this.getOrCreate(parentInvocation);
+            if (created == null) {
+                return;
+            }
             dependency.attach().accept(child, created);
             return;
         }

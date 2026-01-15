@@ -82,7 +82,7 @@ public class WireMockMappingBuilder<Req, Res> {
     private WireMockMappingBuilder<Req, Res> loadRequestJson(final String fileName,
                                                              final boolean useDefault,
                                                              final Consumer<Req> mutator) {
-        if (fileName == null) {
+        if (fileName == null || fileName.isBlank()) {
             return this;
         }
 
@@ -165,7 +165,7 @@ public class WireMockMappingBuilder<Req, Res> {
     private WireMockMappingBuilder<Req, Res> loadResponseJson(final String fileName,
                                                               final boolean useDefault,
                                                               final Consumer<Res> mutator) {
-        if (fileName == null) {
+        if (fileName == null || fileName.isBlank()) {
             return this;
         }
 

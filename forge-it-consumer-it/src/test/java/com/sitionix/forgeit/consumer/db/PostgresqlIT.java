@@ -8,6 +8,7 @@ import com.sitionix.forgeit.consumer.db.entity.ProductEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserEntity;
 import com.sitionix.forgeit.consumer.db.entity.UserStatusEntity;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.domain.ForgeItConfigurationException;
 import com.sitionix.forgeit.domain.contract.graph.DbGraphResult;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.DisplayName;
@@ -350,6 +351,17 @@ class PostgresqlIT {
                 .singleElement()
                 .extracting(UserEntity::getUsername)
                 .isEqualTo("default_user");
+    }
+
+    @Test
+    @DisplayName("Given contract without default when creating without json then error is raised")
+    void givenContractWithoutDefault_whenCreatingWithoutJson_thenErrorIsRaised() {
+        assertThatThrownBy(() -> this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.CATEGORY_ENTITY_DB_CONTRACT)
+                .build())
+                .isInstanceOf(ForgeItConfigurationException.class)
+                .hasMessageContaining("Default JSON resource name");
     }
 
     @Test
