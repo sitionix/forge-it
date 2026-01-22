@@ -12,6 +12,8 @@ import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
+import com.sitionix.forgeit.wiremock.api.WireMockPathParams;
+import com.sitionix.forgeit.wiremock.api.WireMockQueryParams;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.journal.WireMockJournal;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
@@ -21,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.function.Consumer;
 
 import static java.util.Objects.nonNull;
@@ -114,31 +117,31 @@ public class WireMockMappingBuilder<Req, Res> {
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final Map<String, Parameter> parameters) {
-        if (parameters != null) {
+    public WireMockMappingBuilder<Req, Res> urlWithQueryParam(final WireMockQueryParams parameters) {
+        if (parameters != null && !parameters.asMap().isEmpty()) {
             this.method = this.endpoint.getMethod();
             this.url = null;
-            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withQueryParams);
+            this.endpoint.getUrlBuilder().applyQueryParameters(parameters.asMap(), (template, vars) -> template);
             this.urlPath = this.endpoint.getUrlBuilder().getTemplate();
-            this.queryParameters = parameters;
+            this.queryParameters = this.toParameters(parameters.asMap());
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> path(final Map<String, Parameter> parameters) {
-        if (parameters != null) {
+    public WireMockMappingBuilder<Req, Res> path(final WireMockPathParams parameters) {
+        if (parameters != null && !parameters.asMap().isEmpty()) {
             this.method = this.endpoint.getMethod();
             this.urlPath = this.endpoint.getUrlBuilder().getUrl();
-            this.pathParameters = parameters;
+            this.pathParameters = this.toParameters(parameters.asMap());
         }
         return this;
     }
 
-    public WireMockMappingBuilder<Req, Res> pathPattern(final Map<String, Parameter> parameters) {
-        if (parameters != null) {
+    public WireMockMappingBuilder<Req, Res> pathPattern(final WireMockPathParams parameters) {
+        if (parameters != null && !parameters.asMap().isEmpty()) {
             this.method = this.endpoint.getMethod();
-            this.pathParameters = parameters;
-            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withPathParams);
+            this.pathParameters = this.toParameters(parameters.asMap());
+            this.endpoint.getUrlBuilder().applyParameters(parameters.asMap(), PathTemplate::withPathParams);
             this.urlPathPattern = this.endpoint.getUrlBuilder().getTemplate();
         }
         return this;
@@ -277,6 +280,27 @@ public class WireMockMappingBuilder<Req, Res> {
         }
 
         throw new IllegalStateException("URL pattern must be specified");
+    }
+
+    private Map<String, Parameter> toParameters(final Map<String, ?> source) {
+        if (source == null || source.isEmpty()) {
+            return null;
+        }
+        final Map<String, Parameter> parameters = new LinkedHashMap<>();
+        for (final Map.Entry<String, ?> entry : source.entrySet()) {
+            if (entry.getValue() == null) {
+                continue;
+            }
+            parameters.put(entry.getKey(), this.toParameter(entry.getValue()));
+        }
+        return parameters;
+    }
+
+    private Parameter toParameter(final Object value) {
+        if (value instanceof Parameter parameter) {
+            return parameter;
+        }
+        return Parameter.equalTo(String.valueOf(value));
     }
 
     private ResponseDefinitionBuilder buildResponseDefinition() {

@@ -4,6 +4,10 @@ import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
 import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.mockmvc.api.PathParams;
+import com.sitionix.forgeit.mockmvc.api.QueryParams;
+import com.sitionix.forgeit.wiremock.api.WireMockPathParams;
+import com.sitionix.forgeit.wiremock.api.WireMockQueryParams;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,11 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Map;
-
 import static com.sitionix.forgeit.wiremock.internal.domain.Parameter.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @IntegrationTest
@@ -135,17 +136,19 @@ class AuthControllerIT {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.token())
                 .responseBody("responseTokenWithQuery.json")
                 .responseStatus(HttpStatus.OK)
-                .urlWithQueryParam(Map.of(
-                        "username", equalTo("john.doe"),
-                        "correlationId", equalTo("abc-123")
-                ))
+                .urlWithQueryParam(WireMockQueryParams.create()
+                        .add("username", equalTo("john.doe"))
+                        .add("correlationId", equalTo("abc-123")))
                 .create();
 
-        this.mockMvc.perform(get("/auth/token")
-                        .param("username", "john.doe")
-                        .param("correlationId", "abc-123"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("token-with-query"));
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.token())
+                .withQueryParameters(QueryParams.create()
+                        .add("username", "john.doe")
+                        .add("correlationId", "abc-123"))
+                .expectResponse("responseTokenWithQuery.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }
@@ -155,16 +158,19 @@ class AuthControllerIT {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.userProfile())
                 .responseBody("responseUserProfile.json")
                 .responseStatus(HttpStatus.OK)
-                .pathPattern(Map.of(
-                        "tenantId", equalTo("tenant-1"),
-                        "userId", equalTo("42")
-                ))
+                .pathPattern(WireMockPathParams.create()
+                        .add("tenantId", equalTo("tenant-1"))
+                        .add("userId", equalTo("42")))
                 .create();
 
-        this.mockMvc.perform(get("/auth/tenants/{tenantId}/users/{userId}", "tenant-1", "42"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("42"))
-                .andExpect(jsonPath("$.username").value("john.doe"));
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.userProfile())
+                .withPathParameters(PathParams.create()
+                        .add("tenantId", "tenant-1")
+                        .add("userId", "42"))
+                .expectResponse("responseUserProfile.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }

@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.kafka.internal.cleaner;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DeleteRecordsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
@@ -20,15 +21,36 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public final class KafkaTopicCleaner {
 
-    private static final Duration ADMIN_TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration ADMIN_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration RETRY_DELAY = Duration.ofSeconds(2);
+    private static final int RESET_ATTEMPTS = 3;
 
     private final KafkaProperties kafkaProperties;
 
     public void reset() {
+        for (int attempt = 1; attempt <= RESET_ATTEMPTS; attempt++) {
+            try {
+                this.resetOnce();
+                return;
+            } catch (final Exception ex) {
+                if (attempt == RESET_ATTEMPTS) {
+                    throw new IllegalStateException("Failed to clean Kafka topics before test", ex);
+                }
+                log.warn("Kafka topic cleanup attempt {}/{} failed; retrying.",
+                        attempt,
+                        RESET_ATTEMPTS,
+                        ex);
+                this.sleepBeforeRetry();
+            }
+        }
+    }
+
+    private void resetOnce() throws Exception {
         final Map<String, Object> adminConfig = this.kafkaProperties.buildAdminProperties();
         try (AdminClient adminClient = AdminClient.create(adminConfig)) {
             final Set<String> topics = adminClient.listTopics(new ListTopicsOptions().listInternal(false))
@@ -61,8 +83,15 @@ public final class KafkaTopicCleaner {
             }
             final DeleteRecordsResult deleteRecordsResult = adminClient.deleteRecords(records);
             deleteRecordsResult.all().get(ADMIN_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (final Exception ex) {
-            throw new IllegalStateException("Failed to clean Kafka topics before test", ex);
+        }
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            Thread.sleep(RETRY_DELAY.toMillis());
+        } catch (final InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Kafka topic cleanup interrupted", ex);
         }
     }
 }
