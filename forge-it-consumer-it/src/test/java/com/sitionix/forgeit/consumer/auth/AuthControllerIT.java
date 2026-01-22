@@ -15,7 +15,6 @@ import java.util.Map;
 
 import static com.sitionix.forgeit.wiremock.internal.domain.Parameter.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @IntegrationTest
@@ -141,11 +140,15 @@ class AuthControllerIT {
                 ))
                 .create();
 
-        this.mockMvc.perform(get("/auth/token")
-                        .param("username", "john.doe")
-                        .param("correlationId", "abc-123"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("token-with-query"));
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.token())
+                .withQueryParameters(Map.of(
+                        "username", "john.doe",
+                        "correlationId", "abc-123"
+                ))
+                .expectResponse("responseTokenWithQuery.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }
@@ -161,10 +164,15 @@ class AuthControllerIT {
                 ))
                 .create();
 
-        this.mockMvc.perform(get("/auth/tenants/{tenantId}/users/{userId}", "tenant-1", "42"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("42"))
-                .andExpect(jsonPath("$.username").value("john.doe"));
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.userProfile())
+                .withPathParameters(Map.of(
+                        "tenantId", "tenant-1",
+                        "userId", "42"
+                ))
+                .expectResponse("responseUserProfile.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
 
         requestBuilder.verify();
     }

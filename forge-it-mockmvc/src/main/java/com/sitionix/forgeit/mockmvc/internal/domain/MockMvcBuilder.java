@@ -16,10 +16,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import static com.sitionix.forgeit.mockmvc.internal.validator.CustomResultMatcher.jsonEqualsIgnore;
 import static java.util.Objects.nonNull;
@@ -30,6 +34,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 public class MockMvcBuilder<Req, Res> {
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^/}]+)}");
+
     private final MockMvc mockMvc;
     private final MockMvcLoader mockMvcLoader;
     private final Endpoint<Req, Res> endpoint;
@@ -43,6 +49,8 @@ public class MockMvcBuilder<Req, Res> {
     private final List<String> responseFieldsToIgnore;
     private String requestJson;
     private String responseJson;
+    private Map<String, ?> queryParameters;
+    private Map<String, ?> pathParameters;
     private String token;
     private HttpStatus expectedStatus;
     private final DefaultContext defaultContext;
@@ -132,6 +140,20 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> token(final String token) {
         this.token = token;
+        return this;
+    }
+
+    public MockMvcBuilder<Req, Res> withQueryParameters(final Map<String, ?> parameters) {
+        if (nonNull(parameters) && !parameters.isEmpty()) {
+            this.queryParameters = parameters;
+        }
+        return this;
+    }
+
+    public MockMvcBuilder<Req, Res> withPathParameters(final Map<String, ?> parameters) {
+        if (nonNull(parameters) && !parameters.isEmpty()) {
+            this.pathParameters = parameters;
+        }
         return this;
     }
 
@@ -233,7 +255,7 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     private MockHttpServletRequestBuilder buildHttpRequest() {
-        final String path = this.endpoint.getUrlBuilder().getTemplate();
+        final String path = this.resolvePath();
         final MockHttpServletRequestBuilder builder = switch (this.endpoint.getMethod()) {
             case GET -> get(path);
             case POST -> post(path);
@@ -245,7 +267,56 @@ public class MockMvcBuilder<Req, Res> {
         if (nonNull(this.requestJson)) {
             builder.contentType(MediaType.APPLICATION_JSON).content(this.requestJson);
         }
+        this.applyQueryParameters(builder);
         return builder;
+    }
+
+    private String resolvePath() {
+        final String template = this.endpoint.getUrlBuilder().getTemplate();
+        if (this.pathParameters == null || this.pathParameters.isEmpty()) {
+            if (PLACEHOLDER.matcher(template).find()) {
+                throw new IllegalArgumentException("Path parameters are required for template: " + template);
+            }
+            return template;
+        }
+
+        final String resolvedPath = UriComponentsBuilder.fromPath(template)
+                .buildAndExpand(this.pathParameters)
+                .toUriString();
+
+        if (PLACEHOLDER.matcher(resolvedPath).find()) {
+            throw new IllegalArgumentException("Not all placeholders were resolved in the template: " + template);
+        }
+        return resolvedPath;
+    }
+
+    private void applyQueryParameters(final MockHttpServletRequestBuilder builder) {
+        if (this.queryParameters == null || this.queryParameters.isEmpty()) {
+            return;
+        }
+        this.queryParameters.forEach((key, value) -> this.applyQueryParameter(builder, key, value));
+    }
+
+    private void applyQueryParameter(final MockHttpServletRequestBuilder builder,
+                                     final String key,
+                                     final Object value) {
+        if (value == null) {
+            return;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            for (final Object item : iterable) {
+                this.applyQueryParameter(builder, key, item);
+            }
+            return;
+        }
+        if (value.getClass().isArray()) {
+            final int length = Array.getLength(value);
+            for (int i = 0; i < length; i++) {
+                this.applyQueryParameter(builder, key, Array.get(value, i));
+            }
+            return;
+        }
+        builder.param(key, String.valueOf(value));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)

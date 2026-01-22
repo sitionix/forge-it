@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -22,6 +23,8 @@ import java.util.Map;
 public final class KafkaContainerManager implements InitializingBean, SmartLifecycle, DisposableBean {
 
     private static final String PROPERTY_SOURCE_NAME = "forgeItKafka";
+    private static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(120);
+    private static final int STARTUP_ATTEMPTS = 3;
 
     private final ConfigurableEnvironment environment;
     private final KafkaProperties properties;
@@ -178,6 +181,8 @@ public final class KafkaContainerManager implements InitializingBean, SmartLifec
         }
         try {
             this.container = new KafkaContainer(DockerImageName.parse(containerConfig.getImage()));
+            this.container.withStartupAttempts(STARTUP_ATTEMPTS);
+            this.container.withStartupTimeout(STARTUP_TIMEOUT);
             this.container.start();
             this.bootstrapServers = this.container.getBootstrapServers();
         } catch (final RuntimeException ex) {
