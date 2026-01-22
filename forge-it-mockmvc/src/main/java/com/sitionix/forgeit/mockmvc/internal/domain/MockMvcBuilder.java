@@ -6,6 +6,7 @@ import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
+import com.sitionix.forgeit.mockmvc.api.PathParams;
 import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
@@ -145,22 +146,15 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     public MockMvcBuilder<Req, Res> withQueryParameters(final QueryParams parameters) {
-        if (nonNull(parameters)) {
-            this.withQueryParameters(parameters.asMap());
+        if (nonNull(parameters) && !parameters.asMap().isEmpty()) {
+            this.queryParameters = parameters.asMap();
         }
         return this;
     }
 
-    public MockMvcBuilder<Req, Res> withQueryParameters(final Map<String, ?> parameters) {
-        if (nonNull(parameters) && !parameters.isEmpty()) {
-            this.queryParameters = parameters;
-        }
-        return this;
-    }
-
-    public MockMvcBuilder<Req, Res> withPathParameters(final Map<String, ?> parameters) {
-        if (nonNull(parameters) && !parameters.isEmpty()) {
-            this.pathParameters = parameters;
+    public MockMvcBuilder<Req, Res> withPathParameters(final PathParams parameters) {
+        if (nonNull(parameters) && !parameters.asMap().isEmpty()) {
+            this.pathParameters = parameters.asMap();
         }
         return this;
     }

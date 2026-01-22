@@ -1,6 +1,7 @@
 package com.sitionix.forgeit.wiremock.internal.domain;
 
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
+import com.sitionix.forgeit.wiremock.api.WireMockPathParams;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;
 import com.sitionix.forgeit.wiremock.internal.loader.WireMockLoaderResources;
 import lombok.Getter;
@@ -8,7 +9,6 @@ import lombok.Getter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -46,9 +46,9 @@ public class RequestBuilder<Req, Res> {
         return this;
     }
 
-    public RequestBuilder<Req, Res> pathWithParameters(final Map<String, Object> parameters) {
-        if (nonNull(parameters)) {
-            this.endpoint.getUrlBuilder().applyParameters(parameters, PathTemplate::withPathParams);
+    public RequestBuilder<Req, Res> pathWithParameters(final WireMockPathParams parameters) {
+        if (nonNull(parameters) && !parameters.asMap().isEmpty()) {
+            this.endpoint.getUrlBuilder().applyParameters(parameters.asMap(), PathTemplate::withPathParams);
         }
         return this;
     }

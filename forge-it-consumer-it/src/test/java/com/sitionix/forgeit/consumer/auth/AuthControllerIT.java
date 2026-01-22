@@ -4,15 +4,16 @@ import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
 import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.mockmvc.api.PathParams;
 import com.sitionix.forgeit.mockmvc.api.QueryParams;
+import com.sitionix.forgeit.wiremock.api.WireMockPathParams;
+import com.sitionix.forgeit.wiremock.api.WireMockQueryParams;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Map;
 
 import static com.sitionix.forgeit.wiremock.internal.domain.Parameter.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -135,10 +136,9 @@ class AuthControllerIT {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.token())
                 .responseBody("responseTokenWithQuery.json")
                 .responseStatus(HttpStatus.OK)
-                .urlWithQueryParam(Map.of(
-                        "username", equalTo("john.doe"),
-                        "correlationId", equalTo("abc-123")
-                ))
+                .urlWithQueryParam(WireMockQueryParams.create()
+                        .add("username", equalTo("john.doe"))
+                        .add("correlationId", equalTo("abc-123")))
                 .create();
 
         this.forgeIt.mockMvc()
@@ -158,18 +158,16 @@ class AuthControllerIT {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.userProfile())
                 .responseBody("responseUserProfile.json")
                 .responseStatus(HttpStatus.OK)
-                .pathPattern(Map.of(
-                        "tenantId", equalTo("tenant-1"),
-                        "userId", equalTo("42")
-                ))
+                .pathPattern(WireMockPathParams.create()
+                        .add("tenantId", equalTo("tenant-1"))
+                        .add("userId", equalTo("42")))
                 .create();
 
         this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.userProfile())
-                .withPathParameters(Map.of(
-                        "tenantId", "tenant-1",
-                        "userId", "42"
-                ))
+                .withPathParameters(PathParams.create()
+                        .add("tenantId", "tenant-1")
+                        .add("userId", "42"))
                 .expectResponse("responseUserProfile.json")
                 .expectStatus(HttpStatus.OK)
                 .assertAndCreate();
