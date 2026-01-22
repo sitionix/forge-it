@@ -177,7 +177,7 @@ public class MockMvcBuilder<Req, Res> {
 
         final MockmvcDefault defaultsContext = this.endpoint.getMockmvcDefault();
         if (nonNull(defaultsContext)) {
-            this.endpoint.getMockmvcDefault().applyDefaults(this.defaultContext);
+            defaultsContext.applyDefaults(new MissingDefaultContext());
         }
 
         this.assertAndCreate();
@@ -205,7 +205,7 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     private void loadRequest(final String jsonName, final Consumer<Req> mutator, final boolean isDefault) {
-        if (jsonName == null) {
+        if (jsonName == null || jsonName.isBlank()) {
             return;
         }
 
@@ -235,7 +235,7 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     private void loadResponse(final String jsonName, final Consumer<Res> mutator, final boolean isDefault) {
-        if (jsonName == null) {
+        if (jsonName == null || jsonName.isBlank()) {
             return;
         }
 
@@ -339,6 +339,32 @@ public class MockMvcBuilder<Req, Res> {
         @Override
         public DefaultContext expectStatus(final int status) {
             MockMvcBuilder.this.expectStatus(HttpStatus.resolve(status));
+            return this;
+        }
+    }
+
+    private final class MissingDefaultContext implements MockmvcDefaultContext {
+        @Override
+        public MockmvcDefaultContext withRequest(final String json) {
+            if (MockMvcBuilder.this.requestJson == null) {
+                MockMvcBuilder.this.defaultRequest(json);
+            }
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext expectResponse(final String json) {
+            if (MockMvcBuilder.this.responseJson == null) {
+                MockMvcBuilder.this.defaultResponse(json);
+            }
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext expectStatus(final int status) {
+            if (MockMvcBuilder.this.expectedStatus == null) {
+                MockMvcBuilder.this.expectStatus(HttpStatus.resolve(status));
+            }
             return this;
         }
     }
