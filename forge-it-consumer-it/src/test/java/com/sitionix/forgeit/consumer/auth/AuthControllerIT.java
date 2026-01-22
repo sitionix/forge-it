@@ -4,6 +4,7 @@ import com.sitionix.forgeit.consumer.ForgeItSupport;
 import com.sitionix.forgeit.consumer.auth.endpoint.MockMvcEndpoint;
 import com.sitionix.forgeit.consumer.auth.endpoint.WireMockEndpoint;
 import com.sitionix.forgeit.core.test.IntegrationTest;
+import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -142,10 +143,9 @@ class AuthControllerIT {
 
         this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.token())
-                .withQueryParameters(Map.of(
-                        "username", "john.doe",
-                        "correlationId", "abc-123"
-                ))
+                .withQueryParameters(QueryParams.create()
+                        .add("username", "john.doe")
+                        .add("correlationId", "abc-123"))
                 .expectResponse("responseTokenWithQuery.json")
                 .expectStatus(HttpStatus.OK)
                 .assertAndCreate();

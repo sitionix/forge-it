@@ -6,6 +6,7 @@ import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
+import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -140,6 +141,13 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> token(final String token) {
         this.token = token;
+        return this;
+    }
+
+    public MockMvcBuilder<Req, Res> withQueryParameters(final QueryParams parameters) {
+        if (nonNull(parameters)) {
+            this.withQueryParameters(parameters.asMap());
+        }
         return this;
     }
 
