@@ -40,8 +40,9 @@ public class AuthController {
     @GetMapping("/tenants/{tenantId}/users/{userId}")
     public ResponseEntity<UserProfileResponse> user(
             @PathVariable("tenantId") final String tenantId,
-            @PathVariable("userId") final String userId
+            @PathVariable("userId") final String userId,
+            @RequestParam(name = "pepper", required = false) final String pepper
     ) {
-        return this.authClient.fetchUser(tenantId, userId);
+        return this.authClient.fetchUser(tenantId, userId, pepper);
     }
 }
