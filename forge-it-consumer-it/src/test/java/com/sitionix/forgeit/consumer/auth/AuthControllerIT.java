@@ -132,7 +132,7 @@ class AuthControllerIT {
     }
 
     @Test
-    void givenTokenRequest_whenQueryParametersProvided_thenReturnResponse() throws Exception {
+    void givenTokenRequest_whenQueryParametersProvided_thenReturnResponse() {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.token())
                 .responseBody("responseTokenWithQuery.json")
                 .responseStatus(HttpStatus.OK)
@@ -154,7 +154,7 @@ class AuthControllerIT {
     }
 
     @Test
-    void givenUserRequest_whenPathParametersProvided_thenResponseMatches() throws Exception {
+    void givenUserRequest_whenPathParametersProvided_thenResponseMatches() {
         final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.userProfile())
                 .responseBody("responseUserProfile.json")
                 .responseStatus(HttpStatus.OK)
@@ -168,6 +168,32 @@ class AuthControllerIT {
                 .withPathParameters(PathParams.create()
                         .add("tenantId", "tenant-1")
                         .add("userId", "42"))
+                .expectResponse("responseUserProfile.json")
+                .expectStatus(HttpStatus.OK)
+                .assertAndCreate();
+
+        requestBuilder.verify();
+    }
+
+    @Test
+    void givenUserRequest_whenPathAndQueryParametersProvided_thenResponseMatches() {
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock().createMapping(WireMockEndpoint.userProfile())
+                .responseBody("responseUserProfile.json")
+                .responseStatus(HttpStatus.OK)
+                .pathPattern(WireMockPathParams.create()
+                        .add("tenantId", equalTo("tenant-1"))
+                        .add("userId", equalTo("42")))
+                .urlWithQueryParam(WireMockQueryParams.create()
+                        .add("pepper", equalTo("pepper-1")))
+                .create();
+
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.userProfile())
+                .withPathParameters(PathParams.create()
+                        .add("tenantId", "tenant-1")
+                        .add("userId", "42"))
+                .withQueryParameters(QueryParams.create()
+                        .add("pepper", "pepper-1"))
                 .expectResponse("responseUserProfile.json")
                 .expectStatus(HttpStatus.OK)
                 .assertAndCreate();

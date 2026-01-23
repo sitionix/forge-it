@@ -271,12 +271,12 @@ public class WireMockMappingBuilder<Req, Res> {
             return WireMock.urlEqualTo(WireMockMappingBuilder.this.url);
         }
 
-        if (WireMockMappingBuilder.this.urlPath != null) {
-            return WireMock.urlPathEqualTo(WireMockMappingBuilder.this.urlPath);
-        }
-
         if (WireMockMappingBuilder.this.urlPathPattern != null) {
             return WireMock.urlPathTemplate(WireMockMappingBuilder.this.urlPathPattern);
+        }
+
+        if (WireMockMappingBuilder.this.urlPath != null) {
+            return WireMock.urlPathEqualTo(WireMockMappingBuilder.this.urlPath);
         }
 
         throw new IllegalStateException("URL pattern must be specified");

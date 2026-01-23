@@ -44,8 +44,20 @@ public class AuthClient {
             final String tenantId,
             final String userId
     ) {
-        final String uri = UriComponentsBuilder
-                .fromHttpUrl(this.baseUrl + "/external/tenants/{tenantId}/users/{userId}")
+        return this.fetchUser(tenantId, userId, null);
+    }
+
+    public ResponseEntity<UserProfileResponse> fetchUser(
+            final String tenantId,
+            final String userId,
+            final String pepper
+    ) {
+        final UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(this.baseUrl + "/external/tenants/{tenantId}/users/{userId}");
+        if (pepper != null) {
+            builder.queryParam("pepper", pepper);
+        }
+        final String uri = builder
                 .buildAndExpand(tenantId, userId)
                 .toUriString();
 
