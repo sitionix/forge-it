@@ -9,6 +9,7 @@ public record WireMockCheck <Req, Res>(
         String expectedJson,
         int atLeastTimes,
         List<String> ignoredFields,
+        boolean strict,
         UUID id
 ) {
 }

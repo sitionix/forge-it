@@ -26,7 +26,8 @@ public class WireMockValidator {
             if (nonNull(check.expectedJson())) {
                 final String[] fieldsForIgnore = check.ignoredFields().toArray(new String[0]);
                 final var actualJsons = this.journalClient.findBodiesByUrl(check.endpoint());
-                final boolean anyMatch = actualJsons.stream().anyMatch(jsonEqualsIgnore(check.expectedJson(), fieldsForIgnore));
+                final boolean anyMatch = actualJsons.stream()
+                        .anyMatch(jsonEqualsIgnore(check.expectedJson(), check.strict(), fieldsForIgnore));
                 if (!anyMatch) {
                     throw new AssertionError("No matching JSON found for endpoint: " + check.endpoint());
                 }

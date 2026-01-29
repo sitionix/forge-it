@@ -12,6 +12,7 @@ import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefaultContext;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.endpoint.wiremock.WiremockDefault;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
+import com.sitionix.forgeit.wiremock.api.Parameter;
 import com.sitionix.forgeit.wiremock.api.WireMockPathParams;
 import com.sitionix.forgeit.wiremock.api.WireMockQueryParams;
 import com.sitionix.forgeit.wiremock.internal.configs.PathTemplate;

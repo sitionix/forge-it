@@ -239,6 +239,7 @@ forgeit.mockMvc()
 
 Add `andExpectPath(...)` for extra matchers, or `token(...)` to attach an `Authorization`
 header. Response assertions can ignore fields via `expectResponse(..., fieldsToIgnore...)`.
+JSON comparison is strict by default; pass `false` to use lenient matching (extra fields allowed).
 
 ### Defaults and reusable fixtures
 

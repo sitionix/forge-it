@@ -24,6 +24,7 @@ public class RequestBuilder<Req, Res> {
         this.endpoint = endpoint;
         this.ignoringFields = new ArrayList<>();
         this.atLeastTimes = 1;
+        this.strictJson = true;
     }
 
     private final WireMockLoaderResources loaderResources;
@@ -31,6 +32,7 @@ public class RequestBuilder<Req, Res> {
     private final Consumer<WireMockCheck<Req, Res>> verifier;
 
     private final List<String> ignoringFields;
+    private boolean strictJson;
     
     private int atLeastTimes;
 
@@ -74,6 +76,11 @@ public class RequestBuilder<Req, Res> {
         return this;
     }
 
+    public RequestBuilder<Req, Res> strictJson(final boolean strictJson) {
+        this.strictJson = strictJson;
+        return this;
+    }
+
     public RequestBuilder<Req, Res> id(final UUID id) {
         if (nonNull(id)) {
             this.id = id;
@@ -87,6 +94,7 @@ public class RequestBuilder<Req, Res> {
                 this.jsonValue,
                 this.atLeastTimes,
                 this.ignoringFields,
+                this.strictJson,
                 this.id
         );
     }

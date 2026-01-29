@@ -49,6 +49,7 @@ public class MockMvcBuilder<Req, Res> {
     private Consumer<Res> defaultResponseMutator;
     private final List<ResultMatcher> extraMatchers;
     private final List<String> responseFieldsToIgnore;
+    private boolean responseStrict;
     private String requestJson;
     private String responseJson;
     private Map<String, ?> queryParameters;
@@ -73,6 +74,7 @@ public class MockMvcBuilder<Req, Res> {
         this.defaultContext = new DefaultContext();
         this.extraMatchers = new ArrayList<>();
         this.responseFieldsToIgnore = new ArrayList<>();
+        this.responseStrict = true;
     }
 
     public MockMvcBuilder<Req, Res> withRequest(final String requestName) {
@@ -98,6 +100,7 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final Consumer<Res> responseMutator) {
         if (nonNull(responseName)) {
+            this.responseStrict = true;
             this.loadResponse(responseName, responseMutator, false);
         }
         return this;
@@ -105,6 +108,7 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final String... fieldsToIgnore) {
         if (nonNull(responseName)) {
+            this.responseStrict = true;
             this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
             this.loadResponse(responseName, null, false);
         }
@@ -113,6 +117,30 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> expectResponse(final String responseName, final Consumer<Res> responseMutator, final String... fieldsToIgnore) {
         if (nonNull(responseName)) {
+            this.responseStrict = true;
+            this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
+            this.loadResponse(responseName, responseMutator, false);
+        }
+        return this;
+    }
+
+    public MockMvcBuilder<Req, Res> expectResponse(final String responseName,
+                                                   final boolean strict,
+                                                   final String... fieldsToIgnore) {
+        if (nonNull(responseName)) {
+            this.responseStrict = strict;
+            this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
+            this.loadResponse(responseName, null, false);
+        }
+        return this;
+    }
+
+    public MockMvcBuilder<Req, Res> expectResponse(final String responseName,
+                                                   final Consumer<Res> responseMutator,
+                                                   final boolean strict,
+                                                   final String... fieldsToIgnore) {
+        if (nonNull(responseName)) {
+            this.responseStrict = strict;
             this.responseFieldsToIgnore.addAll(List.of(fieldsToIgnore));
             this.loadResponse(responseName, responseMutator, false);
         }
@@ -121,6 +149,15 @@ public class MockMvcBuilder<Req, Res> {
 
     private MockMvcBuilder<Req, Res> defaultResponse(final String responseName) {
         if (nonNull(responseName)) {
+            this.responseStrict = true;
+            this.loadResponse(responseName, null, true);
+        }
+        return this;
+    }
+
+    private MockMvcBuilder<Req, Res> defaultResponse(final String responseName, final boolean strict) {
+        if (nonNull(responseName)) {
+            this.responseStrict = strict;
             this.loadResponse(responseName, null, true);
         }
         return this;
@@ -191,7 +228,9 @@ public class MockMvcBuilder<Req, Res> {
             }
             final var mvcResultActions = this.mockMvc.perform(httpRequest);
             if (nonNull(this.responseJson)) {
-                mvcResultActions.andExpect(jsonEqualsIgnore(this.responseJson, this.responseFieldsToIgnore.toArray(new String[0])));
+                mvcResultActions.andExpect(jsonEqualsIgnore(this.responseJson,
+                        this.responseStrict,
+                        this.responseFieldsToIgnore.toArray(new String[0])));
             }
             if (nonNull(this.expectedStatus)) {
                 mvcResultActions.andExpect(MockMvcResultMatchers.status().is(this.expectedStatus.value()));
@@ -333,6 +372,11 @@ public class MockMvcBuilder<Req, Res> {
         @Override
         public DefaultContext expectResponse(final String json) {
             MockMvcBuilder.this.defaultResponse(json);
+            return this;
+        }
+
+        public DefaultContext expectResponse(final String json, final boolean strict) {
+            MockMvcBuilder.this.defaultResponse(json, strict);
             return this;
         }
 

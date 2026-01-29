@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.wiremock.internal.domain;
+package com.sitionix.forgeit.wiremock.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -71,4 +71,3 @@ public final class Parameter {
         };
     }
 }
-

@@ -7,6 +7,15 @@ import org.springframework.test.web.servlet.ResultMatcher;
 public class CustomResultMatcher {
 
     public static ResultMatcher jsonEqualsIgnore(final String expectedJson, final String... fieldsForIgnore) {
-        return result -> JsonComparator.compareJson(expectedJson, result.getResponse().getContentAsString(), fieldsForIgnore);
+        return jsonEqualsIgnore(expectedJson, true, fieldsForIgnore);
+    }
+
+    public static ResultMatcher jsonEqualsIgnore(final String expectedJson,
+                                                 final boolean strict,
+                                                 final String... fieldsForIgnore) {
+        return result -> JsonComparator.compareJson(expectedJson,
+                result.getResponse().getContentAsString(),
+                strict,
+                fieldsForIgnore);
     }
 }

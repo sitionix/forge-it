@@ -16,7 +16,23 @@ public final class WireMockPathParams {
         return new WireMockPathParams();
     }
 
-    public WireMockPathParams add(final String name, final Object value) {
+    public WireMockPathParams add(final String name, final String value) {
+        return this.addInternal(name, value);
+    }
+
+    public WireMockPathParams add(final String name, final Number value) {
+        return this.addInternal(name, value);
+    }
+
+    public WireMockPathParams add(final String name, final Boolean value) {
+        return this.addInternal(name, value);
+    }
+
+    public WireMockPathParams add(final String name, final Parameter value) {
+        return this.addInternal(name, value);
+    }
+
+    private WireMockPathParams addInternal(final String name, final Object value) {
         if (name == null) {
             throw new IllegalArgumentException("Path parameter name cannot be null");
         }

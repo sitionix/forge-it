@@ -17,11 +17,18 @@ public class JsonComparator {
 
     public static void compareJson(final String expectedJson, final String actualJson, final String... fieldsForIgnore)
             throws Exception {
+        compareJson(expectedJson, actualJson, true, fieldsForIgnore);
+    }
+
+    public static void compareJson(final String expectedJson,
+                                   final String actualJson,
+                                   final boolean strict,
+                                   final String... fieldsForIgnore) throws Exception {
         final JsonNode expected = MAPPER.readTree(expectedJson);
         final JsonNode actual = MAPPER.readTree(actualJson);
         removeFields(expected, fieldsForIgnore);
         removeFields(actual, fieldsForIgnore);
-        JSONAssert.assertEquals(MAPPER.writeValueAsString(expected), MAPPER.writeValueAsString(actual), false);
+        JSONAssert.assertEquals(MAPPER.writeValueAsString(expected), MAPPER.writeValueAsString(actual), strict);
     }
 
     private static void removeFields(final JsonNode node, final String... fields) {

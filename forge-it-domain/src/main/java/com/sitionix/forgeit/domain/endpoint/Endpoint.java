@@ -87,7 +87,8 @@ public final class Endpoint<Req, Res> {
                 return;
             }
             this.queryParameters = parameters;
-            this.resolved = resolver.apply(this.template, parameters);
+            final String basePath = this.resolved != null ? this.resolved : this.template;
+            this.resolved = resolver.apply(basePath, parameters);
         }
         public void applyParameters(final Map<String, ?> parameters,
                                     final BiFunction<String, Map<String, ?>, String> resolver) {
