@@ -2,6 +2,7 @@ package com.sitionix.forgeit.domain.contract;
 
 import com.sitionix.forgeit.domain.contract.body.BodySpecification;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPolicy;
+import com.sitionix.forgeit.domain.ForgeItConfigurationException;
 
 import java.util.List;
 
@@ -27,7 +28,12 @@ public interface DbContract<E> {
         if (jsonResourceName != null) {
             return new DbContractInvocation<>(this, BodySpecification.explicitJsonName(jsonResourceName));
         }
-        return new DbContractInvocation<>(this, BodySpecification.defaultJsonName(this.defaultJsonResourceName()));
+        final String defaultJsonResourceName = this.defaultJsonResourceName();
+        if (defaultJsonResourceName == null || defaultJsonResourceName.isBlank()) {
+            throw new ForgeItConfigurationException("Default JSON resource name is not configured; "
+                    + "provide a default fixture or pass a custom JSON resource name.");
+        }
+        return new DbContractInvocation<>(this, BodySpecification.defaultJsonName(defaultJsonResourceName));
     }
 
     default DbContractInvocation<E> withEntity(final E entity) {

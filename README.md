@@ -35,6 +35,13 @@ public interface ConsumerTests extends ForgeIT {
 }
 ```
 
+## Fixture root
+
+All file-based fixtures and mappings resolve under the unchangeable
+`src/test/resources/forge-it` root. Module-specific paths (for example,
+`forge-it.modules.wiremock.mapping.request`) can be customized, but the `forge-it` root
+folder itself is fixed and cannot be overridden.
+
 ## WireMock support
 
 ### Entry point
@@ -106,9 +113,10 @@ stubs.
 
 #### Fixture locations for WireMock JSON
 Request and response payloads resolve relative to the configured `mapping.request` and
-`mapping.response` paths (defaults: `/wiremock/request` and `/wiremock/response` under
-`src/test/resources/forge-it`). Default payloads consumed by `applyDefault(...)` and
-`createDefault(...)` load from `mapping.default-request` and `mapping.default-response`.
+`mapping.response` paths under the unchangeable `src/test/resources/forge-it` root
+(defaults: `/wiremock/request` and `/wiremock/response`). Default payloads consumed by
+`applyDefault(...)` and `createDefault(...)` load from `mapping.default-request` and
+`mapping.default-response`.
 Keep reusable templates in the default folders (for example,
 `forge-it/wiremock/default/response/responseLoginDefault.json`) and store per-scenario
 payloads under the main request/response paths. Mutators work with either location so you
@@ -199,7 +207,8 @@ public interface ConsumerMockMvcTests extends ForgeIT {
 ### Configuration
 
 The module ships with sensible defaults for loading request and response payloads from the
-classpath. Override the locations if your project stores fixtures elsewhere:
+classpath. Override the subpaths if your project stores fixtures elsewhere under the
+unchangeable `src/test/resources/forge-it` root:
 
 ```yaml
 forge-it:
@@ -212,8 +221,9 @@ forge-it:
         default-response: /mockmvc/default/response
 ```
 
-Request and response JSON files live under `src/test/resources/forge-it` by default, so
-`withRequest("loginRequest.json")` resolves to `forge-it/mockmvc/request/loginRequest.json`.
+Request and response JSON files always resolve under the unchangeable
+`src/test/resources/forge-it` root, so `withRequest("loginRequest.json")` resolves to
+`forge-it/mockmvc/request/loginRequest.json`.
 Defaults declared on an `Endpoint` or via `executeDefault(...)` read from the
 `default-request`/`default-response` folders, while per-test overrides sit under the main
 `request`/`response` paths. This separation keeps reusable templates tidy without blocking
@@ -287,7 +297,8 @@ public interface ConsumerPostgresTests extends ForgeIT {
 ### Configuration
 The PostgreSQL feature starts a `postgres:16-alpine` Testcontainers instance by default and
 initialises schema/constraints/data from SQL under `/db/postgresql` (see the consumer
-fixtures in `forge-it-consumer-it/src/test/resources/forge-it/db/postgresql/**`). Override
+fixtures in `forge-it-consumer-it/src/test/resources/forge-it/db/postgresql/**`). Paths
+are always resolved under the unchangeable `src/test/resources/forge-it` root. Override
 paths or connection details via:
 
 ```yaml
@@ -327,8 +338,8 @@ then `data/`, and finally any other folder (treated as `custom`). Inside a phase
 filenames are ordered by their leading number, so `001_create_users.sql` runs before
 `110_add_fk.sql`; files without a numeric prefix run last within the phase. Drop your own
 DDL, constraint, and seed files under `src/test/resources/forge-it/db/postgresql/**` (or
-the path set in `forge-it.modules.postgresql.paths.ddl.path`) to extend the database for
-your tests. The sample consumer illustrates the layout:
+the subpath set in `forge-it.modules.postgresql.paths.ddl.path`; the `forge-it` root is
+fixed) to extend the database for your tests. The sample consumer illustrates the layout:
 
 - `schema/*.sql` for table creation
 - `constraints/*.sql` for foreign keys, unique indexes, or checks
@@ -340,14 +351,14 @@ Entities can be hydrated from JSON rather than hand-built objects. Default bodie
 via `.withDefaultBody(...)` load from `forge-it.modules.postgresql.paths.entity.defaults`
 (defaults to `/db/postgresql/entities/default`), while `.withJson(...)` pulls from
 `forge-it.modules.postgresql.paths.entity.custom` (default `/db/postgresql/entities/custom`).
-Resources are resolved under `src/test/resources/forge-it`, so
+Resources are resolved under the unchangeable `src/test/resources/forge-it` root, so
 `withDefaultBody("default_user_entity.json")` maps to
 `forge-it/db/postgresql/entities/default/default_user_entity.json`, and
 `withJson("priority_user_entity.json")` maps to
 `forge-it/db/postgresql/entities/custom/priority_user_entity.json`. Override the paths if
-you prefer a different folder structure. Keep JSON aligned with the entity structure that
-Jackson deserialises; combine shared defaults with scenario-specific custom files to avoid
-duplicating base shapes.
+you prefer a different folder structure under the fixed `src/test/resources/forge-it` root.
+Keep JSON aligned with the entity structure that Jackson deserialises; combine shared
+defaults with scenario-specific custom files to avoid duplicating base shapes.
 
 ### Declaring contracts and building graphs
 Use `DbContractsDsl` to describe entities, defaults, and dependencies. Cleanup defaults to
@@ -538,7 +549,7 @@ public static final KafkaContract<UserCreatedEnvelope> USER_CREATED_OUTPUT =
 ```
 
 Fixture resolution mirrors the configured paths under `forge-it.modules.kafka.path`. Files
-resolve relative to `src/test/resources/forge-it`, for example:
+resolve relative to the unchangeable `src/test/resources/forge-it` root, for example:
 
 - `defaultUserCreatedEvent.json` for payloads under `/kafka/default/payload`
 - `expectedUserCreatedEvent.json` for expected payloads under `/kafka/expected`
