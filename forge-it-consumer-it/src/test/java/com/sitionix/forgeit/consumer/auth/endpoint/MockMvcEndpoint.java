@@ -2,6 +2,7 @@ package com.sitionix.forgeit.consumer.auth.endpoint;
 
 import com.sitionix.forgeit.consumer.auth.LoginRequest;
 import com.sitionix.forgeit.consumer.auth.LoginResponse;
+import com.sitionix.forgeit.consumer.auth.UserProfileResponse;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.HttpMethod;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
@@ -27,6 +28,24 @@ public class MockMvcEndpoint {
                         .withRequest("loginRequest.json")
                         .expectResponse("loginResponse.json")
                         .expectStatus(200)
+        );
+    }
+
+    public static Endpoint<Void, LoginResponse> token() {
+        return Endpoint.createContract(
+                "/auth/token",
+                HttpMethod.GET,
+                Void.class,
+                LoginResponse.class
+        );
+    }
+
+    public static Endpoint<Void, UserProfileResponse> userProfile() {
+        return Endpoint.createContract(
+                "/auth/tenants/{tenantId}/users/{userId}",
+                HttpMethod.GET,
+                Void.class,
+                UserProfileResponse.class
         );
     }
 }
