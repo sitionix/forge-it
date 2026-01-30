@@ -17,7 +17,7 @@ public class WireMockValidator {
     private final WireMockJournalClient journalClient;
 
     public void validate(final WireMockCheck<?, ?> check) {
-        final IntSupplier liveCount = () -> this.journalClient.findBodiesByUrl(check.endpoint()).size();
+        final IntSupplier liveCount = () -> this.findBodies(check).size();
         try {
             if (check.atLeastTimes() <= 0) {
                 throw new IllegalArgumentException("atLeastTimes must be greater than zero");
@@ -25,7 +25,7 @@ public class WireMockValidator {
             this.verifyExactTimesWithBackoff(liveCount, check.atLeastTimes());
             if (nonNull(check.expectedJson())) {
                 final String[] fieldsForIgnore = check.ignoredFields().toArray(new String[0]);
-                final var actualJsons = this.journalClient.findBodiesByUrl(check.endpoint());
+                final var actualJsons = this.findBodies(check);
                 final boolean anyMatch = actualJsons.stream().anyMatch(jsonEqualsIgnore(check.expectedJson(), fieldsForIgnore));
                 if (!anyMatch) {
                     throw new AssertionError("No matching JSON found for endpoint: " + check.endpoint());
@@ -41,5 +41,12 @@ public class WireMockValidator {
         if (count != expected) {
             throw new AssertionError("Request count is " + count + " but expected " + expected);
         }
+    }
+
+    private java.util.List<String> findBodies(final WireMockCheck<?, ?> check) {
+        if (nonNull(check.id())) {
+            return this.journalClient.findBodiesByStubMappingId(check.id());
+        }
+        return this.journalClient.findBodiesByUrl(check.endpoint());
     }
 }

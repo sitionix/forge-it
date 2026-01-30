@@ -44,6 +44,17 @@ public class WireMockJournalClient {
 
     }
 
+    public List<String> findBodiesByStubMappingId(final UUID stubMappingId) {
+        final ResponseEntity<String> response = this.restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/requests")
+                        .queryParam("matchingStub", stubMappingId)
+                        .build())
+                .retrieve()
+                .toEntity(String.class);
+        return this.extractBodies(response.getBody());
+    }
+
     private List<String> findByPattern(final FindRequestPattern pattern) {
         final ResponseEntity<String> response = this.restClient.post()
                 .uri("/requests/find")
@@ -62,7 +73,13 @@ public class WireMockJournalClient {
             }
             final List<String> bodies = new ArrayList<>(arr.size());
             for (final JsonNode item : arr) {
-                final JsonNode body = item.get("body");
+                JsonNode body = item.get("body");
+                if ((body == null || body.isNull()) && item.has("request")) {
+                    body = item.path("request").get("body");
+                }
+                if ((body == null || body.isNull()) && item.has("request")) {
+                    body = item.path("request").get("bodyAsString");
+                }
                 if (body != null && !body.isNull()) {
                     bodies.add(body.asText());
                 }
