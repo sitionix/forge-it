@@ -7,7 +7,7 @@ import com.sitionix.forgeit.kafka.api.KafkaContract;
 
 public final class UserKafkaContracts {
 
-    private static final String CONSUMER_GROUP_ID = "forge-it-consumer";
+    private static final String CONSUMER_GROUP_ID = "forge-it-consumer-it";
 
     public static final KafkaContract<UserEnvelope> USER_CREATED_INPUT =
             KafkaContract.producerContract()
