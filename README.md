@@ -252,7 +252,7 @@ header. Response assertions can ignore fields via `expectResponse(..., fieldsToI
 
 ### Defaults and reusable fixtures
 
-Endpoints can declare defaults (request, response, status) that the builder reuses via
+Endpoints can declare defaults (request, response, status, token) that the builder reuses via
 `executeDefault()`. You can further mutate the defaults at call time:
 
 ```java
@@ -267,6 +267,7 @@ public static Endpoint<LoginRequest, LoginResponse> loginDefault() {
                     .withRequest("loginRequest.json")
                     .expectResponse("loginResponse.json")
                     .expectStatus(200)
+                    .token("Bearer default-token")
     );
 }
 

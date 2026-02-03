@@ -59,12 +59,58 @@ public final class Endpoint<Req, Res> {
             final Class<Res> responseClass,
             final MockmvcDefault mockmvcDefault
     ) {
+        return createContract(urlTemplate,
+                method,
+                requestClass,
+                responseClass,
+                mockmvcDefault,
+                null);
+    }
+
+    public static <Req, Res> Endpoint<Req, Res> createContract(
+            final String urlTemplate,
+            final HttpMethod method,
+            final Class<Req> requestClass,
+            final Class<Res> responseClass,
+            final String defaultToken
+    ) {
+        return createContract(urlTemplate,
+                method,
+                requestClass,
+                responseClass,
+                null,
+                defaultToken);
+    }
+
+    public static <Req, Res> Endpoint<Req, Res> createContract(
+            final String urlTemplate,
+            final HttpMethod method,
+            final Class<Req> requestClass,
+            final Class<Res> responseClass,
+            final MockmvcDefault mockmvcDefault,
+            final String defaultToken
+    ) {
         return new Endpoint<>(new UrlBuilder(urlTemplate),
                 method,
                 requestClass,
                 responseClass,
                 null,
-                mockmvcDefault);
+                mergeMockmvcDefaults(mockmvcDefault, defaultToken));
+    }
+
+    private static MockmvcDefault mergeMockmvcDefaults(final MockmvcDefault mockmvcDefault,
+                                                       final String defaultToken) {
+        if (mockmvcDefault == null && defaultToken == null) {
+            return null;
+        }
+        return context -> {
+            if (mockmvcDefault != null) {
+                mockmvcDefault.applyDefaults(context);
+            }
+            if (defaultToken != null) {
+                context.token(defaultToken);
+            }
+        };
     }
 
     @RequiredArgsConstructor

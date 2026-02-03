@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Array;
@@ -54,6 +55,8 @@ public class MockMvcBuilder<Req, Res> {
     private Map<String, ?> queryParameters;
     private Map<String, ?> pathParameters;
     private String token;
+    private String defaultToken;
+    private boolean tokenProvided;
     private HttpStatus expectedStatus;
     private final DefaultContext defaultContext;
 
@@ -142,6 +145,7 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> token(final String token) {
         this.token = token;
+        this.tokenProvided = true;
         return this;
     }
 
@@ -185,9 +189,14 @@ public class MockMvcBuilder<Req, Res> {
 
     public void assertAndCreate() {
         try {
+            final MockmvcDefault defaultsContext = this.endpoint.getMockmvcDefault();
+            if (nonNull(defaultsContext)) {
+                defaultsContext.applyDefaults(new MissingDefaultContext());
+            }
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
-            if (nonNull(this.token)) {
-                httpRequest.header(HttpHeaders.AUTHORIZATION, this.token);
+            final String resolvedToken = this.resolveToken();
+            if (nonNull(resolvedToken)) {
+                httpRequest.header(HttpHeaders.AUTHORIZATION, resolvedToken);
             }
             final var mvcResultActions = this.mockMvc.perform(httpRequest);
             if (nonNull(this.responseJson)) {
@@ -321,6 +330,17 @@ public class MockMvcBuilder<Req, Res> {
         builder.param(key, String.valueOf(value));
     }
 
+    private String resolveToken() {
+        if (this.tokenProvided) {
+            return StringUtils.hasText(this.token) ? this.token : null;
+        }
+        return this.defaultToken;
+    }
+
+    private void setDefaultToken(final String token) {
+        this.defaultToken = token;
+    }
+
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public final class DefaultContext implements MockmvcDefaultContext {
 
@@ -339,6 +359,12 @@ public class MockMvcBuilder<Req, Res> {
         @Override
         public DefaultContext expectStatus(final int status) {
             MockMvcBuilder.this.expectStatus(HttpStatus.resolve(status));
+            return this;
+        }
+
+        @Override
+        public DefaultContext token(final String token) {
+            MockMvcBuilder.this.setDefaultToken(token);
             return this;
         }
     }
@@ -364,6 +390,39 @@ public class MockMvcBuilder<Req, Res> {
         public MockmvcDefaultContext expectStatus(final int status) {
             if (MockMvcBuilder.this.expectedStatus == null) {
                 MockMvcBuilder.this.expectStatus(HttpStatus.resolve(status));
+            }
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext token(final String token) {
+            if (MockMvcBuilder.this.defaultToken == null) {
+                MockMvcBuilder.this.setDefaultToken(token);
+            }
+            return this;
+        }
+    }
+
+    private final class TokenOnlyDefaultContext implements MockmvcDefaultContext {
+        @Override
+        public MockmvcDefaultContext withRequest(final String json) {
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext expectResponse(final String json) {
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext expectStatus(final int status) {
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext token(final String token) {
+            if (MockMvcBuilder.this.defaultToken == null) {
+                MockMvcBuilder.this.setDefaultToken(token);
             }
             return this;
         }
