@@ -7,4 +7,6 @@ public interface MockmvcDefaultContext {
     MockmvcDefaultContext expectResponse(String json);
 
     MockmvcDefaultContext expectStatus(int status);
+
+    MockmvcDefaultContext token(String token);
 }

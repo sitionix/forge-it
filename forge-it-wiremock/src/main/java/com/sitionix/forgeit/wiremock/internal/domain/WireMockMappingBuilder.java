@@ -218,7 +218,7 @@ public class WireMockMappingBuilder<Req, Res> {
 
         final WiremockDefault defaultsContext = this.endpoint.getWireMockDefault();
         if (nonNull(defaultsContext)) {
-            this.endpoint.getWireMockDefault().applyDefaults(this.defaultContext);
+            this.endpoint.getWireMockDefault().applyDefaults(new MissingDefaultContext());
         }
 
         return this.create();
@@ -227,11 +227,6 @@ public class WireMockMappingBuilder<Req, Res> {
     public WireMockMappingBuilder<Req, Res> applyDefault(final Consumer<DefaultContext> consumer) {
         if (consumer != null) {
             consumer.accept(this.defaultContext);
-        }
-
-        final WiremockDefault defaultsContext = this.endpoint.getWireMockDefault();
-        if (nonNull(defaultsContext)) {
-            defaultsContext.applyDefaults(this.defaultContext);
         }
         return this;
     }
@@ -365,6 +360,43 @@ public class WireMockMappingBuilder<Req, Res> {
         public DefaultMutationContext<R, T> mutateResponse(final Consumer<Res> mutator) {
             if (mutator != null) {
                 WireMockMappingBuilder.this.defaultResponseMutator = mutator;
+            }
+            return this;
+        }
+    }
+
+    private final class MissingDefaultContext implements WiremockDefaultContext {
+
+        @Override
+        public WiremockDefaultContext matchesJson(final String json) {
+            if (WireMockMappingBuilder.this.requestJson == null) {
+                WireMockMappingBuilder.this.defaultMatchesJson(json);
+            }
+            return this;
+        }
+
+        @Override
+        public WiremockDefaultContext responseBody(final String json) {
+            if (WireMockMappingBuilder.this.responseJson == null) {
+                WireMockMappingBuilder.this.defaultResponseBody(json);
+            }
+            return this;
+        }
+
+        @Override
+        public WiremockDefaultContext responseStatus(final int status) {
+            if (WireMockMappingBuilder.this.responseStatus == null) {
+                WireMockMappingBuilder.this.responseStatus(HttpStatus.resolve(status));
+            }
+            return this;
+        }
+
+        @Override
+        public WiremockDefaultContext plainUrl() {
+            if (WireMockMappingBuilder.this.url == null
+                    && WireMockMappingBuilder.this.urlPath == null
+                    && WireMockMappingBuilder.this.urlPathPattern == null) {
+                WireMockMappingBuilder.this.plainUrl();
             }
             return this;
         }
