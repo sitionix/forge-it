@@ -191,7 +191,7 @@ public class MockMvcBuilder<Req, Res> {
         try {
             final MockmvcDefault defaultsContext = this.endpoint.getMockmvcDefault();
             if (nonNull(defaultsContext)) {
-                defaultsContext.applyDefaults(new MissingDefaultContext());
+                defaultsContext.applyDefaults(new TokenOnlyDefaultContext());
             }
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
             final String resolvedToken = this.resolveToken();
