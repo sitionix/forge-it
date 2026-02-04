@@ -17,6 +17,7 @@ public class MockMvcProperties {
 
     private Boolean enabled;
     private Path path;
+    private String defaultToken;
     @Data
     public static class Path {
         private String request;
