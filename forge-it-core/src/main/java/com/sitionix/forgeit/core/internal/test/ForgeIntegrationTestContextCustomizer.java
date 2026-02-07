@@ -11,6 +11,7 @@ import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.MergedContextConfiguration;
 
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,15 +31,19 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
 
     private final Class<?> contractType;
     private final List<Class<? extends FeatureSupport>> features;
+    private final List<String> testProperties;
 
     ForgeIntegrationTestContextCustomizer(Class<?> contractType,
-                                          List<Class<? extends FeatureSupport>> features) {
+                                          List<Class<? extends FeatureSupport>> features,
+                                          List<String> testProperties) {
         this.contractType = contractType;
         this.features = List.copyOf(features);
+        this.testProperties = List.copyOf(testProperties);
     }
 
     @Override
     public void customizeContext(ConfigurableApplicationContext context, MergedContextConfiguration mergedConfig) {
+        applyTestProperties(context);
         applyFeatureToggles(context);
         disableDataSourceAutoConfigurationIfUnused(context);
         final FeatureInstallationService installationService =
@@ -54,12 +59,14 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         if (!(o instanceof ForgeIntegrationTestContextCustomizer that)) {
             return false;
         }
-        return this.contractType.equals(that.contractType) && this.features.equals(that.features);
+        return this.contractType.equals(that.contractType)
+                && this.features.equals(that.features)
+                && this.testProperties.equals(that.testProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.contractType, this.features);
+        return Objects.hash(this.contractType, this.features, this.testProperties);
     }
 
     private void disableDataSourceAutoConfigurationIfUnused(ConfigurableApplicationContext context) {
@@ -125,5 +132,37 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
     private boolean hasProperty(ConfigurableEnvironment environment, String key) {
         final String value = environment.getProperty(key);
         return value != null && !value.isBlank();
+    }
+
+    private void applyTestProperties(ConfigurableApplicationContext context) {
+        if (this.testProperties.isEmpty()) {
+            return;
+        }
+        final Map<String, Object> properties = new LinkedHashMap<>();
+        for (final String entry : this.testProperties) {
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
+            final int separator = entry.indexOf('=');
+            if (separator <= 0) {
+                throw new IllegalStateException("Invalid test property format (expected key=value): " + entry);
+            }
+            final String key = entry.substring(0, separator).trim();
+            final String value = entry.substring(separator + 1).trim();
+            if (key.isEmpty()) {
+                throw new IllegalStateException("Invalid test property key: " + entry);
+            }
+            properties.put(key, value);
+        }
+        if (properties.isEmpty()) {
+            return;
+        }
+        final MutablePropertySources sources = context.getEnvironment().getPropertySources();
+        final MapPropertySource propertySource = new MapPropertySource("forgeItIntegrationTestProperties", properties);
+        if (sources.contains(propertySource.getName())) {
+            sources.replace(propertySource.getName(), propertySource);
+        } else {
+            sources.addFirst(propertySource);
+        }
     }
 }

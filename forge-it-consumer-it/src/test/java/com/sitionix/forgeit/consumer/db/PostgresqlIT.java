@@ -16,11 +16,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import java.util.List;
+import java.util.Objects;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.tuple;
 
 @IntegrationTest
 class PostgresqlIT {
@@ -80,24 +78,29 @@ class PostgresqlIT {
                                         .label("second-category"))))
                 .build();
 
-        final ProductEntity firstProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "first-product")
-                .update(product -> product.setDescription("Updated first"))
-                .get();
+        result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "first-product")
+                .update(product -> product.setDescription("Updated first"));
 
-        final ProductEntity secondProduct = result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "second-product")
-                .update(product -> product.setDescription("Updated second"))
-                .get();
+        result.entity(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, "second-product")
+                .update(product -> product.setDescription("Updated second"));
 
-        final CategoryEntity firstCategory = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "first-category")
-                .get();
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .hasSize(2);
 
-        final CategoryEntity secondCategory = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "second-category")
-                .get();
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .andExpected(product -> Objects.equals(product.getName(), "Starter Kit"))
+                .andExpected(product -> Objects.nonNull(product.getCategory()))
+                .andExpected(product -> Objects.equals(product.getCategory().getName(), "Hardware"))
+                .anyMatch();
 
-        assertThat(firstProduct.getDescription()).isEqualTo("Updated first");
-        assertThat(secondProduct.getDescription()).isEqualTo("Updated second");
-        assertThat(firstProduct.getCategory()).isEqualTo(firstCategory);
-        assertThat(secondProduct.getCategory()).isEqualTo(secondCategory);
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .andExpected(product -> Objects.equals(product.getName(), "Pro Pack"))
+                .andExpected(product -> Objects.nonNull(product.getCategory()))
+                .andExpected(product -> Objects.equals(product.getCategory().getName(), "Software"))
+                .anyMatch();
     }
 
     @Test
@@ -250,7 +253,7 @@ class PostgresqlIT {
     @Test
     @DisplayName("Given products without categories when built then category is optional")
     void givenProductsWithoutCategories_whenBuilt_thenCategoryIsOptional() {
-        final DbGraphResult result = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
@@ -258,11 +261,11 @@ class PostgresqlIT {
                 .to(DbContracts.PRODUCT_ENTITY_DB_CONTRACT.withJson("second_product_entity.json"))
                 .build();
 
-        final ProductEntity first = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 0).get();
-        final ProductEntity second = result.entityAt(DbContracts.PRODUCT_ENTITY_DB_CONTRACT, 1).get();
-
-        assertThat(first.getCategory()).isNull();
-        assertThat(second.getCategory()).isNull();
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .hasSize(2)
+                .andExpected(product -> Objects.isNull(product.getCategory()))
+                .allMatch();
     }
 
     @Test
@@ -293,9 +296,25 @@ class PostgresqlIT {
         final CategoryEntity categoryOne = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "category-1").get();
         final CategoryEntity categoryTwo = result.entity(DbContracts.CATEGORY_ENTITY_DB_CONTRACT, "category-2").get();
 
-        assertThat(user.getStatus().getDescription()).isEqualTo("INACTIVE");
-        assertThat(productOne.getCategory()).isEqualTo(categoryOne);
-        assertThat(productTwo.getCategory()).isEqualTo(categoryTwo);
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(entity -> Objects.equals(entity.getId(), user.getId()))
+                .andExpected(entity -> Objects.equals(entity.getStatus().getDescription(), "INACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .andExpected(entity -> Objects.equals(entity.getId(), productOne.getId()))
+                .andExpected(entity -> Objects.nonNull(entity.getCategory()))
+                .andExpected(entity -> Objects.equals(entity.getCategory().getId(), categoryOne.getId()))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(ProductEntity.class)
+                .andExpected(entity -> Objects.equals(entity.getId(), productTwo.getId()))
+                .andExpected(entity -> Objects.nonNull(entity.getCategory()))
+                .andExpected(entity -> Objects.equals(entity.getCategory().getId(), categoryTwo.getId()))
+                .anyMatch();
     }
 
     @Test
@@ -310,47 +329,49 @@ class PostgresqlIT {
                 .ping(EndpointContract.USER_CREATE)
                 .assertDefault();
 
-        final List<UserEntity> entities = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .get(UserEntity.class)
-                .getAll();
-
-        assertThat(entities).hasSize(2);
+                .hasSize(2);
     }
 
     @Test
     void shouldInitializeSchemaAndSeedStatuses() {
-        final List<UserStatusEntity> statuses = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .get(UserStatusEntity.class)
-                .getAll();
+                .hasSize(3);
 
-        assertThat(statuses)
-                .hasSize(3)
-                .extracting(UserStatusEntity::getDescription)
-                .containsExactlyInAnyOrder("ACTIVE", "INACTIVE", "BLOCKED");
+        this.forgeIt.postgresql()
+                .get(UserStatusEntity.class)
+                .andExpected(status -> Objects.equals(status.getDescription(), "ACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(UserStatusEntity.class)
+                .andExpected(status -> Objects.equals(status.getDescription(), "INACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(UserStatusEntity.class)
+                .andExpected(status -> Objects.equals(status.getDescription(), "BLOCKED"))
+                .anyMatch();
     }
 
     @Test
     void shouldCreateUserFromDefaultContractAndAttachStatus() {
-        final DbGraphResult result = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT)
                 .build();
 
-        final UserEntity created = result.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get();
-
-        assertThat(created.getId()).isNotNull();
-        assertThat(created.getUsername()).isEqualTo("default_user");
-        assertThat(created.getStatus().getDescription()).isEqualTo("ACTIVE");
-
-        final List<UserEntity> persisted = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .get(UserEntity.class)
-                .getAll();
-
-        assertThat(persisted)
+                .hasSize(1)
                 .singleElement()
-                .extracting(UserEntity::getUsername)
-                .isEqualTo("default_user");
+                .andExpected(user -> Objects.nonNull(user.getId()))
+                .andExpected(user -> Objects.equals(user.getUsername(), "default_user"))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+                .assertEntity();
     }
 
     @Test
@@ -366,16 +387,19 @@ class PostgresqlIT {
 
     @Test
     void shouldCreateUserFromCustomJsonPayload() {
-        final DbGraphResult result = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .create()
                 .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(2L))
                 .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
                 .build();
 
-        final UserEntity created = result.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get();
-
-        assertThat(created.getUsername()).isEqualTo("custom_user");
-        assertThat(created.getStatus().getDescription()).isEqualTo("INACTIVE");
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .hasSize(1)
+                .singleElement()
+                .andExpected(user -> Objects.equals(user.getUsername(), "custom_user"))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "INACTIVE"))
+                .assertEntity();
     }
 
     @Test
@@ -392,12 +416,19 @@ class PostgresqlIT {
 
         final Long id = result.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getId();
 
-        final UserEntity persisted = this.forgeIt.postgresql()
+        final UserEntity fetchedById = this.forgeIt.postgresql()
                 .get(UserEntity.class)
                 .getById(id);
 
-        assertThat(persisted.getUsername()).isEqualTo("manual_user");
-        assertThat(persisted.getStatus().getDescription()).isEqualTo("BLOCKED");
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .hasSize(1)
+                .singleElement()
+                .andExpected(ignored -> Objects.nonNull(fetchedById))
+                .andExpected(user -> Objects.equals(user.getId(), id))
+                .andExpected(user -> Objects.equals(user.getUsername(), "manual_user"))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "BLOCKED"))
+                .assertEntity();
     }
 
     @Test
@@ -424,18 +455,30 @@ class PostgresqlIT {
                 .entity(DbContracts.USER_ENTITY_DB_CONTRACT)
                 .get();
 
-        final List<UserEntity> allUsers = this.forgeIt.postgresql()
-                .get(UserEntity.class)
-                .getAll();
+        final String activeUsername = activeUser.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getUsername();
+        final String inactiveUsername = inactiveUser.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getUsername();
 
-        assertThat(allUsers)
-                .hasSize(3)
-                .extracting(UserEntity::getUsername, user -> user.getStatus().getDescription())
-                .containsExactlyInAnyOrder(
-                        tuple(activeUser.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getUsername(), "ACTIVE"),
-                        tuple(inactiveUser.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getUsername(), "INACTIVE"),
-                        tuple(blockedUser.getUsername(), "BLOCKED")
-                );
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .hasSize(3);
+
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(user -> Objects.equals(user.getUsername(), activeUsername))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(user -> Objects.equals(user.getUsername(), inactiveUsername))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "INACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(user -> Objects.equals(user.getUsername(), blockedUser.getUsername()))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "BLOCKED"))
+                .anyMatch();
     }
 
     @Test
@@ -455,14 +498,12 @@ class PostgresqlIT {
                 .build())
                 .isInstanceOfAny(DataIntegrityViolationException.class, ConstraintViolationException.class);
 
-        final List<UserEntity> users = this.forgeIt.postgresql()
+        this.forgeIt.postgresql()
                 .get(UserEntity.class)
-                .getAll();
-
-        assertThat(users)
+                .hasSize(1)
                 .singleElement()
-                .extracting(UserEntity::getUsername)
-                .isEqualTo(existingUser.getUsername());
+                .andExpected(user -> Objects.equals(user.getUsername(), existingUser.getUsername()))
+                .assertEntity();
     }
 
     @Test
@@ -491,10 +532,24 @@ class PostgresqlIT {
                 .get(UserEntity.class)
                 .getById(inactiveUser.getId());
 
-        assertThat(fetchedActive.getUsername()).isEqualTo(activeUser.getUsername());
-        assertThat(fetchedActive.getStatus().getDescription()).isEqualTo("ACTIVE");
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .hasSize(2);
 
-        assertThat(fetchedInactive.getUsername()).isEqualTo("priority_user");
-        assertThat(fetchedInactive.getStatus().getDescription()).isEqualTo("INACTIVE");
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(ignored -> Objects.nonNull(fetchedActive))
+                .andExpected(user -> Objects.equals(user.getId(), activeUser.getId()))
+                .andExpected(user -> Objects.equals(user.getUsername(), activeUser.getUsername()))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+                .anyMatch();
+
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .andExpected(ignored -> Objects.nonNull(fetchedInactive))
+                .andExpected(user -> Objects.equals(user.getId(), inactiveUser.getId()))
+                .andExpected(user -> Objects.equals(user.getUsername(), "priority_user"))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "INACTIVE"))
+                .anyMatch();
     }
 }

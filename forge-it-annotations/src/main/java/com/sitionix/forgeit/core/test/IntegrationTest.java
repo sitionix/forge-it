@@ -4,6 +4,7 @@ import com.sitionix.forgeit.application.executor.ForgeItDbCleanupTestExecutionLi
 import com.sitionix.forgeit.core.internal.test.ForgeItContextTestExecutionListener;
 import com.sitionix.forgeit.core.contract.DbCleanup;
 import com.sitionix.forgeit.domain.contract.clean.CleanupPhase;
+import com.sitionix.forgeit.domain.preparation.DataPreparation;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.core.annotation.AliasFor;
 import org.springframework.test.context.TestExecutionListeners;
@@ -33,4 +34,8 @@ public @interface IntegrationTest {
 
     @AliasFor(annotation = DbCleanup.class, attribute = "phase")
     CleanupPhase cleanupPhase() default CleanupPhase.AFTER_EACH;
+
+    String[] properties() default {};
+
+    Class<? extends DataPreparation<?>>[] preparations() default {};
 }

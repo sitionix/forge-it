@@ -9,4 +9,6 @@ public interface WiremockDefaultContext {
     WiremockDefaultContext responseStatus(int status);
 
     WiremockDefaultContext plainUrl();
+
+    WiremockDefaultContext header(String name, Object value);
 }

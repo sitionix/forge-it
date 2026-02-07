@@ -5,16 +5,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@IntegrationTest
-@DisplayName("Given contract without WireMock support, when context starts, then WireMock beans are not registered")
-@TestPropertySource(properties = {
+@IntegrationTest(properties = {
         "forgeit.wiremock.host=localhost",
         "forgeit.wiremock.port=18080"
 })
+@DisplayName("Given contract without WireMock support, when context starts, then WireMock beans are not registered")
 class SelectiveSupportIT {
 
     @Autowired
