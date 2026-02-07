@@ -45,6 +45,7 @@ public class WireMockMappingBuilder<Req, Res> {
     private String responseJson;
     private Map<String, StringValuePattern> queryParameters;
     private Map<String, StringValuePattern> pathParameters;
+    private Map<String, StringValuePattern> headerParameters;
     private String url;
     private String urlPath;
     private String urlPathPattern;
@@ -167,6 +168,17 @@ public class WireMockMappingBuilder<Req, Res> {
         return this.loadResponseJson(responseFileName, false, mutator);
     }
 
+    public WireMockMappingBuilder<Req, Res> header(final String name, final Object value) {
+        if (name == null || name.isBlank() || value == null) {
+            return this;
+        }
+        if (this.headerParameters == null) {
+            this.headerParameters = new LinkedHashMap<>();
+        }
+        this.headerParameters.put(name, this.toPattern(value));
+        return this;
+    }
+
     private WireMockMappingBuilder<Req, Res> loadResponseJson(final String fileName,
                                                               final boolean useDefault,
                                                               final Consumer<Res> mutator) {
@@ -254,6 +266,10 @@ public class WireMockMappingBuilder<Req, Res> {
 
         if (WireMockMappingBuilder.this.pathParameters != null) {
             WireMockMappingBuilder.this.pathParameters.forEach(mappingBuilder::withPathParam);
+        }
+
+        if (WireMockMappingBuilder.this.headerParameters != null) {
+            WireMockMappingBuilder.this.headerParameters.forEach(mappingBuilder::withHeader);
         }
 
         mappingBuilder.willReturn(this.buildResponseDefinition());
@@ -346,6 +362,12 @@ public class WireMockMappingBuilder<Req, Res> {
             WireMockMappingBuilder.this.plainUrl();
             return this;
         }
+
+        @Override
+        public DefaultContext header(final String name, final Object value) {
+            WireMockMappingBuilder.this.header(name, value);
+            return this;
+        }
     }
 
     public final class DefaultMutationContext<R, T> {
@@ -397,6 +419,15 @@ public class WireMockMappingBuilder<Req, Res> {
                     && WireMockMappingBuilder.this.urlPath == null
                     && WireMockMappingBuilder.this.urlPathPattern == null) {
                 WireMockMappingBuilder.this.plainUrl();
+            }
+            return this;
+        }
+
+        @Override
+        public WiremockDefaultContext header(final String name, final Object value) {
+            if (WireMockMappingBuilder.this.headerParameters == null
+                    || !WireMockMappingBuilder.this.headerParameters.containsKey(name)) {
+                WireMockMappingBuilder.this.header(name, value);
             }
             return this;
         }
