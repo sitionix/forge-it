@@ -419,11 +419,12 @@ result.entityAt(USER, 0)
   different timing.
 - `CleanupPolicy.NONE` leaves reference data intact between tests; keep lookups (e.g.,
   statuses) on this policy and dependents on `DELETE_ALL`.
-- Use `forgeit.postgresql().get(Entity.class)` to verify rows (`getAll()`, `getById(id)`)
-  and `DbGraphResult` to assert on freshly persisted entities. When the same contract
-  is invoked multiple times, `entity(contract)` returns the most recently stored one;
-  use labels on the invocation to retrieve a specific instance. Use
-  `dependsOnOptional(...)` for nullable relationships.
+- Use `forgeit.postgresql().get(Entity.class)` to verify rows (`getAll()`, `getById(id)`) or
+  fluent assertions (`hasSize(...)`, `singleElement()`, `andExpected(...)`,
+  `allMatch()/anyMatch()/nonMatch()`) and `DbGraphResult` to assert on freshly persisted
+  entities. When the same contract is invoked multiple times, `entity(contract)` returns
+  the most recently stored one; use labels on the invocation to retrieve a specific
+  instance. Use `dependsOnOptional(...)` for nullable relationships.
 - Transaction boundaries for graph execution are controlled by `tx-policy`
   (`REQUIRES_NEW` by default). Choose `MANDATORY` if you want to reuse an outer
   `@Transactional` block.
@@ -466,6 +467,34 @@ forgeit.postgresql()
 `containsAllWithJsons(...)` asserts every fixture matches a distinct entity (extra entities
 are allowed). `containsWithJsonsStrict(...)` enforces an exact count match and strict field matching.
 Use `hasSize(...)` to assert the total count regardless of which matching method you call.
+
+### Entity retrieval assertions
+You can assert on retrieved entities with fluent predicates:
+
+```java
+UserEntity persisted = forgeit.postgresql()
+        .get(UserEntity.class)
+        .hasSize(1)
+        .singleElement()
+        .andExpected(user -> Objects.equals(user.getUsername(), "manual_user"))
+        .assertEntity();
+
+forgeit.postgresql()
+        .get(UserEntity.class)
+        .hasSize(3)
+        .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+        .anyMatch();
+
+forgeit.postgresql()
+        .get(UserEntity.class)
+        .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "DELETED"))
+        .nonMatch();
+```
+
+`singleElement()` asserts there is only one entity and returns a single-entity assertion chain.
+After `singleElement()`, use `andExpected(...)` and `assertEntity()`; match operations are not available.
+After `hasSize(...)`, you can keep chaining with `allMatch()`, `anyMatch()`, `nonMatch()` or
+optionally `singleElement()` when the expected size is one.
 
 ### PostgreSQL test coverage
 The sample integration tests exercise the critical flows and guard against common breakage:

@@ -35,7 +35,13 @@ class AuthControllerIT {
 
     @Test
     void givenUserLoginRequest_whenLogin_thenReturnLoginResponse() {
-mvn
+        final RequestBuilder<?, ?> requestBuilder = this.forgeIt.wiremock()
+                .createMapping(WireMockEndpoint.login())
+                .matchesJson("requestLoginUserWithHappyPath.json")
+                .responseBody("responseLoginUserWithHappyPath.json")
+                .responseStatus(HttpStatus.OK)
+                .plainUrl()
+                .create();
 
         this.forgeIt.mockMvc()
                 .ping(MockMvcEndpoint.login())
