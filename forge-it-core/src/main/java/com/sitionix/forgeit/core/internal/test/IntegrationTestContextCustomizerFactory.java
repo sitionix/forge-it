@@ -4,6 +4,7 @@ import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.core.test.ForgeItTest;
+import com.sitionix.forgeit.core.test.IntegrationTest;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
@@ -29,7 +30,8 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         }
         final Class<?> contractType = this.resolveContractType(testClass);
         final List<Class<? extends FeatureSupport>> features = List.copyOf(this.resolveFeatures(contractType));
-        return new ForgeIntegrationTestContextCustomizer(contractType, features);
+        final List<String> properties = this.resolveTestProperties(testClass);
+        return new ForgeIntegrationTestContextCustomizer(contractType, features, properties);
     }
 
     private Class<?> resolveContractType(final Class<?> testClass) {
@@ -81,5 +83,14 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
             }
             this.collectFeatures(parent, features, visited);
         }
+    }
+
+    private List<String> resolveTestProperties(final Class<?> testClass) {
+        final IntegrationTest integrationTest =
+                AnnotatedElementUtils.findMergedAnnotation(testClass, IntegrationTest.class);
+        if (integrationTest == null || integrationTest.properties().length == 0) {
+            return List.of();
+        }
+        return List.of(integrationTest.properties());
     }
 }

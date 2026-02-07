@@ -23,6 +23,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -57,6 +58,7 @@ public class MockMvcBuilder<Req, Res> {
     private String token;
     private String defaultToken;
     private boolean tokenProvided;
+    private final Map<String, String> headers;
     private HttpStatus expectedStatus;
     private final DefaultContext defaultContext;
 
@@ -76,6 +78,7 @@ public class MockMvcBuilder<Req, Res> {
         this.defaultContext = new DefaultContext();
         this.extraMatchers = new ArrayList<>();
         this.responseFieldsToIgnore = new ArrayList<>();
+        this.headers = new LinkedHashMap<>();
     }
 
     public MockMvcBuilder<Req, Res> withRequest(final String requestName) {
@@ -149,6 +152,13 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
+    public MockMvcBuilder<Req, Res> header(final String name, final String value) {
+        if (StringUtils.hasText(name)) {
+            this.headers.put(name, value);
+        }
+        return this;
+    }
+
     public MockMvcBuilder<Req, Res> withQueryParameters(final QueryParams parameters) {
         if (nonNull(parameters) && !parameters.asMap().isEmpty()) {
             this.queryParameters = parameters.asMap();
@@ -197,6 +207,11 @@ public class MockMvcBuilder<Req, Res> {
             final String resolvedToken = this.resolveToken();
             if (nonNull(resolvedToken)) {
                 httpRequest.header(HttpHeaders.AUTHORIZATION, resolvedToken);
+            }
+            for (final Map.Entry<String, String> entry : this.headers.entrySet()) {
+                if (entry.getValue() != null) {
+                    httpRequest.header(entry.getKey(), entry.getValue());
+                }
             }
             final var mvcResultActions = this.mockMvc.perform(httpRequest);
             if (nonNull(this.responseJson)) {
