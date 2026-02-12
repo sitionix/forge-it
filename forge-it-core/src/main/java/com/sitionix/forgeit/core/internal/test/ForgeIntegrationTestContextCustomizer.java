@@ -20,12 +20,19 @@ import java.util.Set;
 final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
 
     private static final String POSTGRESQL_SUPPORT = "com.sitionix.forgeit.postgresql.api.PostgresqlSupport";
+    private static final String MONGODB_SUPPORT = "com.sitionix.forgeit.mongodb.api.MongoSupport";
     private static final String WIREMOCK_SUPPORT = "com.sitionix.forgeit.wiremock.api.WireMockSupport";
     private static final String MOCKMVC_SUPPORT = "com.sitionix.forgeit.mockmvc.api.MockMvcSupport";
     private static final String KAFKA_SUPPORT = "com.sitionix.forgeit.kafka.api.KafkaSupport";
     private static final String AUTOCONFIG_EXCLUDE_KEY = "spring.autoconfigure.exclude";
     private static final String DATASOURCE_AUTOCONFIG =
             "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration";
+    private static final String MONGO_AUTOCONFIG =
+            "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration";
+    private static final String MONGO_DATA_AUTOCONFIG =
+            "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration";
+    private static final String MONGO_REPOSITORIES_AUTOCONFIG =
+            "org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration";
     private static final String PROPERTY_SOURCE_NAME = "forgeItAutoConfig";
     private static final String FEATURE_TOGGLES_SOURCE = "forgeItFeatureToggles";
 
@@ -46,6 +53,7 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         applyTestProperties(context);
         applyFeatureToggles(context);
         disableDataSourceAutoConfigurationIfUnused(context);
+        disableMongoAutoConfigurationIfUnused(context);
         final FeatureInstallationService installationService =
                 new FeatureInstallationService(context.getClassLoader());
         installationService.installFeatures(this.features, new FeatureInstallationContext(context));
@@ -90,6 +98,43 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         if (!excludes.add(DATASOURCE_AUTOCONFIG)) {
             return;
         }
+        addAutoconfigExcludes(environment, excludes);
+    }
+
+    private void disableMongoAutoConfigurationIfUnused(ConfigurableApplicationContext context) {
+        if (hasFeature(MONGODB_SUPPORT)) {
+            return;
+        }
+        final ConfigurableEnvironment environment = context.getEnvironment();
+        if (hasMongoConfiguration(environment)) {
+            return;
+        }
+        final Set<String> excludes = parseAutoconfigExcludes(environment);
+        final boolean changed = excludes.add(MONGO_AUTOCONFIG)
+                | excludes.add(MONGO_DATA_AUTOCONFIG)
+                | excludes.add(MONGO_REPOSITORIES_AUTOCONFIG);
+        if (!changed) {
+            return;
+        }
+        addAutoconfigExcludes(environment, excludes);
+    }
+
+    private Set<String> parseAutoconfigExcludes(ConfigurableEnvironment environment) {
+        final Set<String> excludes = new LinkedHashSet<>();
+        final String existing = environment.getProperty(AUTOCONFIG_EXCLUDE_KEY);
+        if (existing == null || existing.isBlank()) {
+            return excludes;
+        }
+        for (String value : existing.split(",")) {
+            final String trimmed = value.trim();
+            if (!trimmed.isEmpty()) {
+                excludes.add(trimmed);
+            }
+        }
+        return excludes;
+    }
+
+    private void addAutoconfigExcludes(ConfigurableEnvironment environment, Set<String> excludes) {
         final MutablePropertySources sources = environment.getPropertySources();
         final MapPropertySource propertySource = new MapPropertySource(
                 PROPERTY_SOURCE_NAME,
@@ -105,6 +150,7 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
     private void applyFeatureToggles(ConfigurableApplicationContext context) {
         final Map<String, Object> toggles = Map.of(
                 "forge-it.modules.postgresql.enabled", hasFeature(POSTGRESQL_SUPPORT),
+                "forge-it.modules.mongodb.enabled", hasFeature(MONGODB_SUPPORT),
                 "forge-it.modules.wiremock.enabled", hasFeature(WIREMOCK_SUPPORT),
                 "forge-it.modules.mock-mvc.enabled", hasFeature(MOCKMVC_SUPPORT),
                 "forge-it.modules.kafka.enabled", hasFeature(KAFKA_SUPPORT)
@@ -127,6 +173,13 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
                 || hasProperty(environment, "spring.datasource.jdbc-url")
                 || hasProperty(environment, "spring.datasource.driver-class-name")
                 || hasProperty(environment, "spring.datasource.driverClassName");
+    }
+
+    private boolean hasMongoConfiguration(ConfigurableEnvironment environment) {
+        return hasProperty(environment, "spring.data.mongodb.uri")
+                || hasProperty(environment, "spring.data.mongodb.host")
+                || hasProperty(environment, "spring.data.mongodb.port")
+                || hasProperty(environment, "spring.data.mongodb.database");
     }
 
     private boolean hasProperty(ConfigurableEnvironment environment, String key) {

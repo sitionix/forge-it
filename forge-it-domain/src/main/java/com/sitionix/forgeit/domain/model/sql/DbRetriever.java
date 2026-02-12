@@ -1,6 +1,8 @@
 package com.sitionix.forgeit.domain.model.sql;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public interface DbRetriever<E> {
@@ -8,6 +10,16 @@ public interface DbRetriever<E> {
     E getById(Object id);
 
     List<E> getAll();
+
+    default <V> DbRetriever<E> where(final Function<E, V> extractor, final V expectedValue) {
+        Objects.requireNonNull(extractor, "Field extractor must not be null");
+        return new DbFilteredRetriever<>(this, entity -> Objects.equals(extractor.apply(entity), expectedValue));
+    }
+
+    default DbRetriever<E> where(final Predicate<E> predicate) {
+        return new DbFilteredRetriever<>(this,
+                Objects.requireNonNull(predicate, "Expected predicate must not be null"));
+    }
 
     default DbEntitiesAssertion<E> hasSize(final int expectedSize) {
         return DbEntitiesAssertionChain.<E>forRetriever(this)
