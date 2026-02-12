@@ -27,14 +27,19 @@ jobs:
         run: |
           docker version
           rm -f ~/.testcontainers.properties
-          printf "docker.client.strategy=org.testcontainers.dockerclient.UnixSocketClientProviderStrategy\n" > ~/.testcontainers.properties
+          cat > ~/.testcontainers.properties <<'EOF'
+          docker.client.strategy=org.testcontainers.dockerclient.UnixSocketClientProviderStrategy
+          docker.host=unix:///var/run/docker.sock
+          EOF
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> "$GITHUB_ENV"
-          echo "DOCKER_API_VERSION=1.44" >> "$GITHUB_ENV"
+          echo "API_VERSION=$(docker version --format '{{.Server.APIVersion}}')" >> "$GITHUB_ENV"
           echo "TESTCONTAINERS_DOCKER_CLIENT_STRATEGY=org.testcontainers.dockerclient.UnixSocketClientProviderStrategy" >> "$GITHUB_ENV"
           echo "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock" >> "$GITHUB_ENV"
+          echo "JAVA_TOOL_OPTIONS=-Dapi.version=$(docker version --format '{{.Server.APIVersion}}') -Ddocker.host=unix:///var/run/docker.sock" >> "$GITHUB_ENV"
 
       - name: Build with tests
         run: |
           echo "Using DOCKER_HOST=${DOCKER_HOST}"
-          echo "Using DOCKER_API_VERSION=${DOCKER_API_VERSION}"
-          ./mvnw -B -ntp -Ddocker.host=${DOCKER_HOST} -Dapi.version=${DOCKER_API_VERSION} clean install
+          echo "Using API_VERSION=${API_VERSION}"
+          echo "Using JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}"
+          ./mvnw -B -ntp clean install

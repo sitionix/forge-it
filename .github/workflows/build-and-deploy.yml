@@ -54,8 +54,6 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: ./mvnw -B -ntp -DskipTests deploy
 
-      # --------- ⬇️ НОВІ КРОКИ ⬇️ ---------
-
       - name: Read project version
         if: github.ref == 'refs/heads/main'
         id: version
