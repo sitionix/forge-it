@@ -482,6 +482,40 @@ class PostgresqlIT {
     }
 
     @Test
+    void shouldFilterUsersWithMultipleWhereClauses() {
+        final DbGraphResult activeUser = this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(1L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT)
+                .build();
+
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(2L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withJson("custom_user_entity.json"))
+                .build();
+
+        this.forgeIt.postgresql()
+                .create()
+                .to(DbContracts.USER_STATUS_ENTITY_DB_CONTRACT.getById(3L))
+                .to(DbContracts.USER_ENTITY_DB_CONTRACT.withEntity(UserEntity.builder()
+                        .username("manual_batch_user")
+                        .build()))
+                .build();
+
+        final String activeUsername = activeUser.entity(DbContracts.USER_ENTITY_DB_CONTRACT).get().getUsername();
+
+        this.forgeIt.postgresql()
+                .get(UserEntity.class)
+                .where(UserEntity::getUsername, activeUsername)
+                .where(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+                .singleElement()
+                .andExpected(user -> Objects.equals(user.getUsername(), activeUsername))
+                .andExpected(user -> Objects.equals(user.getStatus().getDescription(), "ACTIVE"))
+                .assertEntity();
+    }
+
+    @Test
     void shouldRejectDuplicateUsernamesAndKeepExistingRecord() {
         final UserEntity existingUser = this.forgeIt.postgresql()
                 .create()
