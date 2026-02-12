@@ -12,7 +12,7 @@ import com.sitionix.forgeit.domain.model.sql.DbRetrieveFactory;
 import com.sitionix.forgeit.domain.model.sql.DbRetriever;
 import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphBuilder;
 import com.sitionix.forgeit.postgresql.internal.domain.PostgresGraphExecutor;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -20,7 +20,6 @@ import java.util.List;
 /**
  * Simple bridge exposing PostgreSQL details to consumers.
  */
-@RequiredArgsConstructor
 @Component
 public class PostgresForge {
 
@@ -33,6 +32,18 @@ public class PostgresForge {
     private final DbCleaner dbCleaner;
 
     private final DbEntityAssertionBuilderFactory assertionBuilderFactory;
+
+    public PostgresForge(final DbEntityFactory entityFactory,
+                         final PostgresGraphExecutor graphExecutor,
+                         final DbRetrieveFactory retrieveFactory,
+                         @Qualifier("jpaDbCleaner") final DbCleaner dbCleaner,
+                         final DbEntityAssertionBuilderFactory assertionBuilderFactory) {
+        this.entityFactory = entityFactory;
+        this.graphExecutor = graphExecutor;
+        this.retrieveFactory = retrieveFactory;
+        this.dbCleaner = dbCleaner;
+        this.assertionBuilderFactory = assertionBuilderFactory;
+    }
 
     public DbGraphBuilder create() {
         return new PostgresGraphBuilder(this.entityFactory,

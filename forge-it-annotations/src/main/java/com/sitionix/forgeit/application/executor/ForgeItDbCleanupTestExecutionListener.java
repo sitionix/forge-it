@@ -12,6 +12,7 @@ import org.springframework.test.context.TestContext;
 import org.springframework.test.context.support.AbstractTestExecutionListener;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExecutionListener {
@@ -54,20 +55,21 @@ public final class ForgeItDbCleanupTestExecutionListener extends AbstractTestExe
     }
 
     private void performCleanup(final TestContext testContext) {
-        if (testContext.getApplicationContext().getBeansOfType(DbCleaner.class).isEmpty()
-                || testContext.getApplicationContext().getBeansOfType(DbContractsRegistry.class).isEmpty()) {
-            log.debug("Skipping DB cleanup because required beans are not registered.");
+        final Map<String, DbCleaner> cleaners =
+                testContext.getApplicationContext().getBeansOfType(DbCleaner.class);
+        if (cleaners.isEmpty()) {
+            log.debug("Skipping DB cleanup because no DbCleaner beans are registered.");
             return;
         }
 
-        final DbContractsRegistry registry =
-                testContext.getApplicationContext().getBean(DbContractsRegistry.class);
-
-        final DbCleaner cleaner =
-                testContext.getApplicationContext().getBean(DbCleaner.class);
-
-        final List<DbContract<?>> contracts = registry.allContracts();
-        cleaner.clearTables(contracts);
+        final Map<String, DbContractsRegistry> registries =
+                testContext.getApplicationContext().getBeansOfType(DbContractsRegistry.class);
+        final List<DbContract<?>> contracts = registries.values()
+                .stream()
+                .findFirst()
+                .map(DbContractsRegistry::allContracts)
+                .orElse(List.of());
+        cleaners.values().forEach(cleaner -> cleaner.clearTables(contracts));
     }
 
     private void performCleanupSafely(final TestContext testContext) {

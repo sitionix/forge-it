@@ -140,6 +140,7 @@ class KafkaPipelineIT {
 
         this.support.kafka()
                 .consume(UserKafkaContracts.USER_CREATED_OUTPUT)
+                .await(Duration.ofSeconds(10))
                 .assertEnvelope(envelope -> assertThat(envelope.getProducedAt()).isEqualTo(producedAt));
     }
 

@@ -3,9 +3,11 @@ package com.sitionix.forgeit.mongodb.internal.domain;
 import com.sitionix.forgeit.domain.contract.DbContract;
 import com.sitionix.forgeit.domain.model.sql.DbEntityFetcher;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public final class MongoEntityFetcher implements DbEntityFetcher {
 
     private final MongoTemplate mongoTemplate;

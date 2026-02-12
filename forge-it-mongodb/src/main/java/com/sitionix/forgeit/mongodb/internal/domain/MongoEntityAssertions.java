@@ -5,11 +5,13 @@ import com.sitionix.forgeit.domain.contract.assertion.DbEntityAssertions;
 import com.sitionix.forgeit.domain.contract.graph.DbEntityHandle;
 import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.mongodb.internal.config.MongoProperties;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+@Component
 public final class MongoEntityAssertions implements DbEntityAssertions {
 
     private final JsonLoader jsonLoader;

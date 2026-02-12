@@ -7,6 +7,9 @@ import com.sitionix.forgeit.mongodb.internal.config.MongoProperties;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Builder for MongoDB document creation without contract declarations.
  */
@@ -33,9 +36,7 @@ public final class MongoCreateBuilder<E> {
         if (!StringUtils.hasText(jsonResourceName)) {
             throw new IllegalArgumentException("Json resource name must not be blank");
         }
-        final String basePath = this.resolveCustomEntityPath();
-        this.jsonLoader.setBasePath(basePath);
-        final E entity = this.jsonLoader.getFromFile(jsonResourceName, this.entityType);
+        final E entity = this.loadEntityFromConfiguredPaths(jsonResourceName);
         return this.persistEntity(entity);
     }
 
@@ -51,12 +52,39 @@ public final class MongoCreateBuilder<E> {
         return new DbEntityHandle<>(persisted, this.contract, this.mongoTemplate::save);
     }
 
-    private String resolveCustomEntityPath() {
-        if (this.properties.getPaths() == null
-                || this.properties.getPaths().getEntity() == null
-                || !StringUtils.hasText(this.properties.getPaths().getEntity().getCustom())) {
-            throw new IllegalStateException("forge-it.modules.mongodb.paths.entity.custom must be configured");
+    private E loadEntityFromConfiguredPaths(final String jsonResourceName) {
+        RuntimeException lastException = null;
+        for (final String basePath : this.resolveEntitySearchPaths()) {
+            try {
+                this.jsonLoader.setBasePath(basePath);
+                return this.jsonLoader.getFromFile(jsonResourceName, this.entityType);
+            } catch (final RuntimeException ex) {
+                lastException = ex;
+            }
         }
-        return this.properties.getPaths().getEntity().getCustom().trim();
+        throw new IllegalStateException("Unable to load Mongo entity fixture '" + jsonResourceName + "'", lastException);
+    }
+
+    private List<String> resolveEntitySearchPaths() {
+        if (this.properties.getPaths() == null || this.properties.getPaths().getEntity() == null) {
+            throw new IllegalStateException("forge-it.modules.mongodb.paths.entity must be configured");
+        }
+        final List<String> basePaths = new ArrayList<>();
+        final String customPath = this.properties.getPaths().getEntity().getCustom();
+        if (StringUtils.hasText(customPath)) {
+            basePaths.add(customPath.trim());
+        }
+        final String defaultsPath = this.properties.getPaths().getEntity().getDefaults();
+        if (StringUtils.hasText(defaultsPath)) {
+            final String trimmed = defaultsPath.trim();
+            if (!basePaths.contains(trimmed)) {
+                basePaths.add(trimmed);
+            }
+        }
+        if (basePaths.isEmpty()) {
+            throw new IllegalStateException(
+                    "At least one of forge-it.modules.mongodb.paths.entity.custom/defaults must be configured");
+        }
+        return basePaths;
     }
 }
