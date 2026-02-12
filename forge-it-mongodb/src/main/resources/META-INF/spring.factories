@@ -1,0 +1,4 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.mongodb.config.MongoDefaultsEnvironmentPostProcessor
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.mongodb.internal.config.MongoFeatureInstaller

@@ -26,4 +26,11 @@ class SelectiveSupportIT {
         assertThat(this.forgeIt).isNotNull();
         assertThat(this.applicationContext.containsBean("wireMockContainerManager")).isFalse();
     }
+
+    @Test
+    void givenContractWithoutMongoSupport_whenContextStarts_thenMongoBeansAreNotRegistered() {
+        assertThat(this.forgeIt).isNotNull();
+        assertThat(this.applicationContext.containsBean("mongoContainerManager")).isFalse();
+        assertThat(this.applicationContext.containsBean("forgeItMongoClient")).isFalse();
+    }
 }

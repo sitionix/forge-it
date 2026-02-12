@@ -12,7 +12,7 @@
 
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forgeit-parent</artifactId>
-    <version>0.0.35</version>
+    <version>0.0.36</version>
     <packaging>pom</packaging>
 
     <name>ForgeIT Parent</name>
@@ -25,6 +25,7 @@
         <module>forge-it-wiremock</module>
         <module>forge-it-mockmvc</module>
         <module>forge-it-postgresql</module>
+        <module>forge-it-mongodb</module>
         <module>forge-it-kafka</module>
         <module>forge-it-annotation-processor</module>
         <module>forge-it-core</module>

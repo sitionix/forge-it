@@ -507,6 +507,128 @@ The sample integration tests exercise the critical flows and guard against commo
 - `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTxPolicyMandatoryIT.java`
   ensures `tx-policy=MANDATORY` fails without an active transaction.
 
+## MongoDB support
+
+MongoDB support focuses on document scenarios and does not require `DbContract`
+declarations. Documents are created directly via `mongo().create(EntityClass)`.
+
+### Entry point
+
+Declare the feature on your test interface so ForgeIT installs MongoDB support:
+
+```java
+@ForgeFeatures(MongoSupport.class)
+public interface ConsumerMongoTests extends ForgeIT {
+}
+```
+
+### Configuration
+
+By default the module starts a `mongo:7.0` Testcontainer and wires
+`spring.data.mongodb.uri` automatically. You can override behaviour with:
+
+```yaml
+forge-it:
+  modules:
+    mongodb:
+      enabled: true
+      mode: internal           # or external
+      container:
+        image: mongo:7.0
+      connection:
+        uri: mongodb://localhost:27017/forge-it
+        host: localhost
+        port: 27017
+        database: forge-it
+      paths:
+        entity:
+          defaults: /db/mongodb/entities/default
+          custom: /db/mongodb/entities/custom
+          expected: /db/mongodb/entities/expected
+```
+
+Notes:
+- Fixture paths are always resolved under the unchangeable
+  `src/test/resources/forge-it` root.
+- In `external` mode, provide `connection.uri` or `connection.host` +
+  `connection.port`; otherwise startup fails fast.
+
+### Creating and mutating documents
+
+Mongo documents are created without contracts:
+
+```java
+DbEntityHandle<SomeEntityClass> created = forgeit.mongo()
+        .create(SomeEntityClass.class)
+        .body("some_entity.json");
+
+created.mutate(entity -> entity.setName("updated-name"));
+```
+
+You can also pass a ready object:
+
+```java
+forgeit.mongo()
+        .create(SomeEntityClass.class)
+        .body(SomeEntityClass.builder()
+                .name("manual")
+                .description("from-object")
+                .build());
+```
+
+For JSON loading, ForgeIT checks `paths.entity.custom` first and then falls back
+to `paths.entity.defaults`.
+
+### Retrieval and assertions
+
+Use retrievers for field-level checks:
+
+```java
+forgeit.mongo()
+        .get(SomeEntityClass.class)
+        .where(SomeEntityClass::getName, "updated-name")
+        .hasSize(1)
+        .singleElement()
+        .andExpected(entity -> Objects.equals(entity.getDescription(), "seed description"))
+        .assertEntity();
+```
+
+Use shared assertion builders for JSON-based comparisons:
+
+```java
+forgeit.mongo()
+        .assertEntity(created)
+        .withJson("some_entity.json")
+        .ignoreFields("id")
+        .assertMatchesStrict();
+
+forgeit.mongo()
+        .assertEntities(SomeEntityClass.class)
+        .ignoreFields("id")
+        .hasSize(1)
+        .containsWithJsonsStrict("some_entity.json");
+```
+
+`assertEntity(...).withJson(...)` and `assertEntities(...).contains*WithJsons(...)`
+load expected fixtures from `paths.entity.expected` (fallback: `paths.entity.custom`).
+
+### Cleanup behaviour
+
+Mongo cleanup is integrated into the same `@IntegrationTest` lifecycle as other
+supports. By default (`cleanupPhase=AFTER_EACH`), ForgeIT drops Mongo data after
+every test method, so scenarios stay isolated without manual reset calls.
+
+### MongoDB test coverage
+
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/mongo/MongoIT.java`
+  covers JSON/object creation, mutation, retrieval, and assertion builders.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/mongo/MongoCleanupSmokeIT.java`
+  verifies cleanup between ordered test methods.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/mongo/MongoMockMvcIT.java`
+  verifies MockMvc -> Mongo persistence.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/MixedPersistenceIT.java`
+  verifies Mongo and PostgreSQL persistence/verification in one IT.
+
 ## Kafka support
 
 Kafka support provides publish/consume helpers that load JSON fixtures and run against

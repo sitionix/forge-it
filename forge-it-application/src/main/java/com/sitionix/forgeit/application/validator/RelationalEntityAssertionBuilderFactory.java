@@ -8,17 +8,23 @@ import com.sitionix.forgeit.domain.contract.assertion.DbEntityAssertions;
 import com.sitionix.forgeit.domain.contract.graph.DbEntityHandle;
 import com.sitionix.forgeit.domain.model.sql.DbEntityFetcher;
 import com.sitionix.forgeit.domain.model.sql.RelationalFeatureMarker;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
 @Component
 @ConditionalOnBean(RelationalFeatureMarker.class)
 public class RelationalEntityAssertionBuilderFactory implements DbEntityAssertionBuilderFactory {
 
     private final DbEntityAssertions entityAssertions;
     private final DbEntityFetcher entityFetcher;
+
+    public RelationalEntityAssertionBuilderFactory(
+            @Qualifier("relationalEntityAssertions") final DbEntityAssertions entityAssertions,
+            @Qualifier("relationalEntityFetcher") final DbEntityFetcher entityFetcher) {
+        this.entityAssertions = entityAssertions;
+        this.entityFetcher = entityFetcher;
+    }
 
     @Override
     public <E> DbEntityAssertionBuilder<E> forEntity(final DbEntityHandle<E> handle) {
