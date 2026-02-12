@@ -1,4 +1,5 @@
 com.sitionix.forgeit.wiremock.api.WireMockSupport
 com.sitionix.forgeit.mockmvc.api.MockMvcSupport
 com.sitionix.forgeit.postgresql.api.PostgresqlSupport
+com.sitionix.forgeit.mongodb.api.MongoSupport
 com.sitionix.forgeit.kafka.api.KafkaSupport

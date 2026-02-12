@@ -1,0 +1,17 @@
+forge-it:
+  modules:
+    mongodb:
+      enabled: true
+      mode: internal
+      container:
+        image: mongo:7.0
+      connection:
+        uri: mongodb://localhost:27017/forge-it
+        host: localhost
+        port: 27017
+        database: forge-it
+      paths:
+        entity:
+          defaults: /db/mongodb/entities/default
+          custom: /db/mongodb/entities/custom
+          expected: /db/mongodb/entities/expected

@@ -66,6 +66,13 @@
     </dependency>
     <dependency>
       <groupId>com.sitionix.forgeit</groupId>
+      <artifactId>forge-it-mongodb</artifactId>
+      <version>0.0.36</version>
+      <scope>compile</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.sitionix.forgeit</groupId>
       <artifactId>forge-it-kafka</artifactId>
       <version>0.0.36</version>
       <scope>compile</scope>
