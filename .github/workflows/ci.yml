@@ -26,9 +26,15 @@ jobs:
       - name: Prepare Docker for Testcontainers
         run: |
           docker version
+          rm -f ~/.testcontainers.properties
+          printf "docker.client.strategy=org.testcontainers.dockerclient.UnixSocketClientProviderStrategy\n" > ~/.testcontainers.properties
           echo "DOCKER_HOST=unix:///var/run/docker.sock" >> "$GITHUB_ENV"
-          echo "DOCKER_API_VERSION=$(docker version --format '{{.Server.APIVersion}}')" >> "$GITHUB_ENV"
+          echo "DOCKER_API_VERSION=1.44" >> "$GITHUB_ENV"
           echo "TESTCONTAINERS_DOCKER_CLIENT_STRATEGY=org.testcontainers.dockerclient.UnixSocketClientProviderStrategy" >> "$GITHUB_ENV"
+          echo "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock" >> "$GITHUB_ENV"
 
       - name: Build with tests
-        run: ./mvnw -B -ntp clean install
+        run: |
+          echo "Using DOCKER_HOST=${DOCKER_HOST}"
+          echo "Using DOCKER_API_VERSION=${DOCKER_API_VERSION}"
+          ./mvnw -B -ntp -Ddocker.host=${DOCKER_HOST} -Dapi.version=${DOCKER_API_VERSION} clean install
