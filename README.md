@@ -214,6 +214,10 @@ unchangeable `src/test/resources/forge-it` root:
 forge-it:
   modules:
     mock-mvc:
+      default-token: Bearer static-token
+      default-headers:
+        x-tenant-id: tenant-01
+        x-user-id: 42
       path:
         request: /mockmvc/request         # standard request fixture folder
         response: /mockmvc/response       # standard response fixture folder
@@ -247,13 +251,14 @@ forgeit.mockMvc()
         .execute();
 ```
 
-Add `andExpectPath(...)` for extra matchers, or `token(...)` to attach an `Authorization`
-header. Response assertions can ignore fields via `expectResponse(..., fieldsToIgnore...)`.
+Add `andExpectPath(...)` for extra matchers, `token(...)` to attach an `Authorization`
+header, and `header(name, value)` for arbitrary headers. Response assertions can ignore fields
+via `expectResponse(..., fieldsToIgnore...)`.
 
 ### Defaults and reusable fixtures
 
-Endpoints can declare defaults (request, response, status, token) that the builder reuses via
-`executeDefault()`. You can further mutate the defaults at call time:
+Endpoints can declare defaults (request, response, status, token, headers) that the builder
+reuses via `executeDefault()`. You can further mutate the defaults at call time:
 
 ```java
 // Endpoint with baked-in defaults
@@ -268,6 +273,7 @@ public static Endpoint<LoginRequest, LoginResponse> loginDefault() {
                     .expectResponse("loginResponse.json")
                     .expectStatus(200)
                     .token("Bearer default-token")
+                    .header("x-tenant-id", "tenant-01")
     );
 }
 
@@ -540,6 +546,7 @@ forge-it:
         host: localhost
         port: 27017
         database: forge-it
+        uuid-representation: standard
       paths:
         entity:
           defaults: /db/mongodb/entities/default
@@ -552,6 +559,9 @@ Notes:
   `src/test/resources/forge-it` root.
 - In `external` mode, provide `connection.uri` or `connection.host` +
   `connection.port`; otherwise startup fails fast.
+- `connection.uuid-representation` supports:
+  `standard`, `java_legacy`, `c_sharp_legacy`, `python_legacy`, `unspecified`
+  (default: `standard`).
 
 ### Creating and mutating documents
 
