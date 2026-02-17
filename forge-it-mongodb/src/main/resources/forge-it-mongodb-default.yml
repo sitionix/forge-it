@@ -10,6 +10,8 @@ forge-it:
         host: localhost
         port: 27017
         database: forge-it
+        # supported: standard, java_legacy, c_sharp_legacy, python_legacy, unspecified
+        uuid-representation: standard
       paths:
         entity:
           defaults: /db/mongodb/entities/default

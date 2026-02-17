@@ -58,6 +58,7 @@ public class MockMvcBuilder<Req, Res> {
     private String token;
     private String defaultToken;
     private boolean tokenProvided;
+    private final Map<String, String> defaultHeaders;
     private final Map<String, String> headers;
     private HttpStatus expectedStatus;
     private final DefaultContext defaultContext;
@@ -78,6 +79,7 @@ public class MockMvcBuilder<Req, Res> {
         this.defaultContext = new DefaultContext();
         this.extraMatchers = new ArrayList<>();
         this.responseFieldsToIgnore = new ArrayList<>();
+        this.defaultHeaders = new LinkedHashMap<>();
         this.headers = new LinkedHashMap<>();
     }
 
@@ -204,11 +206,12 @@ public class MockMvcBuilder<Req, Res> {
                 defaultsContext.applyDefaults(new TokenOnlyDefaultContext());
             }
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
+            final Map<String, String> resolvedHeaders = this.resolveHeaders();
             final String resolvedToken = this.resolveToken();
-            if (nonNull(resolvedToken)) {
+            if (nonNull(resolvedToken) && !this.hasHeaderIgnoreCase(resolvedHeaders, HttpHeaders.AUTHORIZATION)) {
                 httpRequest.header(HttpHeaders.AUTHORIZATION, resolvedToken);
             }
-            for (final Map.Entry<String, String> entry : this.headers.entrySet()) {
+            for (final Map.Entry<String, String> entry : resolvedHeaders.entrySet()) {
                 if (entry.getValue() != null) {
                     httpRequest.header(entry.getKey(), entry.getValue());
                 }
@@ -356,6 +359,23 @@ public class MockMvcBuilder<Req, Res> {
         this.defaultToken = token;
     }
 
+    private void setDefaultHeader(final String name, final String value) {
+        if (StringUtils.hasText(name)) {
+            this.defaultHeaders.put(name, value);
+        }
+    }
+
+    private Map<String, String> resolveHeaders() {
+        final Map<String, String> resolvedHeaders = new LinkedHashMap<>(this.defaultHeaders);
+        resolvedHeaders.putAll(this.headers);
+        return resolvedHeaders;
+    }
+
+    private boolean hasHeaderIgnoreCase(final Map<String, String> headerValues, final String name) {
+        return headerValues.keySet().stream()
+                .anyMatch(headerName -> headerName.equalsIgnoreCase(name));
+    }
+
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public final class DefaultContext implements MockmvcDefaultContext {
 
@@ -380,6 +400,12 @@ public class MockMvcBuilder<Req, Res> {
         @Override
         public DefaultContext token(final String token) {
             MockMvcBuilder.this.setDefaultToken(token);
+            return this;
+        }
+
+        @Override
+        public DefaultContext header(final String name, final String value) {
+            MockMvcBuilder.this.setDefaultHeader(name, value);
             return this;
         }
     }
@@ -416,6 +442,15 @@ public class MockMvcBuilder<Req, Res> {
             }
             return this;
         }
+
+        @Override
+        public MockmvcDefaultContext header(final String name, final String value) {
+            if (!MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.defaultHeaders, name)
+                    && !MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.headers, name)) {
+                MockMvcBuilder.this.setDefaultHeader(name, value);
+            }
+            return this;
+        }
     }
 
     private final class TokenOnlyDefaultContext implements MockmvcDefaultContext {
@@ -438,6 +473,15 @@ public class MockMvcBuilder<Req, Res> {
         public MockmvcDefaultContext token(final String token) {
             if (MockMvcBuilder.this.defaultToken == null) {
                 MockMvcBuilder.this.setDefaultToken(token);
+            }
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext header(final String name, final String value) {
+            if (!MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.defaultHeaders, name)
+                    && !MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.headers, name)) {
+                MockMvcBuilder.this.setDefaultHeader(name, value);
             }
             return this;
         }
