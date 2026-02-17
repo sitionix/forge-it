@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.StringUtils;
 
+import java.util.Map;
+
 @Component
 @RequiredArgsConstructor
 public class MockMvcJournal {
@@ -30,6 +32,10 @@ public class MockMvcJournal {
         final String defaultToken = this.properties.getDefaultToken();
         if (StringUtils.hasText(defaultToken)) {
             builder.applyDefault(context -> context.token(defaultToken));
+        }
+        final Map<String, String> defaultHeaders = this.properties.getDefaultHeaders();
+        if (defaultHeaders != null && !defaultHeaders.isEmpty()) {
+            builder.applyDefault(context -> defaultHeaders.forEach(context::header));
         }
         return builder;
     }

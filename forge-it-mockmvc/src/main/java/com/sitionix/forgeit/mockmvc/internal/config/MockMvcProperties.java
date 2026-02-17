@@ -4,6 +4,8 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 
 /**
  * Configuration model for WireMock settings exposed via {@code forge-it.modules.mock-mvc}.
@@ -18,6 +20,7 @@ public class MockMvcProperties {
     private Boolean enabled;
     private Path path;
     private String defaultToken;
+    private Map<String, String> defaultHeaders;
     @Data
     public static class Path {
         private String request;

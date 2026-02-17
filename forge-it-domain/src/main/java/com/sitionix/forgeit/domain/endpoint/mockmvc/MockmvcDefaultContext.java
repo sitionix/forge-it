@@ -9,4 +9,6 @@ public interface MockmvcDefaultContext {
     MockmvcDefaultContext expectStatus(int status);
 
     MockmvcDefaultContext token(String token);
+
+    MockmvcDefaultContext header(String name, String value);
 }

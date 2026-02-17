@@ -45,6 +45,12 @@ public final class MongoProperties {
         private Integer port;
 
         private String database;
+
+        /**
+         * UUID representation used by MongoDB Java driver.
+         * Supported values: standard, java_legacy, c_sharp_legacy, python_legacy, unspecified.
+         */
+        private String uuidRepresentation = "standard";
     }
 
     @Data
