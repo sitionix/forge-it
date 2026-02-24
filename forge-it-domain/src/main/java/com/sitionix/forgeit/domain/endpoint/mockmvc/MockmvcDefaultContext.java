@@ -11,4 +11,6 @@ public interface MockmvcDefaultContext {
     MockmvcDefaultContext token(String token);
 
     MockmvcDefaultContext header(String name, String value);
+
+    MockmvcDefaultContext cookie(String name, String value);
 }
