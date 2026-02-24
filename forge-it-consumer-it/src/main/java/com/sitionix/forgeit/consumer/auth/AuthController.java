@@ -3,6 +3,7 @@ package com.sitionix.forgeit.consumer.auth;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -44,5 +48,16 @@ public class AuthController {
             @RequestParam(name = "pepper", required = false) final String pepper
     ) {
         return this.authClient.fetchUser(tenantId, userId, pepper);
+    }
+
+    @GetMapping("/cookie")
+    public ResponseEntity<Map<String, String>> cookieEcho(
+            @CookieValue(name = "X-IT-COOKIE", required = false) final String cookieValue
+    ) {
+        final Map<String, String> response = new LinkedHashMap<>();
+        if (cookieValue != null) {
+            response.put("cookieValue", cookieValue);
+        }
+        return ResponseEntity.ok(response);
     }
 }

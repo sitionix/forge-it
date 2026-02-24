@@ -48,4 +48,13 @@ public class MockMvcEndpoint {
                 UserProfileResponse.class
         );
     }
+
+    public static Endpoint<Void, Object> cookieEcho() {
+        return Endpoint.createContract(
+                "/auth/cookie",
+                HttpMethod.GET,
+                Void.class,
+                Object.class
+        );
+    }
 }
