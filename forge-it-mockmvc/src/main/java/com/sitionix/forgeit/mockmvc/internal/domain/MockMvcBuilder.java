@@ -9,6 +9,7 @@ import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.mockmvc.api.PathParams;
 import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
+import jakarta.servlet.http.Cookie;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -60,6 +61,8 @@ public class MockMvcBuilder<Req, Res> {
     private boolean tokenProvided;
     private final Map<String, String> defaultHeaders;
     private final Map<String, String> headers;
+    private final Map<String, String> defaultCookies;
+    private final Map<String, String> cookies;
     private HttpStatus expectedStatus;
     private final DefaultContext defaultContext;
 
@@ -81,6 +84,8 @@ public class MockMvcBuilder<Req, Res> {
         this.responseFieldsToIgnore = new ArrayList<>();
         this.defaultHeaders = new LinkedHashMap<>();
         this.headers = new LinkedHashMap<>();
+        this.defaultCookies = new LinkedHashMap<>();
+        this.cookies = new LinkedHashMap<>();
     }
 
     public MockMvcBuilder<Req, Res> withRequest(final String requestName) {
@@ -161,6 +166,13 @@ public class MockMvcBuilder<Req, Res> {
         return this;
     }
 
+    public MockMvcBuilder<Req, Res> cookie(final String name, final String value) {
+        if (StringUtils.hasText(name)) {
+            this.cookies.put(name, value);
+        }
+        return this;
+    }
+
     public MockMvcBuilder<Req, Res> withQueryParameters(final QueryParams parameters) {
         if (nonNull(parameters) && !parameters.asMap().isEmpty()) {
             this.queryParameters = parameters.asMap();
@@ -207,6 +219,7 @@ public class MockMvcBuilder<Req, Res> {
             }
             final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
             final Map<String, String> resolvedHeaders = this.resolveHeaders();
+            final Map<String, String> resolvedCookies = this.resolveCookies();
             final String resolvedToken = this.resolveToken();
             if (nonNull(resolvedToken) && !this.hasHeaderIgnoreCase(resolvedHeaders, HttpHeaders.AUTHORIZATION)) {
                 httpRequest.header(HttpHeaders.AUTHORIZATION, resolvedToken);
@@ -214,6 +227,11 @@ public class MockMvcBuilder<Req, Res> {
             for (final Map.Entry<String, String> entry : resolvedHeaders.entrySet()) {
                 if (entry.getValue() != null) {
                     httpRequest.header(entry.getKey(), entry.getValue());
+                }
+            }
+            for (final Map.Entry<String, String> entry : resolvedCookies.entrySet()) {
+                if (entry.getValue() != null) {
+                    httpRequest.cookie(new Cookie(entry.getKey(), entry.getValue()));
                 }
             }
             final var mvcResultActions = this.mockMvc.perform(httpRequest);
@@ -365,15 +383,32 @@ public class MockMvcBuilder<Req, Res> {
         }
     }
 
+    private void setDefaultCookie(final String name, final String value) {
+        if (StringUtils.hasText(name)) {
+            this.defaultCookies.put(name, value);
+        }
+    }
+
     private Map<String, String> resolveHeaders() {
         final Map<String, String> resolvedHeaders = new LinkedHashMap<>(this.defaultHeaders);
         resolvedHeaders.putAll(this.headers);
         return resolvedHeaders;
     }
 
+    private Map<String, String> resolveCookies() {
+        final Map<String, String> resolvedCookies = new LinkedHashMap<>(this.defaultCookies);
+        resolvedCookies.putAll(this.cookies);
+        return resolvedCookies;
+    }
+
     private boolean hasHeaderIgnoreCase(final Map<String, String> headerValues, final String name) {
         return headerValues.keySet().stream()
                 .anyMatch(headerName -> headerName.equalsIgnoreCase(name));
+    }
+
+    private boolean hasCookie(final Map<String, String> cookieValues, final String name) {
+        return cookieValues.keySet().stream()
+                .anyMatch(cookieName -> cookieName.equals(name));
     }
 
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -406,6 +441,12 @@ public class MockMvcBuilder<Req, Res> {
         @Override
         public DefaultContext header(final String name, final String value) {
             MockMvcBuilder.this.setDefaultHeader(name, value);
+            return this;
+        }
+
+        @Override
+        public DefaultContext cookie(final String name, final String value) {
+            MockMvcBuilder.this.setDefaultCookie(name, value);
             return this;
         }
     }
@@ -451,6 +492,15 @@ public class MockMvcBuilder<Req, Res> {
             }
             return this;
         }
+
+        @Override
+        public MockmvcDefaultContext cookie(final String name, final String value) {
+            if (!MockMvcBuilder.this.hasCookie(MockMvcBuilder.this.defaultCookies, name)
+                    && !MockMvcBuilder.this.hasCookie(MockMvcBuilder.this.cookies, name)) {
+                MockMvcBuilder.this.setDefaultCookie(name, value);
+            }
+            return this;
+        }
     }
 
     private final class TokenOnlyDefaultContext implements MockmvcDefaultContext {
@@ -482,6 +532,15 @@ public class MockMvcBuilder<Req, Res> {
             if (!MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.defaultHeaders, name)
                     && !MockMvcBuilder.this.hasHeaderIgnoreCase(MockMvcBuilder.this.headers, name)) {
                 MockMvcBuilder.this.setDefaultHeader(name, value);
+            }
+            return this;
+        }
+
+        @Override
+        public MockmvcDefaultContext cookie(final String name, final String value) {
+            if (!MockMvcBuilder.this.hasCookie(MockMvcBuilder.this.defaultCookies, name)
+                    && !MockMvcBuilder.this.hasCookie(MockMvcBuilder.this.cookies, name)) {
+                MockMvcBuilder.this.setDefaultCookie(name, value);
             }
             return this;
         }
