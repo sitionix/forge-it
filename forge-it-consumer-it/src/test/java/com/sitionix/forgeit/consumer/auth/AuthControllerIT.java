@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static com.sitionix.forgeit.wiremock.api.Parameter.equalTo;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -199,5 +200,15 @@ class AuthControllerIT {
                 .assertAndCreate();
 
         requestBuilder.verify();
+    }
+
+    @Test
+    void givenCookie_whenCookieEndpointCalled_thenCookieReachesController() {
+        this.forgeIt.mockMvc()
+                .ping(MockMvcEndpoint.cookieEcho())
+                .cookie("X-IT-COOKIE", "cookie-from-it")
+                .expectStatus(HttpStatus.OK)
+                .andExpectPath(jsonPath("$.cookieValue").value("cookie-from-it"))
+                .assertAndCreate();
     }
 }
