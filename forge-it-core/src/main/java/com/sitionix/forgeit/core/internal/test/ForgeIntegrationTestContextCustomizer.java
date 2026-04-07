@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Set;
 
 final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
-
     private static final String POSTGRESQL_SUPPORT = "com.sitionix.forgeit.postgresql.api.PostgresqlSupport";
     private static final String MONGODB_SUPPORT = "com.sitionix.forgeit.mongodb.api.MongoSupport";
     private static final String WIREMOCK_SUPPORT = "com.sitionix.forgeit.wiremock.api.WireMockSupport";
@@ -168,6 +167,11 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
         return this.features.stream().anyMatch(feature -> featureName.equals(feature.getName()));
     }
 
+    private boolean hasProperty(final ConfigurableEnvironment environment, final String key) {
+        final String value = environment.getProperty(key);
+        return value != null && !value.isBlank();
+    }
+
     private boolean hasDataSourceConfiguration(ConfigurableEnvironment environment) {
         return hasProperty(environment, "spring.datasource.url")
                 || hasProperty(environment, "spring.datasource.jdbc-url")
@@ -180,11 +184,6 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
                 || hasProperty(environment, "spring.data.mongodb.host")
                 || hasProperty(environment, "spring.data.mongodb.port")
                 || hasProperty(environment, "spring.data.mongodb.database");
-    }
-
-    private boolean hasProperty(ConfigurableEnvironment environment, String key) {
-        final String value = environment.getProperty(key);
-        return value != null && !value.isBlank();
     }
 
     private void applyTestProperties(ConfigurableApplicationContext context) {

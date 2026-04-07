@@ -1,3 +1,5 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.core.config.CoreDefaultsEnvironmentPostProcessor
+
 org.springframework.test.context.ContextCustomizerFactory=\
 com.sitionix.forgeit.core.internal.test.IntegrationTestContextCustomizerFactory
-
