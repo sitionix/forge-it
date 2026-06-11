@@ -19,6 +19,7 @@ import java.util.Set;
 
 final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
     private static final String POSTGRESQL_SUPPORT = "com.sitionix.forgeit.postgresql.api.PostgresqlSupport";
+    private static final String SQLITE_SUPPORT = "com.sitionix.forgeit.sqlite.api.SqliteSupport";
     private static final String MONGODB_SUPPORT = "com.sitionix.forgeit.mongodb.api.MongoSupport";
     private static final String WIREMOCK_SUPPORT = "com.sitionix.forgeit.wiremock.api.WireMockSupport";
     private static final String MOCKMVC_SUPPORT = "com.sitionix.forgeit.mockmvc.api.MockMvcSupport";
@@ -77,7 +78,7 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
     }
 
     private void disableDataSourceAutoConfigurationIfUnused(ConfigurableApplicationContext context) {
-        if (hasFeature(POSTGRESQL_SUPPORT)) {
+        if (hasFeature(POSTGRESQL_SUPPORT) || hasFeature(SQLITE_SUPPORT)) {
             return;
         }
         final ConfigurableEnvironment environment = context.getEnvironment();
@@ -149,6 +150,7 @@ final class ForgeIntegrationTestContextCustomizer implements ContextCustomizer {
     private void applyFeatureToggles(ConfigurableApplicationContext context) {
         final Map<String, Object> toggles = Map.of(
                 "forge-it.modules.postgresql.enabled", hasFeature(POSTGRESQL_SUPPORT),
+                "forge-it.modules.sqlite.enabled", hasFeature(SQLITE_SUPPORT),
                 "forge-it.modules.mongodb.enabled", hasFeature(MONGODB_SUPPORT),
                 "forge-it.modules.wiremock.enabled", hasFeature(WIREMOCK_SUPPORT),
                 "forge-it.modules.mock-mvc.enabled", hasFeature(MOCKMVC_SUPPORT),

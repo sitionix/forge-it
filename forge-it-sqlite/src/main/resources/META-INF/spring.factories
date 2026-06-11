@@ -1,0 +1,4 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.sitionix.forgeit.sqlite.config.SqliteDefaultsEnvironmentPostProcessor
+com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
+com.sitionix.forgeit.sqlite.internal.config.SqliteFeatureInstaller

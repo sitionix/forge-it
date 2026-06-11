@@ -513,6 +513,55 @@ The sample integration tests exercise the critical flows and guard against commo
 - `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/db/PostgresTxPolicyMandatoryIT.java`
   ensures `tx-policy=MANDATORY` fails without an active transaction.
 
+## SQLite support
+
+SQLite support mirrors the relational PostgreSQL API while using the Xerial SQLite JDBC
+driver instead of a container. Declare the feature on your test interface:
+
+```java
+@ForgeFeatures(SqliteSupport.class)
+public interface ConsumerSqliteTests extends ForgeIT {
+}
+```
+
+By default the module creates a temporary file-backed SQLite database, publishes
+`forge-it.sqlite.connection.*`, configures `spring.datasource.url`,
+`spring.datasource.driver-class-name=org.sqlite.JDBC`, and sets Hibernate to
+`org.hibernate.community.dialect.SQLiteDialect`. The `sqlite-jdbc` dependency carries the
+native SQLite libraries for supported platforms.
+
+```yaml
+forge-it:
+  modules:
+    sqlite:
+      enabled: true
+      mode: internal            # or external for an existing SQLite file/URL
+      connection:
+        database: forge-it      # external mode path when jdbc-url is not set
+        jdbc-url: jdbc:sqlite:/tmp/forge-it.db
+      paths:
+        ddl:
+          path: /db/sqlite
+        entity:
+          defaults: /db/sqlite/entities/default
+          custom: /db/sqlite/entities/custom
+      tx-policy: REQUIRES_NEW
+```
+
+Use the same graph, retrieval, cleanup, and assertion patterns as PostgreSQL, replacing
+`forgeit.postgresql()` with `forgeit.sqlite()`. SQLite SQL fixtures live under
+`src/test/resources/forge-it/db/sqlite/**`; keep dialect-specific DDL there because
+PostgreSQL constructs such as `BIGSERIAL` are not portable.
+
+SQLite coverage:
+- `forge-it-sqlite/src/test/java/com/sitionix/forgeit/sqlite/**` verifies defaults and
+  connection wiring.
+- `forge-it-consumer-it/src/test/java/com/sitionix/forgeit/consumer/sqlite/SqliteIT.java`
+  mirrors the PostgreSQL relational graph, retrieval, JSON assertion, and constraint
+  scenarios except for the Postgres-only MockMvc endpoint.
+- `SqliteTransactionlessIT`, `SqliteCleanupSmokeIT`, and `SqliteTxPolicyMandatoryIT`
+  mirror the PostgreSQL transaction and cleanup guard tests.
+
 ## MongoDB support
 
 MongoDB support focuses on document scenarios and does not require `DbContract`
