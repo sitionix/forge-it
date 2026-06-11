@@ -1,0 +1,17 @@
+forge-it:
+  modules:
+    sqlite:
+      enabled: true
+      mode: internal
+      connection:
+        database: forge-it
+        username:
+        password:
+        host: localhost
+        port: 0
+      paths:
+        entity:
+          defaults: /db/sqlite/entities/default
+          custom: /db/sqlite/entities/custom
+        ddl:
+          path: /db/sqlite
