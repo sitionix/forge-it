@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MockMvcBuilderDefaultsTest {
 
@@ -51,6 +52,27 @@ class MockMvcBuilderDefaultsTest {
                 .expectResponse("customResponse.json")
                 .expectStatus(HttpStatus.OK)
                 .assertAndCreate());
+    }
+
+    @Test
+    void explicitFixturesAndStatusOverrideDefaultsAndMismatchRemainsAssertionFailure() {
+        final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).build();
+        final FakeJsonLoader loader = new FakeJsonLoader();
+        loader.put("/mockmvc/response/ok.json", "{\"status\":\"ok\"}");
+        final MockMvcBuilder<String, String> builder = createBuilder(mockMvc, loader,
+                context -> context.expectResponse("nonexistent.json").expectStatus(500));
+        builder.expectResponse("ok.json").expectStatus(HttpStatus.OK).assertDefault();
+        assertThrows(AssertionError.class, () -> createBuilder(mockMvc, loader, null)
+                .expectStatus(HttpStatus.BAD_REQUEST).assertAndCreate());
+    }
+
+    @Test
+    void portableAssertionsRunBeforeCustomMvcMatchers() {
+        final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new TestController()).build();
+        final var called = new java.util.concurrent.atomic.AtomicBoolean();
+        assertThrows(AssertionError.class, () -> createBuilder(mockMvc, new FakeJsonLoader(), null)
+                .expectStatus(HttpStatus.BAD_REQUEST).andExpectPath(result -> called.set(true)).assertAndCreate());
+        org.junit.jupiter.api.Assertions.assertFalse(called.get());
     }
 
     private static MockMvcBuilder<String, String> createBuilder(final MockMvc mockMvc,

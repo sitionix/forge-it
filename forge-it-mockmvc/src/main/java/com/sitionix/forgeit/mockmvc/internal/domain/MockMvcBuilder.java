@@ -2,6 +2,8 @@ package com.sitionix.forgeit.mockmvc.internal.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sitionix.forgeit.mockmvc.internal.executor.*;
+import com.sitionix.forgeit.mockmvc.internal.validator.JsonComparator;
 import com.sitionix.forgeit.domain.endpoint.Endpoint;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefault;
 import com.sitionix.forgeit.domain.endpoint.mockmvc.MockmvcDefaultContext;
@@ -9,18 +11,13 @@ import com.sitionix.forgeit.domain.loader.JsonLoader;
 import com.sitionix.forgeit.mockmvc.api.PathParams;
 import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
-import jakarta.servlet.http.Cookie;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -28,20 +25,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
-import static com.sitionix.forgeit.mockmvc.internal.validator.CustomResultMatcher.jsonEqualsIgnore;
 import static java.util.Objects.nonNull;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 public class MockMvcBuilder<Req, Res> {
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^/}]+)}");
 
-    private final MockMvc mockMvc;
+    private final MockMvcExecutor executor;
     private final MockMvcLoader mockMvcLoader;
     private final Endpoint<Req, Res> endpoint;
     private final Class<Req> requestType;
@@ -50,7 +39,6 @@ public class MockMvcBuilder<Req, Res> {
     private final ObjectMapper objectMapper;
     private Consumer<Req> defaultRequestMutator;
     private Consumer<Res> defaultResponseMutator;
-    private final List<ResultMatcher> extraMatchers;
     private final List<String> responseFieldsToIgnore;
     private String requestJson;
     private String responseJson;
@@ -72,7 +60,14 @@ public class MockMvcBuilder<Req, Res> {
                           final MockMvcLoader mockMvcLoader,
                           final ObjectMapper objectMapper,
                           final Endpoint<Req, Res> endpoint) {
-        this.mockMvc = mockMvc;
+        this(new MvcExecutor(mockMvc), mockMvcLoader, objectMapper, endpoint);
+    }
+
+    public MockMvcBuilder(final MockMvcExecutor executor,
+                          final MockMvcLoader mockMvcLoader,
+                          final ObjectMapper objectMapper,
+                          final Endpoint<Req, Res> endpoint) {
+        this.executor = executor;
         this.endpoint = endpoint;
         this.mockMvcLoader = mockMvcLoader;
         this.objectMapper = objectMapper;
@@ -80,7 +75,6 @@ public class MockMvcBuilder<Req, Res> {
         this.responseType = endpoint.getResponseClass();
         this.defaultMutationContext = new DefaultMutationContext<>();
         this.defaultContext = new DefaultContext();
-        this.extraMatchers = new ArrayList<>();
         this.responseFieldsToIgnore = new ArrayList<>();
         this.defaultHeaders = new LinkedHashMap<>();
         this.headers = new LinkedHashMap<>();
@@ -148,7 +142,10 @@ public class MockMvcBuilder<Req, Res> {
 
     public MockMvcBuilder<Req, Res> andExpectPath(final ResultMatcher matcher) {
         if (nonNull(matcher)) {
-            this.extraMatchers.add(matcher);
+            if (!(this.executor instanceof MvcExecutor mvcExecutor)) {
+                throw new IllegalStateException("andExpectPath(ResultMatcher) is IT-only and cannot be used in E2E");
+            }
+            mvcExecutor.addMatcher(matcher);
         }
         return this;
     }
@@ -217,33 +214,30 @@ public class MockMvcBuilder<Req, Res> {
             if (nonNull(defaultsContext)) {
                 defaultsContext.applyDefaults(new TokenOnlyDefaultContext());
             }
-            final MockHttpServletRequestBuilder httpRequest = this.buildHttpRequest();
             final Map<String, String> resolvedHeaders = this.resolveHeaders();
-            final Map<String, String> resolvedCookies = this.resolveCookies();
             final String resolvedToken = this.resolveToken();
             if (nonNull(resolvedToken) && !this.hasHeaderIgnoreCase(resolvedHeaders, HttpHeaders.AUTHORIZATION)) {
-                httpRequest.header(HttpHeaders.AUTHORIZATION, resolvedToken);
+                resolvedHeaders.put(HttpHeaders.AUTHORIZATION, resolvedToken);
             }
-            for (final Map.Entry<String, String> entry : resolvedHeaders.entrySet()) {
-                if (entry.getValue() != null) {
-                    httpRequest.header(entry.getKey(), entry.getValue());
-                }
+            final Map<String, List<String>> query = new LinkedHashMap<>();
+            if (this.queryParameters != null) {
+                this.queryParameters.forEach((key, value) -> this.applyQueryParameter(query, key, value));
             }
-            for (final Map.Entry<String, String> entry : resolvedCookies.entrySet()) {
-                if (entry.getValue() != null) {
-                    httpRequest.cookie(new Cookie(entry.getKey(), entry.getValue()));
-                }
-            }
-            final var mvcResultActions = this.mockMvc.perform(httpRequest);
+            final MockMvcResponse response = this.executor.execute(new MockMvcRequest(this.endpoint.getMethod(),
+                    this.endpoint.getUrlBuilder().getTemplate(),
+                    this.pathParameters == null ? Map.of() : this.pathParameters,
+                    query, resolvedHeaders, this.resolveCookies(), this.requestJson));
             if (nonNull(this.responseJson)) {
-                mvcResultActions.andExpect(jsonEqualsIgnore(this.responseJson, this.responseFieldsToIgnore.toArray(new String[0])));
+                JsonComparator.compareJson(this.responseJson, response.body(), this.responseFieldsToIgnore.toArray(new String[0]));
             }
-            if (nonNull(this.expectedStatus)) {
-                mvcResultActions.andExpect(MockMvcResultMatchers.status().is(this.expectedStatus.value()));
+            if (nonNull(this.expectedStatus) && response.status() != this.expectedStatus.value()) {
+                throw new AssertionError("Status expected:<" + this.expectedStatus.value() + "> but was:<" + response.status() + ">");
             }
-            for (final ResultMatcher matcher : this.extraMatchers) {
-                mvcResultActions.andExpect(matcher);
+            if (this.executor instanceof MvcExecutor mvcExecutor) {
+                mvcExecutor.verifyMatchers();
             }
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to createAndAssert MockMvc request", e);
         }
@@ -301,50 +295,7 @@ public class MockMvcBuilder<Req, Res> {
 
     }
 
-    private MockHttpServletRequestBuilder buildHttpRequest() {
-        final String path = this.resolvePath();
-        final MockHttpServletRequestBuilder builder = switch (this.endpoint.getMethod()) {
-            case GET -> get(path);
-            case POST -> post(path);
-            case PUT -> put(path);
-            case PATCH -> patch(path);
-            case DELETE -> delete(path);
-            default -> throw new IllegalStateException("Unsupported HTTP method: " + this.endpoint.getMethod());
-        };
-        if (nonNull(this.requestJson)) {
-            builder.contentType(MediaType.APPLICATION_JSON).content(this.requestJson);
-        }
-        this.applyQueryParameters(builder);
-        return builder;
-    }
-
-    private String resolvePath() {
-        final String template = this.endpoint.getUrlBuilder().getTemplate();
-        if (this.pathParameters == null || this.pathParameters.isEmpty()) {
-            if (PLACEHOLDER.matcher(template).find()) {
-                throw new IllegalArgumentException("Path parameters are required for template: " + template);
-            }
-            return template;
-        }
-
-        final String resolvedPath = UriComponentsBuilder.fromPath(template)
-                .buildAndExpand(this.pathParameters)
-                .toUriString();
-
-        if (PLACEHOLDER.matcher(resolvedPath).find()) {
-            throw new IllegalArgumentException("Not all placeholders were resolved in the template: " + template);
-        }
-        return resolvedPath;
-    }
-
-    private void applyQueryParameters(final MockHttpServletRequestBuilder builder) {
-        if (this.queryParameters == null || this.queryParameters.isEmpty()) {
-            return;
-        }
-        this.queryParameters.forEach((key, value) -> this.applyQueryParameter(builder, key, value));
-    }
-
-    private void applyQueryParameter(final MockHttpServletRequestBuilder builder,
+    private void applyQueryParameter(final Map<String, List<String>> builder,
                                      final String key,
                                      final Object value) {
         if (value == null) {
@@ -363,7 +314,7 @@ public class MockMvcBuilder<Req, Res> {
             }
             return;
         }
-        builder.param(key, String.valueOf(value));
+        builder.computeIfAbsent(key, ignored -> new ArrayList<>()).add(String.valueOf(value));
     }
 
     private String resolveToken() {

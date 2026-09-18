@@ -2,6 +2,8 @@ forge-it:
   modules:
     mock-mvc:
       enabled: true
+      connect-timeout: 5s
+      request-timeout: 10s
       path:
         request: /mockmvc/request
         response: /mockmvc/response

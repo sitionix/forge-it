@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.time.Duration;
 
 
 /**
@@ -18,6 +19,8 @@ public class MockMvcProperties {
     static final String PROPERTY_PREFIX = "forge-it.modules.mock-mvc";
 
     private Boolean enabled;
+    private Duration connectTimeout = Duration.ofSeconds(5);
+    private Duration requestTimeout = Duration.ofSeconds(10);
     private Path path;
     private String defaultToken;
     private Map<String, String> defaultHeaders;

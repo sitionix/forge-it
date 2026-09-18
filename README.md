@@ -821,3 +821,92 @@ You can reuse the version helper locally via
 python .github/scripts/version_helper.py         # prints release/next versions
 python .github/scripts/version_helper.py export  # emits shell env vars
 ```
+
+## External HTTP E2E with the existing MockMvc DSL
+
+`@E2E` creates a small Spring test context for an already running environment. It loads
+`application-e2e.yml`, environment/system properties and annotation `properties` overrides,
+then installs only the features declared by the test's ForgeIT interface. This release
+supports `MockMvcSupport` in E2E; other features fail before installation. No application
+scan, servlet MockMvc, database cleanup or containers are started by E2E.
+
+```java
+public final class ServiceContracts {
+    public static final ServiceContract AUTH = ServiceContract.builder()
+            .baseUrlFromProperty("consumer.http.auth-base-url")
+            .build();
+    private ServiceContracts() { }
+}
+
+@ForgeFeatures(MockMvcSupport.class)
+public interface E2eSupport extends ForgeIT { }
+
+@E2E
+class AuthE2E {
+    @Autowired private E2eSupport forgeIt;
+
+    @Test void login() {
+        forgeIt.mockMvc(ServiceContracts.AUTH)
+                .ping(MockMvcEndpoint.loginDefault())
+                .assertDefault();
+    }
+}
+```
+
+Import `ServiceContract` from `com.sitionix.forgeit.domain.endpoint` and `E2E` from
+`com.sitionix.forgeit.core.test`. The existing annotation processor generates `E2eSupportImpl`.
+Reuse the same endpoints, JSON fixtures, defaults, mutators and explicit DSL as IT:
+
+```java
+forgeIt.mockMvc(ServiceContracts.AUTH).ping(MockMvcEndpoint.login())
+        .withRequest("loginRequest.json")
+        .expectResponse("loginResponse.json")
+        .expectStatus(HttpStatus.OK)
+        .assertAndCreate();
+```
+
+Configure the consumer's `application-e2e.yml`:
+
+```yaml
+consumer:
+  http:
+    auth-base-url: ${AUTH_BASE_URL}
+forge-it:
+  modules:
+    mock-mvc:
+      connect-timeout: 5s
+      request-timeout: 10s
+```
+
+Service contracts store address definitions, resolved independently against each test
+context when bound. Literal HTTP(S) URLs are also supported in contract definitions.
+Missing/unresolved addresses, credentials, query/fragment in a base URL, or invalid ports
+fail before I/O. Base paths are retained, path/query values are encoded, and redirects
+are not followed. 4xx/5xx responses remain available to normal assertions. Both timeouts
+must be between 1 ms and 10 minutes; the request deadline includes the response body.
+There are no application retries. Each context owns and closes its HTTP client.
+
+`token(null)` suppresses a default token; an explicit Authorization header takes precedence.
+The existing JSON comparison and ignored-field behavior are unchanged. `andExpectPath(ResultMatcher)`
+requires real MVC and fails immediately in E2E. Use `mockMvc()` in IT and
+`mockMvc(ServiceContracts.AUTH)` in E2E; mixing annotations or transport modes is an error.
+
+Run the library's Docker-free self-tests (JDK 21 and Maven required):
+
+```bash
+./scripts/test-e2e-self.sh
+```
+
+These tests start local HTTP fixtures on port 0 in their test harness, exercise generated
+consumer injection, and check transport parity, configuration isolation, deadlines and
+interrupts. Existing optional feature libraries may be present on the classpath; their
+installers and services are not activated by E2E. Local smoke success does not establish
+that an external platform works.
+
+The consumer `AuthE2E` example is excluded from ordinary Surefire discovery. Run it only
+explicitly against an environment you have already started:
+
+```bash
+AUTH_BASE_URL=https://your-auth-host/api mvn -pl forge-it-consumer-it -am \
+  -Dtest=AuthE2E -Dsurefire.failIfNoSpecifiedTests=false test
+```
