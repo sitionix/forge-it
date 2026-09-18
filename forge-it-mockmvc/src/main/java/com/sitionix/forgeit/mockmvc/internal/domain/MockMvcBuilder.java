@@ -13,6 +13,8 @@ import com.sitionix.forgeit.mockmvc.api.QueryParams;
 import com.sitionix.forgeit.mockmvc.internal.loader.MockMvcLoader;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Array;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +32,8 @@ import java.util.function.Consumer;
 import static java.util.Objects.nonNull;
 
 public class MockMvcBuilder<Req, Res> {
+
+    private static final Logger log = LoggerFactory.getLogger(MockMvcBuilder.class);
 
     private final MockMvcExecutor executor;
     private final MockMvcLoader mockMvcLoader;
@@ -52,6 +57,7 @@ public class MockMvcBuilder<Req, Res> {
     private final Map<String, String> defaultCookies;
     private final Map<String, String> cookies;
     private HttpStatus expectedStatus;
+    private Duration expectedMaximumDuration;
     private final DefaultContext defaultContext;
 
     private final DefaultMutationContext<Req, Res> defaultMutationContext;
@@ -137,6 +143,15 @@ public class MockMvcBuilder<Req, Res> {
         if (nonNull(status)) {
             this.expectedStatus = status;
         }
+        return this;
+    }
+
+    /** Assert measured response duration without changing the transport timeout. */
+    public MockMvcBuilder<Req, Res> expectResponseWithin(final Duration duration) {
+        if (duration == null || duration.isZero() || duration.isNegative()) {
+            throw new IllegalArgumentException("Expected maximum response duration must be non-null and positive");
+        }
+        this.expectedMaximumDuration = duration;
         return this;
     }
 
@@ -227,11 +242,17 @@ public class MockMvcBuilder<Req, Res> {
                     this.endpoint.getUrlBuilder().getTemplate(),
                     this.pathParameters == null ? Map.of() : this.pathParameters,
                     query, resolvedHeaders, this.resolveCookies(), this.requestJson));
+            log.info("HTTP {} {} status={} duration={}ms", this.endpoint.getMethod(),
+                    timingEndpointTemplate(), response.status(), response.elapsed().toMillis());
             if (nonNull(this.responseJson)) {
                 JsonComparator.compareJson(this.responseJson, response.body(), this.responseFieldsToIgnore.toArray(new String[0]));
             }
             if (nonNull(this.expectedStatus) && response.status() != this.expectedStatus.value()) {
                 throw new AssertionError("Status expected:<" + this.expectedStatus.value() + "> but was:<" + response.status() + ">");
+            }
+            if (this.expectedMaximumDuration != null && response.elapsed().compareTo(this.expectedMaximumDuration) > 0) {
+                throw new AssertionError("Response time exceeded: expected maximum duration: "
+                        + this.expectedMaximumDuration + "; actual duration: " + response.elapsed());
             }
             if (this.executor instanceof MvcExecutor mvcExecutor) {
                 mvcExecutor.verifyMatchers();
@@ -241,6 +262,14 @@ public class MockMvcBuilder<Req, Res> {
         } catch (Exception e) {
             throw new RuntimeException("Failed to createAndAssert MockMvc request", e);
         }
+    }
+
+    private String timingEndpointTemplate() {
+        // Legacy MVC templates may contain an authority or inline query. Never log either.
+        String template = this.endpoint.getUrlBuilder().getTemplate();
+        template = template.split("[?#]", 2)[0];
+        template = template.replaceFirst("^(?:[a-zA-Z][a-zA-Z0-9+.-]*:)?//[^/]*", "");
+        return template.isEmpty() ? "/" : template.replaceAll("[\\p{Cntrl}\\p{Zl}\\p{Zp}]", "_");
     }
 
     private void loadRequest(final String jsonName, final Consumer<Req> mutator, final boolean isDefault) {
