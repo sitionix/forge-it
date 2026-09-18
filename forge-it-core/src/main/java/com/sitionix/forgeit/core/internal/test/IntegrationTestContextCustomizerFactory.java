@@ -4,6 +4,7 @@ import com.sitionix.forgeit.core.annotation.ForgeFeatures;
 import com.sitionix.forgeit.core.api.ForgeIT;
 import com.sitionix.forgeit.core.marker.FeatureSupport;
 import com.sitionix.forgeit.core.test.ForgeItTest;
+import com.sitionix.forgeit.core.test.E2E;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -25,11 +26,24 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
     @Override
     public ContextCustomizer createContextCustomizer(final @NotNull Class<?> testClass,
                                                      final @NotNull List<ContextConfigurationAttributes> configAttributes) {
-        if (!AnnotatedElementUtils.hasAnnotation(testClass, ForgeItTest.class)) {
+        final E2E e2e = AnnotatedElementUtils.findMergedAnnotation(testClass, E2E.class);
+        final boolean integrationTest = AnnotatedElementUtils.hasAnnotation(testClass, ForgeItTest.class);
+        if (e2e != null && integrationTest) {
+            throw new IllegalStateException("@E2E and @IntegrationTest/@ForgeItTest cannot be combined");
+        }
+        if (e2e == null && !integrationTest) {
             return null;
         }
         final Class<?> contractType = this.resolveContractType(testClass);
         final List<Class<? extends FeatureSupport>> features = List.copyOf(this.resolveFeatures(contractType));
+        if (e2e != null) {
+            for (Class<?> feature : features) {
+                if (!feature.getName().equals("com.sitionix.forgeit.mockmvc.api.MockMvcSupport")) {
+                    throw new IllegalStateException("Unsupported E2E feature: " + feature.getName());
+                }
+            }
+            return new ForgeE2eContextCustomizer(contractType, features, List.of(e2e.properties()));
+        }
         final List<String> properties = this.resolveTestProperties(testClass);
         return new ForgeIntegrationTestContextCustomizer(contractType, features, properties);
     }
