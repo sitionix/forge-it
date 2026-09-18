@@ -11,6 +11,7 @@ import com.sitionix.forgeit.wiremock.api.WireMockQueryParams;
 import com.sitionix.forgeit.wiremock.internal.domain.RequestBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
@@ -49,6 +50,7 @@ class AuthControllerIT {
                 .withRequest("loginRequest.json")
                 .expectResponse("loginResponse.json")
                 .expectStatus(HttpStatus.OK)
+                .expectResponseWithin(Duration.ofSeconds(5))
                 .assertAndCreate();
 
         requestBuilder.verify();

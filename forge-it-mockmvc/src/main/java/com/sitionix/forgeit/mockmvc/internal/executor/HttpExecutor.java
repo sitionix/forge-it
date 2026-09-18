@@ -36,10 +36,12 @@ public final class HttpExecutor implements MockMvcExecutor {
     public MockMvcResponse execute(MockMvcRequest request) {
         final HttpRequest httpRequest = this.buildRequest(request);
         // The future deadline bounds the entire response, including a stalled body.
+        final long started = System.nanoTime();
         var future = this.client.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         try {
             var response = future.get(this.timeout.toMillis(), TimeUnit.MILLISECONDS);
-            return new MockMvcResponse(response.statusCode(), response.body());
+            return new MockMvcResponse(response.statusCode(), response.body(),
+                    Duration.ofNanos(System.nanoTime() - started));
         } catch (InterruptedException ex) {
             future.cancel(true);
             Thread.currentThread().interrupt();

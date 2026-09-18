@@ -891,6 +891,40 @@ The existing JSON comparison and ignored-field behavior are unchanged. `andExpec
 requires real MVC and fails immediately in E2E. Use `mockMvc()` in IT and
 `mockMvc(ServiceContracts.AUTH)` in E2E; mixing annotations or transport modes is an error.
 
+### Response duration in IT and E2E
+
+The existing builder optionally asserts performance independently of HTTP timeouts:
+
+```java
+forgeIt.mockMvc(ServiceContracts.AUTH)
+        .ping(MockMvcEndpoint.loginDefault())
+        .expectResponseWithin(Duration.ofSeconds(1))
+        .assertDefault();
+```
+
+Import `java.time.Duration`. The same method works with `mockMvc()` in IT and with
+`assertAndCreate()`. The threshold must be non-null and positive. Equality passes;
+exceeding the threshold raises `AssertionError` with the expected maximum duration
+and actual duration, at nanosecond precision. Without a threshold, timing is informational.
+
+Both transports measure with `System.nanoTime()` until the full response body is
+available (including asynchronous MVC dispatch). Fixture preparation and assertions
+are excluded. `expectResponseWithin` never changes `connect-timeout` or
+`request-timeout`: a transport timeout is still a transport failure, while a performance
+failure follows a completed response.
+
+Every received response, including error statuses and assertion failures, produces one
+INFO line from `MockMvcBuilder`, for example:
+
+```text
+HTTP POST /auth/login status=200 duration=187ms
+```
+
+The log contains the endpoint template, never resolved path parameters, the base URL,
+query values, bodies, headers, cookies or tokens. Milliseconds in the log are truncated;
+the assertion uses the full measured duration. Transport failures have no response
+and therefore emit no response timing line.
+
 Run the library's Docker-free self-tests (JDK 21 and Maven required):
 
 ```bash
