@@ -23,6 +23,9 @@ jobs:
           java-version: 21
           cache: maven
 
+      - name: Test ROS adapter protocol without ROS
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s forge-it-ros/src/test/python -v
+
       - name: Prepare Docker for Testcontainers
         run: |
           docker version

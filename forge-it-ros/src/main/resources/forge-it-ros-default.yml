@@ -1,0 +1,8 @@
+forge-it:
+  modules:
+    ros:
+      enabled: true
+      python-command: python3
+      startup-timeout: 10s
+      default-consume-timeout: 5s
+      domain-id: ${ROS_DOMAIN_ID:}

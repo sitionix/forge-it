@@ -28,6 +28,7 @@
         <module>forge-it-sqlite</module>
         <module>forge-it-mongodb</module>
         <module>forge-it-kafka</module>
+        <module>forge-it-ros</module>
         <module>forge-it-annotation-processor</module>
         <module>forge-it-core</module>
         <module>forge-it-bundle</module>

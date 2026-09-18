@@ -18,6 +18,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-ros</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>${project.parent.groupId}</groupId>
             <artifactId>forge-it-core</artifactId>
             <version>${project.parent.version}</version>
