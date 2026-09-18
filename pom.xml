@@ -12,7 +12,7 @@
 
     <groupId>com.sitionix.forgeit</groupId>
     <artifactId>forgeit-parent</artifactId>
-    <version>0.0.41</version>
+    <version>0.0.42</version>
     <packaging>pom</packaging>
 
     <name>ForgeIT Parent</name>

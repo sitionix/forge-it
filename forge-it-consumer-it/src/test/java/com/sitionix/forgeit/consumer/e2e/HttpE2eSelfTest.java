@@ -12,6 +12,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.*;
 
@@ -42,7 +43,8 @@ class HttpE2eSelfTest {
     @AfterAll static void stop() { if (server != null) server.stop(0); }
 
     @Test void reusesConsumerEndpointAndFixtures() {
-        forgeIt.mockMvc(ServiceContracts.AUTH).ping(MockMvcEndpoint.loginDefault()).assertDefault();
+        forgeIt.mockMvc(ServiceContracts.AUTH).ping(MockMvcEndpoint.loginDefault())
+                .expectResponseWithin(Duration.ofSeconds(5)).assertDefault();
         forgeIt.mockMvc(ServiceContracts.AUTH).ping(MockMvcEndpoint.login())
                 .withRequest("loginRequest.json").expectResponse("loginResponse.json")
                 .expectStatus(HttpStatus.OK).assertAndCreate();

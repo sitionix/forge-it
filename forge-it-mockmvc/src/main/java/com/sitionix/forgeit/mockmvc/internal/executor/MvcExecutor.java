@@ -6,6 +6,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -46,8 +47,14 @@ public final class MvcExecutor implements MockMvcExecutor {
         request.queryParameters().forEach((key, values) -> builder.param(key, values.toArray(String[]::new)));
         request.headers().forEach((key, value) -> { if (value != null) builder.header(key, value); });
         request.cookies().forEach((key, value) -> { if (value != null) builder.cookie(new Cookie(key, value)); });
+        final long started = System.nanoTime();
         this.resultActions = this.mockMvc.perform(builder);
+        var result = this.resultActions.andReturn();
+        if (result.getRequest().isAsyncStarted()) {
+            this.resultActions = this.mockMvc.perform(asyncDispatch(result));
+        }
         var response = this.resultActions.andReturn().getResponse();
-        return new MockMvcResponse(response.getStatus(), response.getContentAsString());
+        return new MockMvcResponse(response.getStatus(), response.getContentAsString(),
+                Duration.ofNanos(System.nanoTime() - started));
     }
 }
