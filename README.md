@@ -1072,3 +1072,11 @@ The default Maven suite skips the real test unless `-Dforgeit.ros.real=true` is 
 JSON must be finite and representable by `rosidl_runtime_py` conversion; NaN/Infinity
 or unsupported message-field conversions fail explicitly. Services/actions, sequence
 history assertions, retries and automatic ROS environment setup are not supported.
+
+### Verify the distributable bundle
+
+After `./mvnw -B -ntp clean install`, run `./scripts/test-bundle-self.sh`.
+This separate consumer uses only the `forgeit` test dependency (plus the compiler
+annotation processor), checks that every bundled feature installer is whitelisted,
+and executes an HTTP E2E with generated support. It resolves the packaged JAR,
+not reactor module class directories. CI runs it after the full reactor build.
