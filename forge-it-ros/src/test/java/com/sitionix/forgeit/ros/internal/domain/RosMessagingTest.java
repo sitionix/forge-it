@@ -44,7 +44,7 @@ class RosMessagingTest {
         return new RosMessagingFacade(loader(), new MockEnvironment().withProperty("test.topic", "/private_runtime_topic"),
                 new RosProperties(), transport, transport);
     }
-    private RosConsumeBuilder consume() {
+    private DefaultRosConsumeBuilder consume() {
         return new DefaultRosConsumeBuilder(TOPIC, loader(),
                 new MockEnvironment().withProperty("test.topic", "/private_runtime_topic"),
                 new RosProperties(), transport, clock::get);
@@ -160,7 +160,103 @@ class RosMessagingTest {
         assertTrue(transport.closed);
     }
 
+    @Test
+    void publishAndVerifySubscribesBeforePublishingAndAssertsDefaultFixture() {
+        this.transport.receive = remaining -> this.transport.published.getFirst();
+
+        this.messaging().publish(TOPIC).publishAndVerify(TOPIC);
+
+        assertEquals(List.of("subscribe", "publish", "receive", "close"), this.transport.events);
+        assertEquals(List.of("/ros/default/publish/send.json", "/ros/default/expected/ready.json"), this.fixtures);
+    }
+
+    @Test
+    void publishAndVerifySupportsSeparateFeedbackContractAndExplicitPublishFixture() {
+        final RosTopicContract feedback = RosTopicContract.builder()
+                .topic("/feedback")
+                .messageType("std_msgs/msg/String")
+                .defaultExpectedMessage("ready.json")
+                .build();
+        this.transport.receive = remaining -> this.transport.published.getFirst();
+
+        this.messaging().publish(TOPIC).message("custom.json").publishAndVerify(feedback);
+
+        assertEquals("/private_runtime_topic", this.transport.publishedTopic);
+        assertEquals("/feedback", this.transport.subscribedTopic);
+        assertEquals(List.of("/ros/publish/custom.json", "/ros/default/expected/ready.json"), this.fixtures);
+        assertTrue(this.transport.closed);
+    }
+
+    @Test
+    void publishAndVerifyFailsOnFirstMismatchAndClosesSubscription() {
+        this.transport.receive = remaining -> json("{\"data\":\"private-mismatch\"}");
+
+        final AssertionError failure = assertThrows(AssertionError.class,
+                () -> this.messaging().publish(TOPIC).publishAndVerify(TOPIC));
+
+        assertEquals(1, this.transport.received);
+        assertTrue(this.transport.closed);
+        assertTrue(failure.getMessage().contains("first message assertion failed"));
+        assertFalse(failure.getMessage().contains("private-mismatch"));
+    }
+
+    @Test
+    void publishAndVerifyClosesSubscriptionWhenPublicationFails() {
+        this.transport.publication = () -> { throw new IllegalStateException("publication failed"); };
+
+        assertThrows(IllegalStateException.class,
+                () -> this.messaging().publish(TOPIC).publishAndVerify(TOPIC));
+
+        assertTrue(this.transport.closed);
+        assertEquals(0, this.transport.received);
+    }
+
+    @Test
+    void publicationConsumesTheSameOverallAssertionDeadline() {
+        this.transport.setup = () -> this.clock.addAndGet(Duration.ofSeconds(2).toNanos());
+        this.transport.receive = remaining -> json("{\"data\":\"READY\"}");
+        final List<Duration> publishBudgets = new ArrayList<>();
+
+        this.consume().assertMessage(remaining -> {
+            publishBudgets.add(remaining);
+            this.clock.addAndGet(Duration.ofSeconds(2).toNanos());
+        });
+
+        assertEquals(List.of(Duration.ofSeconds(3)), publishBudgets);
+        assertEquals(List.of(Duration.ofSeconds(1)), this.transport.waits);
+        assertTrue(this.transport.closed);
+    }
+
+    @Test
+    void publicationExhaustingDeadlineCannotPassWithALateMessage() {
+        this.transport.receive = remaining -> json("{\"data\":\"READY\"}");
+
+        final AssertionError failure = assertThrows(AssertionError.class,
+                () -> this.consume().assertMessage(remaining -> this.clock.addAndGet(remaining.toNanos())));
+
+        assertTrue(failure.getMessage().contains("received=0"));
+        assertEquals(0, this.transport.received);
+        assertTrue(this.transport.closed);
+    }
+
+    @Test
+    void publishAndVerifyValidatesFixturesAndFeedbackBeforePublishing() {
+        assertThrows(NullPointerException.class,
+                () -> this.messaging().publish(TOPIC).publishAndVerify(null));
+        assertThrows(IllegalArgumentException.class,
+                () -> this.messaging().publish(TOPIC).message("../secret.json").publishAndVerify(TOPIC));
+        final RosTopicContract missingExpected = RosTopicContract.builder()
+                .topic("/feedback").messageType("std_msgs/msg/String").build();
+        assertThrows(IllegalArgumentException.class,
+                () -> this.messaging().publish(TOPIC).publishAndVerify(missingExpected));
+
+        assertEquals(0, this.transport.subscribed);
+        assertTrue(this.transport.published.isEmpty());
+    }
+
     static final class FakeTransport implements RosPublisherPort, RosConsumerPort {
+        final List<String> events = new ArrayList<>();
+        Runnable publication = () -> {};
         String publishedTopic;
         String subscribedTopic;
         Function<Duration, JsonNode> receive;
@@ -170,15 +266,18 @@ class RosMessagingTest {
         List<Duration> waits = new ArrayList<>();
         List<JsonNode> published = new ArrayList<>();
         public RosSubscription subscribe(String topic, String type, RosQos qos, Duration timeout) {
+            events.add("subscribe");
             subscribedTopic = topic;
             subscribed++;
             setup.run();
             return new RosSubscription() {
-                public JsonNode next(Duration remaining) { received++; waits.add(remaining); return receive.apply(remaining); }
-                public void close() { closed = true; }
+                public JsonNode next(Duration remaining) { events.add("receive"); received++; waits.add(remaining); return receive.apply(remaining); }
+                public void close() { events.add("close"); closed = true; }
             };
         }
         public void publish(final String topic, final String type, final RosQos qos, final JsonNode message, final Duration timeout) {
+            events.add("publish");
+            publication.run();
             publishedTopic = topic;
             published.add(message);
         }

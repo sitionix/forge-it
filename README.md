@@ -982,6 +982,20 @@ forgeIt.ros().consume(STATUS)
         .assertMessage();
 ```
 
+For a publish/feedback assertion, ForgeIT subscribes before publishing so a
+volatile response cannot be lost between separate DSL calls:
+
+```java
+forgeIt.ros().publish(COMMAND).publishAndVerify(FEEDBACK);
+```
+
+The operation uses the publisher's default fixture (or `message(name)` override)
+and the feedback contract's default expected fixture. It asserts the first
+feedback message and closes the subscription on success or failure. Use the same
+contract for a transport smoke test. Subscription setup, publication and reception
+share `default-consume-timeout`; publisher discovery is additionally bounded by
+`startup-timeout`. No executor or resource management is needed in the test.
+
 Topic contracts are immutable. Configure exactly one of `topic(...)` and
 `topicFromProperty(...)`; property values resolve independently per context.
 `messageType` is dynamically resolved by ROS as `package/msg/Message`.
