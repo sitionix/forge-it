@@ -46,3 +46,6 @@ jobs:
           echo "Using API_VERSION=${API_VERSION}"
           echo "Using JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS}"
           ./mvnw -B -ntp clean install
+
+      - name: Test packaged bundle as a standalone consumer
+        run: ./scripts/test-bundle-self.sh

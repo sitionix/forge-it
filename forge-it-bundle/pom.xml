@@ -156,6 +156,12 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <!-- Preserve Spring Boot's inherited transformers and merge every module whitelist. -->
+                            <transformers combine.children="append">
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/forge-it/features</resource>
+                                </transformer>
+                            </transformers>
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
