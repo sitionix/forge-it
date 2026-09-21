@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sitionix.forgeit.ros.api.RosQos;
+import com.sitionix.forgeit.ros.internal.config.RosProperties;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.CodingErrorAction;
@@ -20,7 +21,7 @@ public final class PythonRosTransport implements RosTransport {
     private static final int MAX_PENDING = 128;
     private static final Set<String> CODES = Set.of("INVALID_COMMAND", "INVALID_QOS", "INVALID_MESSAGE",
             "MESSAGE_TYPE_UNAVAILABLE", "ROS_ERROR", "PUBLISH_TIMEOUT", "RESOURCE_LIMIT",
-            "FRAME_TOO_LARGE", "QUEUE_OVERFLOW", "INVALID_FRAME");
+            "FRAME_TOO_LARGE", "QUEUE_OVERFLOW", "INVALID_FRAME", "SHUTDOWN_FAILED");
     private final ObjectMapper mapper = new ObjectMapper();
     private final Map<String, CompletableFuture<Void>> pending = new ConcurrentHashMap<>();
     private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
@@ -31,16 +32,33 @@ public final class PythonRosTransport implements RosTransport {
             new ArrayBlockingQueue<>(MAX_PENDING), runnable -> daemon(runnable, "forgeit-ros-writer"));
     private volatile String terminal;
     private volatile boolean closing;
+    private volatile boolean shutdownAcknowledged;
+    private volatile String shutdownRequestId;
+    private final Duration shutdownTimeout;
+    private final Object closeLock = new Object();
+    private boolean closeCompleted;
     private Process process;
     private Thread reader;
     private Thread stderr;
     private Path extracted;
 
     public PythonRosTransport(String pythonCommand, Duration startupTimeout, String domainId) {
-        this(pythonCommand, startupTimeout, domainId, null);
+        this(pythonCommand, startupTimeout, RosProperties.DEFAULT_SHUTDOWN_TIMEOUT, domainId, null);
+    }
+
+    public PythonRosTransport(String pythonCommand, Duration startupTimeout, Duration shutdownTimeout, String domainId) {
+        this(pythonCommand, startupTimeout, shutdownTimeout, domainId, null);
     }
 
     PythonRosTransport(String pythonCommand, Duration startupTimeout, String domainId, Path adapter) {
+        this(pythonCommand, startupTimeout, RosProperties.DEFAULT_SHUTDOWN_TIMEOUT, domainId, adapter);
+    }
+
+    PythonRosTransport(String pythonCommand, Duration startupTimeout, Duration shutdownTimeout, String domainId, Path adapter) {
+        if (shutdownTimeout == null || shutdownTimeout.isZero() || shutdownTimeout.isNegative()) {
+            throw new IllegalArgumentException("forge-it.modules.ros.shutdown-timeout must be positive");
+        }
+        this.shutdownTimeout = shutdownTimeout;
         long deadline = deadline(startupTimeout);
         try {
             if (pythonCommand == null || pythonCommand.isBlank()) throw failure("INVALID_CONFIGURATION");
@@ -120,11 +138,14 @@ public final class PythonRosTransport implements RosTransport {
 
     // Registration and enqueue share a lock, so command IDs and wire order agree.
     private synchronized CompletableFuture<Void> sendRequest(ObjectNode command) {
-        checkOpen();
+        boolean shutdown = "SHUTDOWN".equals(command.path("type").asText());
+        if (terminal != null) throw failure(terminal);
+        if (closing && !shutdown) throw failure("CLOSING");
         if (pending.size() >= MAX_PENDING) throw failure("RESOURCE_LIMIT");
         CompletableFuture<Void> response = new CompletableFuture<>();
         String id = "r" + requestIds.incrementAndGet();
         command.put("id", id);
+        if (shutdown) shutdownRequestId = id;
         pending.put(id, response);
         response.whenComplete((ignored, error) -> pending.remove(id, response));
         try {
@@ -136,6 +157,7 @@ public final class PythonRosTransport implements RosTransport {
                     process.getOutputStream().write(frame);
                     process.getOutputStream().write('\n');
                     process.getOutputStream().flush();
+                    if (shutdown) process.getOutputStream().close();
                 } catch (IOException ignored) { terminate("PROCESS_IO"); }
             });
             return response;
@@ -181,6 +203,9 @@ public final class PythonRosTransport implements RosTransport {
             // close() wait for process exit rather than killing Python mid-finalization.
             if (!closing || frame.size() != 0) {
                 terminate(frame.size() == 0 ? "PROCESS_EXITED" : "INVALID_FRAME");
+            } else if (!shutdownAcknowledged && shutdownRequestId != null) {
+                var completion = pending.get(shutdownRequestId);
+                if (completion != null) completion.completeExceptionally(failure("SHUTDOWN_INCOMPLETE"));
             }
         } catch (Exception ignored) { terminate("INVALID_FRAME"); }
     }
@@ -192,7 +217,16 @@ public final class PythonRosTransport implements RosTransport {
         String type = frame.path("type").asText();
         String id = frame.path("id").asText("");
         switch (type) {
+            case "SHUTDOWN_COMPLETE" -> {
+                CompletableFuture<Void> future = pending.get(id);
+                if (!closing || !id.equals(shutdownRequestId) || future == null) {
+                    terminate("INVALID_FRAME"); return;
+                }
+                shutdownAcknowledged = true;
+                future.complete(null);
+            }
             case "READY" -> {
+                if (id.equals(shutdownRequestId)) { terminate("INVALID_FRAME"); return; }
                 if ("0".equals(id)) startup.complete(null);
                 else {
                     CompletableFuture<Void> future = pending.get(id);
@@ -219,7 +253,10 @@ public final class PythonRosTransport implements RosTransport {
         }
     }
 
-    private void checkOpen() { if (terminal != null) throw failure(terminal); }
+    private void checkOpen() {
+        if (terminal != null) throw failure(terminal);
+        if (closing) throw failure("CLOSING");
+    }
     private static IllegalStateException failure(String code) { return new IllegalStateException("ROS transport: " + code); }
     private static long deadline(Duration timeout) {
         if (timeout == null || timeout.isNegative() || timeout.isZero()) throw failure("INVALID_TIMEOUT");
@@ -253,20 +290,53 @@ public final class PythonRosTransport implements RosTransport {
     }
 
     @Override public void close() {
-        if (terminal == null) {
-            closing = true;
-            long shutdownDeadline = deadline(Duration.ofSeconds(2));
+        synchronized (closeLock) {
+            if (closeCompleted) return;
+            long shutdownDeadline = deadline(shutdownTimeout);
+            String phase = "cleanup-confirmation";
+            IllegalStateException shutdownError = null;
             try {
-                request(mapper.createObjectNode().put("type", "SHUTDOWN"), deadline(Duration.ofMillis(250)));
-                // Release the Python command-reader thread before interpreter teardown.
-                process.getOutputStream().close();
-                process.waitFor(remaining(shutdownDeadline), TimeUnit.NANOSECONDS);
-            } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            catch (IOException | RuntimeException ignored) { }
+                if (terminal != null) {
+                    if (!"CLOSED".equals(terminal)) throw shutdownFailure("transport", terminal);
+                    return;
+                }
+                CompletableFuture<Void> completion;
+                synchronized (this) {
+                    closing = true;
+                    completion = sendRequest(mapper.createObjectNode().put("type", "SHUTDOWN"));
+                }
+                // Both protocol completion and exit share the same monotonic deadline.
+                completion.get(remaining(shutdownDeadline), TimeUnit.NANOSECONDS);
+                phase = "process-exit";
+                if (!process.waitFor(remaining(shutdownDeadline), TimeUnit.NANOSECONDS)) {
+                    throw new TimeoutException();
+                }
+                if (process.exitValue() != 0) {
+                    throw shutdownFailure(phase, "NONZERO_EXIT_" + process.exitValue());
+                }
+            } catch (TimeoutException error) {
+                shutdownError = shutdownFailure(phase, "TIMEOUT");
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+                shutdownError = shutdownFailure(phase, "INTERRUPTED");
+            } catch (ExecutionException error) {
+                shutdownError = shutdownFailure(phase, "ADAPTER_FAILED");
+            } catch (IllegalStateException error) {
+                shutdownError = error.getMessage().startsWith("ROS shutdown failed")
+                        ? error : shutdownFailure(phase, "TRANSPORT_FAILED");
+            } finally {
+                terminate("CLOSED");
+                join(reader);
+                join(stderr);
+                closeCompleted = true;
+            }
+            if (shutdownError != null) throw shutdownError;
         }
-        terminate("CLOSED");
-        join(reader);
-        join(stderr);
+    }
+
+    private IllegalStateException shutdownFailure(String phase, String reason) {
+        return new IllegalStateException("ROS shutdown failed: phase=" + phase + "; reason=" + reason
+                + "; shutdown-timeout=" + shutdownTimeout);
     }
 
     private static void join(Thread thread) {
@@ -302,7 +372,7 @@ public final class PythonRosTransport implements RosTransport {
         @Override public void close() {
             synchronized (this) { if (closed) return; closed = true; queue.clear(); notifyAll(); }
             subscriptions.remove(id);
-            if (terminal != null) return;
+            if (terminal != null || closing) return;
             try {
                 // Cleanup must not consume the caller's assertion deadline or replace its result.
                 sendRequest(mapper.createObjectNode().put("type", "STOP_SUBSCRIPTION").put("subscriptionId", id))

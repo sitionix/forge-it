@@ -1014,6 +1014,7 @@ forge-it:
       enabled: true
       python-command: python3
       startup-timeout: 10s
+      shutdown-timeout: 10s
       default-consume-timeout: 5s
       domain-id: ${ROS_DOMAIN_ID:}
 ```
@@ -1034,11 +1035,16 @@ The internal version-1 protocol is UTF-8 JSON Lines on stdout. Frames contain `t
 deterministic request IDs (`r1`, `r2`, ...) and subscription IDs (`s1`, `s2`, ...).
 `READY` with ID `0` marks startup; command acknowledgements echo the request ID.
 Commands: `START_SUBSCRIPTION`, `STOP_SUBSCRIPTION`, `PUBLISH`, `SHUTDOWN`.
-Events: `MESSAGE` (subscription ID and JSON message), `READY`, `ERROR` (fixed safe code).
+Events: `MESSAGE` (subscription ID and JSON message), `READY`,
+`SHUTDOWN_COMPLETE` (cleanup finished, with request ID), `ERROR` (fixed safe code).
 ROS/native logs go to stderr; Java drains and discards them to avoid leaking payloads
 or runtime details. Human-readable logs are never parsed as protocol.
 
-One adapter is reused per context and closed with the context. Java has at most 128
+One adapter is reused within each test class. ROS contexts are class-owned, so
+parallel test classes cannot close each other's adapter. A Spring test listener
+closes the adapter and evicts the context at the end of the class. Explicit
+`@DirtiesContext` resets before/after individual methods are also honored, with
+cleanup failures propagated before Spring destroys the beans. Java has at most 128
 pending requests/subscriptions and 64 queued messages per subscription; overflow
 fails explicitly rather than evicting the first message. Frames are capped at 1 MiB.
 The Python adapter bounds command/publish queues and retains at most 256 publishers
@@ -1047,8 +1053,31 @@ that exceed those limits must use a fresh context. Startup, malformed protocol,
 unknown message types, invalid QoS, process exit and resource exhaustion fail without
 fallback. Subscription STOP acknowledgements are tracked asynchronously so cleanup cannot extend
 the assertion deadline or replace its result. Missing STOP acknowledgement terminates
-the affected adapter after a bounded cleanup timeout. Context shutdown is bounded and
-force-kills an unresponsive child as a last resort.
+the affected adapter after a bounded cleanup timeout.
+
+### Orderly shutdown
+
+`shutdown-timeout` must be non-null and positive (default `10s`). It is one
+monotonic deadline shared by the shutdown command, cleanup acknowledgement and
+process exit; phases do not each receive a fresh timeout. Override it through
+`forge-it.modules.ros.shutdown-timeout` in test configuration or pass
+`-Dforge-it.modules.ros.shutdown-timeout=20s` to Maven. It does not change
+publish/consume budgets.
+
+Once shutdown starts, new work is rejected. Python stops its command reader,
+shuts down the executor, destroys DDS entities and the node, and shuts down rclpy.
+Only then does it emit `SHUTDOWN_COMPLETE`; Java additionally requires exit code 0.
+There are no retries or fixed sleeps. Failed cleanup emits the safe
+`SHUTDOWN_FAILED` code and exits nonzero. Java reports the failed phase and configured
+duration without dumping Python diagnostics or payloads.
+
+On deadline expiry or protocol failure, forced process cleanup remains a last
+resort. Short internal bounds for reaping/joining after a forced stop are cleanup
+safeguards, not a second graceful-shutdown budget. The test listener calls close
+before bean destruction, so failures fail the test lifecycle instead of becoming
+only Spring destroy-method warnings. A previously failing test keeps its original
+failure; lifecycle cleanup failures are reported separately or suppressed by the
+test framework. ROS contexts are evicted even when cleanup fails.
 
 ### ROS self-tests
 

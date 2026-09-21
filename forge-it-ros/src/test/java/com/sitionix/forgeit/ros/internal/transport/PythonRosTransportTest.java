@@ -10,6 +10,7 @@ import java.util.concurrent.*;
 import static org.assertj.core.api.Assertions.*;
 
 class PythonRosTransportTest {
+    private static final Duration SHUTDOWN_TIMEOUT = Duration.ofMillis(400);
     private static final Duration TIMEOUT = Duration.ofSeconds(3);
     private static final RosQos QOS = new RosQos(RosQos.Reliability.RELIABLE,
             RosQos.Durability.VOLATILE, RosQos.History.KEEP_LAST, 10);
@@ -22,7 +23,7 @@ class PythonRosTransportTest {
     private PythonRosTransport runtime(String mode, String domainId, Duration startupTimeout) throws Exception {
         Path script = directory.resolve(mode + ".py");
         try (var source = getClass().getResourceAsStream("/ros/protocol/runtime.py")) { Files.copy(source, script); }
-        return new PythonRosTransport("python3", startupTimeout, domainId, script);
+        return new PythonRosTransport("python3", startupTimeout, SHUTDOWN_TIMEOUT, domainId, script);
     }
 
     @Test void acknowledgedShutdownClosesStdinAndAllowsExpectedProtocolEof() throws Exception {
@@ -38,10 +39,68 @@ class PythonRosTransportTest {
         var transport = runtime("shutdown_stalled");
         long pid = Long.parseLong(Files.readString(directory.resolve("shutdown_stalled.py.pid")));
         long start = System.nanoTime();
-        transport.close();
+        assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed")
+                .hasMessageContaining("process-exit");
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(4));
         assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
         transport.close();
+    }
+
+    @Test void missingCleanupConfirmationFailsAndReapsProcess() throws Exception {
+        var transport = runtime("shutdown_no_ack");
+        long pid = Long.parseLong(Files.readString(directory.resolve("shutdown_no_ack.py.pid")));
+        assertThatThrownBy(transport::close).hasMessageContaining("cleanup-confirmation")
+                .hasMessageContaining("TIMEOUT").hasMessageContaining("shutdown-timeout=PT0.4S");
+        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        transport.close();
+    }
+
+    @Test void adapterCleanupErrorAndNonzeroExitAreExplicitAndPrivate() throws Exception {
+        var failed = runtime("shutdown_error");
+        assertThatThrownBy(failed::close).hasMessageContaining("cleanup-confirmation")
+                .hasMessageContaining("ADAPTER_FAILED").hasMessageNotContaining("private-secret").hasNoCause();
+        var nonzero = runtime("shutdown_nonzero");
+        assertThatThrownBy(nonzero::close).hasMessageContaining("process-exit")
+                .hasMessageContaining("NONZERO_EXIT_7").hasNoCause();
+    }
+
+    @Test void shutdownTimeoutMustBePositive() {
+        for (Duration invalid : new Duration[] {null, Duration.ZERO, Duration.ofMillis(-1)}) {
+            assertThatThrownBy(() -> new PythonRosTransport("python3", TIMEOUT, invalid, ""))
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shutdown-timeout must be positive");
+        }
+    }
+
+    @Test void completionAndProcessExitUseOneConfiguredDeadline() throws Exception {
+        // A socket gates each phase. Only the cleanup gate is released, halfway through
+        // the configured budget; exit must use its remainder, not a fresh timeout.
+        try (var server = new java.net.ServerSocket(0);
+             var tasks = Executors.newVirtualThreadPerTaskExecutor()) {
+            server.setSoTimeout(5000);
+            Path script = directory.resolve("shutdown_gate.py");
+            try (var source = getClass().getResourceAsStream("/ros/protocol/runtime.py")) { Files.copy(source, script); }
+            Files.writeString(directory.resolve("shutdown_gate.py.port"), Integer.toString(server.getLocalPort()));
+            var transport = new PythonRosTransport("python3", TIMEOUT, Duration.ofSeconds(2), "", script);
+            long started = System.nanoTime();
+            var closing = tasks.submit(() -> catchThrowable(transport::close));
+            try (var control = server.accept()) {
+                control.setSoTimeout(5000);
+                var phases = new java.io.BufferedReader(new java.io.InputStreamReader(control.getInputStream()));
+                assertThat(phases.readLine()).isEqualTo("cleanup");
+                long releaseDelay = Math.max(0, TimeUnit.SECONDS.toNanos(1) - (System.nanoTime() - started));
+                var timer = Executors.newSingleThreadScheduledExecutor();
+                try {
+                    timer.schedule(() -> {
+                        try { control.getOutputStream().write(1); control.getOutputStream().flush(); }
+                        catch (java.io.IOException error) { throw new java.io.UncheckedIOException(error); }
+                    }, releaseDelay, TimeUnit.NANOSECONDS);
+                    assertThat(phases.readLine()).isEqualTo("exit");
+                    assertThat(closing.get(4, TimeUnit.SECONDS)).hasMessageContaining("phase=process-exit")
+                            .hasMessageContaining("shutdown-timeout=PT2S");
+                    assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofMillis(2800));
+                } finally { timer.shutdownNow(); transport.close(); }
+            }
+        }
     }
 
     @Test void reusesRuntimeForMultipleTopicsAndConcurrentConsumption() throws Exception {
@@ -119,20 +178,22 @@ class PythonRosTransportTest {
     }
 
     @Test void eofFailsPendingRequest() throws Exception {
-        try (var transport = runtime("runtime")) {
+        var transport = runtime("runtime");
+        try {
             assertThatThrownBy(() -> transport.publish("/exit", "std_msgs/msg/String", QOS,
                     new ObjectMapper().createObjectNode(), TIMEOUT)).hasMessage("ROS transport: PROCESS_EXITED");
-        }
+        } finally { assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed"); }
     }
 
     @Test void blockedPipeCannotDefeatRequestDeadline() throws Exception {
-        try (var transport = runtime("blocked")) {
+        var transport = runtime("blocked");
+        try {
             var message = new ObjectMapper().createObjectNode().put("data", "x".repeat(900_000));
             long start = System.nanoTime();
             assertThatThrownBy(() -> transport.publish("/a", "std_msgs/msg/String", QOS, message, Duration.ofMillis(200)))
                     .hasMessage("ROS transport: REQUEST_TIMEOUT");
             assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(3));
-        }
+        } finally { assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed"); }
     }
 
     @Test void writesDeterministicCommandsAndShutsDownActualChild() throws Exception {
@@ -161,7 +222,8 @@ class PythonRosTransportTest {
 
     @Test void stalledStopDoesNotDelayCloseOrReplaceCompletedResult() throws Exception {
         long pid;
-        try (var transport = runtime("stalled_stop")) {
+        var transport = runtime("stalled_stop");
+        try {
             pid = Long.parseLong(Files.readString(directory.resolve("stalled_stop.py.pid")));
             var subscription = transport.subscribe("/a", "std_msgs/msg/String", QOS, TIMEOUT);
             var expected = new ObjectMapper().createObjectNode().put("data", "completed");
@@ -172,27 +234,29 @@ class PythonRosTransportTest {
             assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(500));
             assertThat(received).isEqualTo(expected);
             subscription.close();
-        }
+        } finally { assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed"); }
         assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
     }
 
     @Test void unacknowledgedStopEventuallyTerminatesRuntimeWithoutFurtherRequests() throws Exception {
-        try (var transport = runtime("stalled_stop")) {
+        var transport = runtime("stalled_stop");
+        try {
             long pid = Long.parseLong(Files.readString(directory.resolve("stalled_stop.py.pid")));
             var exited = ProcessHandle.of(pid).orElseThrow().onExit();
             transport.subscribe("/a", "std_msgs/msg/String", QOS, TIMEOUT).close();
             assertThat(exited.get(3, TimeUnit.SECONDS).isAlive()).isFalse();
-        }
+        } finally { assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed"); }
     }
 
-    @Test void stopErrorDoesNotReplaceCallerFailure() throws Exception {
-        try (var transport = runtime("error_stop")) {
-            assertThatThrownBy(() -> {
-                try (var subscription = transport.subscribe("/a", "std_msgs/msg/String", QOS, TIMEOUT)) {
-                    throw new AssertionError("original mismatch");
-                }
-            }).isInstanceOf(AssertionError.class).hasMessage("original mismatch");
-        }
+    @Test void stopErrorDoesNotReplaceCallerFailure() {
+        assertThatThrownBy(() -> {
+            try (var transport = runtime("error_stop");
+                 var subscription = transport.subscribe("/a", "std_msgs/msg/String", QOS, TIMEOUT)) {
+                throw new AssertionError("original mismatch");
+            }
+        }).isInstanceOf(AssertionError.class).hasMessage("original mismatch")
+                .satisfies(error -> assertThat(error.getSuppressed()).anySatisfy(cleanup ->
+                        assertThat(cleanup).hasMessageContaining("ROS shutdown failed")));
     }
 
     @Test void closeWakesWaitingSubscriberAndRejectsFurtherWork() throws Exception {

@@ -2,3 +2,6 @@ com.sitionix.forgeit.core.internal.feature.FeatureInstaller=\
 com.sitionix.forgeit.ros.internal.config.RosFeatureInstaller
 org.springframework.boot.env.EnvironmentPostProcessor=\
 com.sitionix.forgeit.ros.config.RosDefaultsEnvironmentPostProcessor
+org.springframework.test.context.TestExecutionListener=\
+com.sitionix.forgeit.ros.internal.test.RosTestExecutionListener,\
+com.sitionix.forgeit.ros.internal.test.RosTestExecutionListener$BeforeDirtiesContext

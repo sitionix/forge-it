@@ -29,7 +29,7 @@ public final class RosFeatureInstaller implements FeatureInstaller {
     static class RosConfiguration {
         @Bean(destroyMethod = "close") RosTransport rosTransport(RosProperties properties) {
             if (!properties.isEnabled()) throw new IllegalStateException("ROS feature selected but disabled by configuration");
-            return new PythonRosTransport(properties.getPythonCommand(), properties.getStartupTimeout(), properties.getDomainId());
+            return new PythonRosTransport(properties.getPythonCommand(), properties.getStartupTimeout(), properties.getShutdownTimeout(), properties.getDomainId());
         }
         @Bean RosMessaging rosMessaging(RosTransport transport, Environment environment, RosProperties properties) {
             return new RosMessagingFacade(transport, environment, properties, FileLoader::load);
