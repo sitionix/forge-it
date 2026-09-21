@@ -25,6 +25,25 @@ class PythonRosTransportTest {
         return new PythonRosTransport("python3", startupTimeout, domainId, script);
     }
 
+    @Test void acknowledgedShutdownClosesStdinAndAllowsExpectedProtocolEof() throws Exception {
+        long pid;
+        try (var transport = runtime("shutdown_eof")) {
+            pid = Long.parseLong(Files.readString(directory.resolve("shutdown_eof.py.pid")));
+        }
+        assertThat(directory.resolve("shutdown_eof.py.clean_exit")).exists();
+        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+    }
+
+    @Test void acknowledgedButStalledShutdownRemainsBounded() throws Exception {
+        var transport = runtime("shutdown_stalled");
+        long pid = Long.parseLong(Files.readString(directory.resolve("shutdown_stalled.py.pid")));
+        long start = System.nanoTime();
+        transport.close();
+        assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(4));
+        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        transport.close();
+    }
+
     @Test void reusesRuntimeForMultipleTopicsAndConcurrentConsumption() throws Exception {
         try (var transport = runtime("runtime"); var sub = transport.subscribe("/a", "std_msgs/msg/String", QOS, TIMEOUT)) {
             var expected = new ObjectMapper().readTree("{\"data\":\"private payload\"}");

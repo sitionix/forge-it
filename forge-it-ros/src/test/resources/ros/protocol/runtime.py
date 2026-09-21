@@ -49,5 +49,14 @@ for line in sys.stdin:
                     emit({'type': 'MESSAGE', 'subscriptionId': sub, 'message': request['message']})
     emit({'type': 'READY', 'id': request['id']})
     if kind == 'SHUTDOWN':
+        if mode == 'shutdown_eof':
+            # Close protocol stdout before process exit: this EOF is expected.
+            sys.stdout.close()
+            os.close(1)
+            sys.stdin.read()  # deterministic handoff: Java must close stdin
+            Path(__file__ + '.clean_exit').touch()
+            os._exit(0)
+        if mode == 'shutdown_stalled':
+            threading.Event().wait()
         Path(__file__ + '.shutdown').touch()
         sys.exit(0)

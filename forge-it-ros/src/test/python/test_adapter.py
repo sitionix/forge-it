@@ -229,6 +229,24 @@ adapter.main()
             for marker in ['NATIVE_LOG', 'PYTHON_LOG', 'NODE_CLOSED', 'ROS_CLOSED']:
                 self.assertIn(marker, process.stderr)
 
+        # A SHUTDOWN must also stop the input thread while the parent pipe is open.
+        process = subprocess.Popen([sys.executable, '-c', bootstrap, str(PATH)],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual('READY', json.loads(process.stdout.readline())['type'])
+            process.stdin.write('{"type":"SHUTDOWN","id":"r1"}\n')
+            process.stdin.flush()
+            self.assertEqual('r1', json.loads(process.stdout.readline())['id'])
+            self.assertEqual(0, process.wait(timeout=5), process.stderr.read())
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            process.stdin.close()
+            process.stdout.close()
+            process.stderr.close()
+
 
 if __name__ == '__main__':
     unittest.main()

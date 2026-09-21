@@ -62,6 +62,10 @@ class CommandReader(threading.Thread):
                     return
                 try:
                     self.commands.put_nowait(frame)
+                    # No more commands follow shutdown. Do not hold stdin's buffered
+                    # lock in a daemon thread while Python finalizes the interpreter.
+                    if frame.get('type') == 'SHUTDOWN':
+                        return
                 except queue.Full:
                     self.failure = 'QUEUE_OVERFLOW'
                     return
@@ -234,6 +238,7 @@ def main():
     runtime = None
     rclpy = None
     executor = None
+    reader = None
     initialized = False
     try:
         import rclpy
@@ -278,6 +283,8 @@ def main():
         except Exception:
             pass
     finally:
+        if reader is not None and runtime is not None and runtime.stopping:
+            reader.join(timeout=1)
         if executor is not None:
             try:
                 executor.shutdown(timeout_sec=1)

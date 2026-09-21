@@ -30,6 +30,7 @@ public final class PythonRosTransport implements RosTransport {
     private final ThreadPoolExecutor writer = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(MAX_PENDING), runnable -> daemon(runnable, "forgeit-ros-writer"));
     private volatile String terminal;
+    private volatile boolean closing;
     private Process process;
     private Thread reader;
     private Thread stderr;
@@ -176,7 +177,11 @@ public final class PythonRosTransport implements RosTransport {
                     frame.write(next);
                 }
             }
-            terminate(frame.size() == 0 ? "PROCESS_EXITED" : "INVALID_FRAME");
+            // Closing the protocol output is part of normal adapter teardown. Let
+            // close() wait for process exit rather than killing Python mid-finalization.
+            if (!closing || frame.size() != 0) {
+                terminate(frame.size() == 0 ? "PROCESS_EXITED" : "INVALID_FRAME");
+            }
         } catch (Exception ignored) { terminate("INVALID_FRAME"); }
     }
 
@@ -249,11 +254,15 @@ public final class PythonRosTransport implements RosTransport {
 
     @Override public void close() {
         if (terminal == null) {
+            closing = true;
+            long shutdownDeadline = deadline(Duration.ofSeconds(2));
             try {
                 request(mapper.createObjectNode().put("type", "SHUTDOWN"), deadline(Duration.ofMillis(250)));
-                process.waitFor(100, TimeUnit.MILLISECONDS);
+                // Release the Python command-reader thread before interpreter teardown.
+                process.getOutputStream().close();
+                process.waitFor(remaining(shutdownDeadline), TimeUnit.NANOSECONDS);
             } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-            catch (RuntimeException ignored) { }
+            catch (IOException | RuntimeException ignored) { }
         }
         terminate("CLOSED");
         join(reader);
