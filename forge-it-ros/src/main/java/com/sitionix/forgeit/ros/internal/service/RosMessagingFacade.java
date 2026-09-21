@@ -33,7 +33,7 @@ public final class RosMessagingFacade implements RosMessaging {
     @Override
     public RosPublishBuilder publish(final RosTopicContract contract) {
         return new DefaultRosPublishBuilder(contract, this.rosLoader, this.environment,
-                this.properties, this.publisherPort);
+                this.properties, this.publisherPort, this.consumerPort);
     }
 
     @Override

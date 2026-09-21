@@ -29,14 +29,12 @@ class RosRealSelfTest {
         assertEquals("ROS transport: MESSAGE_TYPE_UNAVAILABLE", error.getMessage());
         assertNull(error.getCause());
     }
-    @Test void assertsFirstRealMessage() throws Exception {
-        var topic = topic();
-        var ros = forgeIt.ros();
-        try (var worker = Executors.newVirtualThreadPerTaskExecutor()) {
-            var consumer = worker.submit(() -> ros.consume(topic).await(Duration.ofSeconds(10)).assertMessage());
-            ros.publish(topic).publishDefault();
-            consumer.get(12, TimeUnit.SECONDS);
-        }
+    @Test
+    void assertsFirstRealMessage() {
+        final RosTopicContract contract = this.topic();
+        this.forgeIt.ros()
+                .publish(contract)
+                .publishAndVerify(contract);
     }
     @Test void streamingPassesOnLaterRealMessage() throws Exception {
         var topic = topic();
