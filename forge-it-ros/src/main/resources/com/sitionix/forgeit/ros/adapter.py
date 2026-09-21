@@ -62,6 +62,10 @@ class CommandReader(threading.Thread):
                     return
                 try:
                     self.commands.put_nowait(frame)
+                    # No more commands follow shutdown. Do not hold stdin's buffered
+                    # lock in a daemon thread while Python finalizes the interpreter.
+                    if frame.get('type') == 'SHUTDOWN':
+                        return
                 except queue.Full:
                     self.failure = 'QUEUE_OVERFLOW'
                     return
@@ -81,6 +85,7 @@ class Runtime:
         self.publishers = {}
         self.pending = []
         self.stopping = False
+        self.shutdown_id = None
 
     def ready(self, request_id):
         emit(self.output, dict(type='READY', id=request_id))
@@ -118,7 +123,7 @@ class Runtime:
             request_id = self.identifier(frame.get('id'))
             kind = frame.get('type')
             if kind == 'SHUTDOWN':
-                self.ready(request_id)
+                self.shutdown_id = request_id
                 self.stopping = True
                 return
             if kind == 'STOP_SUBSCRIPTION':
@@ -210,19 +215,27 @@ class Runtime:
 
     def close(self):
         self.pending.clear()
+        failed = False
         for sub in list(self.subscriptions.values()):
             try:
-                self.node.destroy_subscription(sub)
+                if self.node.destroy_subscription(sub) is False:
+                    failed = True
             except Exception:
-                pass
+                failed = True
         self.subscriptions.clear()
         for publisher in list(self.publishers.values()):
             try:
-                self.node.destroy_publisher(publisher)
+                if self.node.destroy_publisher(publisher) is False:
+                    failed = True
             except Exception:
-                pass
+                failed = True
         self.publishers.clear()
-        self.node.destroy_node()
+        try:
+            self.node.destroy_node()
+        except Exception:
+            failed = True
+        if failed:
+            raise ProtocolError('SHUTDOWN_FAILED')
 
 
 def main():
@@ -234,7 +247,9 @@ def main():
     runtime = None
     rclpy = None
     executor = None
+    reader = None
     initialized = False
+    exit_code = 0
     try:
         import rclpy
         from rclpy.duration import Duration
@@ -273,28 +288,53 @@ def main():
             executor.spin_once(timeout_sec=0.01)
             runtime.poll()
     except (Exception, KeyboardInterrupt):
+        exit_code = 1
         try:
             emit(output, dict(type='ERROR', id='0', code='ROS_ERROR'))
         except Exception:
             pass
     finally:
+        cleanup_failed = False
+        if reader is not None and runtime is not None and runtime.stopping:
+            try:
+                # The reader stops after enqueuing SHUTDOWN. The parent owns
+                # the overall deadline, including a stalled reader or ROS cleanup.
+                reader.join()
+            except (Exception, KeyboardInterrupt):
+                cleanup_failed = True
         if executor is not None:
             try:
-                executor.shutdown(timeout_sec=1)
-            except Exception:
-                pass
+                if executor.shutdown() is False:
+                    cleanup_failed = True
+            except (Exception, KeyboardInterrupt):
+                cleanup_failed = True
         if runtime is not None:
             try:
                 runtime.close()
-            except Exception:
-                pass
+            except (Exception, KeyboardInterrupt):
+                cleanup_failed = True
         if initialized:
             try:
                 rclpy.try_shutdown()
-            except Exception:
-                pass
-        output.close()
+            except (Exception, KeyboardInterrupt):
+                cleanup_failed = True
+        if cleanup_failed:
+            exit_code = 1
+        try:
+            shutdown_id = runtime.shutdown_id if runtime is not None else None
+            if shutdown_id is not None:
+                if exit_code:
+                    emit(output, dict(type='ERROR', id=shutdown_id, code='SHUTDOWN_FAILED'))
+                else:
+                    emit(output, dict(type='SHUTDOWN_COMPLETE', id=shutdown_id))
+            elif cleanup_failed:
+                emit(output, dict(type='ERROR', id='0', code='SHUTDOWN_FAILED'))
+        except (Exception, KeyboardInterrupt):
+            exit_code = 1
+        finally:
+            output.close()
+    return exit_code
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -2,7 +2,7 @@ package com.sitionix.forgeit.consumer.ros;
 
 import com.sitionix.forgeit.core.test.E2E;
 import com.sitionix.forgeit.ros.api.*;
-import com.sitionix.forgeit.ros.internal.transport.RosTransport;
+import com.sitionix.forgeit.ros.internal.port.RosPublisherPort;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -35,7 +35,7 @@ class RosContextSelfTest {
     @Test void installsOnlyRosAndReusesOneTransport() {
         assertThat(forgeIt.getClass().getSimpleName()).isEqualTo("RosOnlySupportImpl");
         assertThat(forgeIt.ros()).isSameAs(forgeIt.ros());
-        assertThat(context.getBeansOfType(RosTransport.class)).hasSize(1);
+        assertThat(context.getBeansOfType(RosPublisherPort.class)).hasSize(1);
         assertThat(context.getBeansOfType(javax.sql.DataSource.class)).isEmpty();
         assertThat(context.getBeansOfType(org.springframework.test.web.servlet.MockMvc.class)).isEmpty();
         for (String name : context.getBeanDefinitionNames()) {
