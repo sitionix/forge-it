@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.sitionix.forgeit</groupId>
+            <artifactId>forge-it-ros</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>${project.parent.groupId}</groupId>
             <artifactId>forge-it-annotations</artifactId>
             <version>${project.parent.version}</version>

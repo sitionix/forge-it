@@ -38,7 +38,8 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
         final List<Class<? extends FeatureSupport>> features = List.copyOf(this.resolveFeatures(contractType));
         if (e2e != null) {
             for (Class<?> feature : features) {
-                if (!feature.getName().equals("com.sitionix.forgeit.mockmvc.api.MockMvcSupport")) {
+                if (!Set.of("com.sitionix.forgeit.mockmvc.api.MockMvcSupport",
+                        "com.sitionix.forgeit.ros.api.RosSupport").contains(feature.getName())) {
                     throw new IllegalStateException("Unsupported E2E feature: " + feature.getName());
                 }
             }
