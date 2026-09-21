@@ -1014,6 +1014,7 @@ forge-it:
       enabled: true
       python-command: python3
       startup-timeout: 10s
+      shutdown-timeout: 10s
       default-consume-timeout: 5s
       domain-id: ${ROS_DOMAIN_ID:}
 ```
@@ -1034,11 +1035,15 @@ The internal version-1 protocol is UTF-8 JSON Lines on stdout. Frames contain `t
 deterministic request IDs (`r1`, `r2`, ...) and subscription IDs (`s1`, `s2`, ...).
 `READY` with ID `0` marks startup; command acknowledgements echo the request ID.
 Commands: `START_SUBSCRIPTION`, `STOP_SUBSCRIPTION`, `PUBLISH`, `SHUTDOWN`.
-Events: `MESSAGE` (subscription ID and JSON message), `READY`, `ERROR` (fixed safe code).
+Events: `MESSAGE` (subscription ID and JSON message), `READY`,
+`SHUTDOWN_COMPLETE` (cleanup finished, with request ID), `ERROR` (fixed safe code).
 ROS/native logs go to stderr; Java drains and discards them to avoid leaking payloads
 or runtime details. Human-readable logs are never parsed as protocol.
 
-One adapter is reused per context and closed with the context. Java has at most 128
+The ROS feature follows the Kafka structure: messaging facade, publish/consume
+builders, fixture loader and publisher/consumer ports. A single Python adapter
+implements both ports and is reused for the lifetime of its Spring context.
+Spring owns context caching and bean destruction, as with Kafka. Java has at most 128
 pending requests/subscriptions and 64 queued messages per subscription; overflow
 fails explicitly rather than evicting the first message. Frames are capped at 1 MiB.
 The Python adapter bounds command/publish queues and retains at most 256 publishers
@@ -1047,8 +1052,25 @@ that exceed those limits must use a fresh context. Startup, malformed protocol,
 unknown message types, invalid QoS, process exit and resource exhaustion fail without
 fallback. Subscription STOP acknowledgements are tracked asynchronously so cleanup cannot extend
 the assertion deadline or replace its result. Missing STOP acknowledgement terminates
-the affected adapter after a bounded cleanup timeout. Context shutdown is bounded and
-force-kills an unresponsive child as a last resort.
+the affected adapter after the configured `shutdown-timeout`.
+
+### Orderly shutdown
+
+`shutdown-timeout` is the positive adapter cleanup budget (default `10s`).
+Override `forge-it.modules.ros.shutdown-timeout` in test configuration or pass
+`-Dforge-it.modules.ros.shutdown-timeout=20s` to Maven.
+
+On close, the adapter rejects new work and sends `SHUTDOWN`. Python stops the
+reader, executor, DDS entities, node and rclpy before emitting `SHUTDOWN_COMPLETE`.
+Java requires that acknowledgement, exit code 0 and a successfully completed
+protocol stream within one monotonic deadline. A failed or stalled adapter is
+force-stopped; process exit triggers resource cleanup without fixed sleeps or
+extra polling budgets. Errors report only the phase, safe reason and configured
+duration. Spring handles bean-destruction errors through its standard lifecycle;
+there is no ROS-specific JUnit shutdown listener.
+
+A feedback topic is a separate `RosTopicContract` consumed through the same DSL.
+No special feedback transport or lifecycle is needed.
 
 ### ROS self-tests
 

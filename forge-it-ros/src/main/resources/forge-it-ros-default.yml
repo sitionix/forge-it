@@ -4,5 +4,6 @@ forge-it:
       enabled: true
       python-command: python3
       startup-timeout: 10s
+      shutdown-timeout: 10s
       default-consume-timeout: 5s
       domain-id: ${ROS_DOMAIN_ID:}
