@@ -827,7 +827,7 @@ python .github/scripts/version_helper.py export  # emits shell env vars
 `@E2E` creates a small Spring test context for an already running environment. It loads
 `application-e2e.yml`, environment/system properties and annotation `properties` overrides,
 then installs only the features declared by the test's ForgeIT interface. This release
-supports `MockMvcSupport` in E2E; other features fail before installation. No application
+supports `MockMvcSupport` and `RosSupport` in E2E; other features fail before installation. No application
 scan, servlet MockMvc, database cleanup or containers are started by E2E.
 
 ```java
@@ -944,3 +944,131 @@ explicitly against an environment you have already started:
 AUTH_BASE_URL=https://your-auth-host/api mvn -pl forge-it-consumer-it -am \
   -Dtest=AuthE2E -Dsurefire.failIfNoSpecifiedTests=false test
 ```
+
+
+## ROS 2 messaging
+
+`forge-it-ros` provides a fixture DSL like Kafka while a single context-owned Python
+`rclpy` adapter performs ROS transport. Select only the features needed by your test:
+
+```java
+@ForgeFeatures(RosSupport.class)
+public interface E2eSupport extends ForgeIT { }
+```
+
+Use `@E2E` for an infrastructure-only test context or existing IT context installation.
+Import the public types from `com.sitionix.forgeit.ros.api`. No ROS Java libraries,
+generated Java ROS messages, containers, or ROS installation are bundled.
+
+```java
+static final RosTopicContract STATUS = RosTopicContract.builder()
+        .topicFromProperty("e2e.ros.status-topic")
+        .messageType("my_messages/msg/Status")
+        .qos(RosQos.reliableVolatile(10))
+        .defaultPublishMessage("starting.json")
+        .defaultExpectedMessage("ready.json")
+        .build();
+
+forgeIt.ros().publish(STATUS).message("starting.json").publish();
+forgeIt.ros().publish(STATUS).publishDefault();
+
+// Asserts the first received message only, even when it mismatches.
+forgeIt.ros().consume(STATUS).await(Duration.ofSeconds(5)).assertMessage("ready.json");
+
+// Checks each successive message; one overall deadline includes subscription setup.
+forgeIt.ros().consume(STATUS)
+        .waitUntilAsserted(Duration.ofSeconds(10))
+        .ignoreFields("timestamp", "sequence")
+        .assertMessage();
+```
+
+Topic contracts are immutable. Configure exactly one of `topic(...)` and
+`topicFromProperty(...)`; property values resolve independently per context.
+`messageType` is dynamically resolved by ROS as `package/msg/Message`.
+QoS is an immutable `RosQos(reliability, durability, history, depth)` record with
+`RELIABLE`/`BEST_EFFORT`, `VOLATILE`/`TRANSIENT_LOCAL`, `KEEP_LAST`, positive depth.
+Its default is reliable/volatile/keep-last depth 10. Unsupported policies fail explicitly.
+
+Fixtures live under `src/test/resources/forge-it`:
+
+| Operation | Fixture directory |
+| --- | --- |
+| `message(name).publish()` | `ros/publish/` |
+| `publishDefault()` | `ros/default/publish/` |
+| `assertMessage(name)` | `ros/expected/` |
+| `assertMessage()` | `ros/default/expected/` |
+
+Fixtures and messages must be JSON objects. Assertions use JSONAssert LENIENT,
+matching existing ForgeIT semantics: extra fields are allowed, array order is ignored,
+and `ignoreFields` removes matching field names recursively. Each streamed message
+is compared independently; no first-message cache or growing history exists.
+Failure summaries contain structural mismatch counts, never expected/actual values.
+Timeouts report the topic template, configured duration, received count and last
+assertion summary. `waitUntilAsserted` selects the overall budget; `await` controls
+first-message mode and does not override that streaming budget.
+
+```yaml
+forge-it:
+  modules:
+    ros:
+      enabled: true
+      python-command: python3
+      startup-timeout: 10s
+      default-consume-timeout: 5s
+      domain-id: ${ROS_DOMAIN_ID:}
+```
+
+`python-command` is one executable path, not a shell command. Source your ROS install
+and any message overlays before starting Maven, or point it at an executable wrapper
+that sources them and forwards arguments. A blank domain setting preserves inherited
+`ROS_DOMAIN_ID`. Selecting RosSupport while `enabled=false` fails explicitly.
+The startup timeout also bounds publisher discovery/acknowledgement. A publisher
+requires a matched DDS subscriber before sending; it fails if none is discovered.
+Reliable publishers wait for middleware acknowledgement where the installed rclpy
+provides it. This is not an application-processing acknowledgement. BEST_EFFORT
+retains ROS best-effort delivery semantics.
+
+### Adapter protocol and limits
+
+The internal version-1 protocol is UTF-8 JSON Lines on stdout. Frames contain `type`,
+deterministic request IDs (`r1`, `r2`, ...) and subscription IDs (`s1`, `s2`, ...).
+`READY` with ID `0` marks startup; command acknowledgements echo the request ID.
+Commands: `START_SUBSCRIPTION`, `STOP_SUBSCRIPTION`, `PUBLISH`, `SHUTDOWN`.
+Events: `MESSAGE` (subscription ID and JSON message), `READY`, `ERROR` (fixed safe code).
+ROS/native logs go to stderr; Java drains and discards them to avoid leaking payloads
+or runtime details. Human-readable logs are never parsed as protocol.
+
+One adapter is reused per context and closed with the context. Java has at most 128
+pending requests/subscriptions and 64 queued messages per subscription; overflow
+fails explicitly rather than evicting the first message. Frames are capped at 1 MiB.
+The Python adapter bounds command/publish queues and retains at most 256 publishers
+and 256 subscriptions. Reusing topic/type/QoS reuses the publisher. Long-running tests
+that exceed those limits must use a fresh context. Startup, malformed protocol,
+unknown message types, invalid QoS, process exit and resource exhaustion fail without
+fallback. Subscription STOP acknowledgements are tracked asynchronously so cleanup cannot extend
+the assertion deadline or replace its result. Missing STOP acknowledgement terminates
+the affected adapter after a bounded cleanup timeout. Context shutdown is bounded and
+force-kills an unresponsive child as a last resort.
+
+### ROS self-tests
+
+Docker-free protocol, contract, DSL and generated-context tests require Python 3,
+but no ROS installation:
+
+```bash
+./scripts/test-ros-self.sh
+```
+
+Real ROS tests are opt-in, use unique temporary `std_msgs/msg/String` topics, and
+cover the first-message assertion, immediate first mismatch, and later matching
+message. They start no Gazebo, PX4, Ancestor services or hardware:
+
+```bash
+source /opt/ros/lyrical/setup.bash  # or your installed distribution and overlays
+ROS_DOMAIN_ID=187 ./scripts/test-ros-real.sh
+```
+
+The default Maven suite skips the real test unless `-Dforgeit.ros.real=true` is set.
+JSON must be finite and representable by `rosidl_runtime_py` conversion; NaN/Infinity
+or unsupported message-field conversions fail explicitly. Services/actions, sequence
+history assertions, retries and automatic ROS environment setup are not supported.
