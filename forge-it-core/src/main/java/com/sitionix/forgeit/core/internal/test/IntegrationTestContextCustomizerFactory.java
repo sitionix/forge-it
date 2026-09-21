@@ -7,12 +7,10 @@ import com.sitionix.forgeit.core.test.ForgeItTest;
 import com.sitionix.forgeit.core.test.E2E;
 import com.sitionix.forgeit.core.test.IntegrationTest;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
-import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Modifier;
@@ -45,30 +43,10 @@ public final class IntegrationTestContextCustomizerFactory implements ContextCus
                     throw new IllegalStateException("Unsupported E2E feature: " + feature.getName());
                 }
             }
-            return this.classOwnedIfRos(testClass, features,
-                    new ForgeE2eContextCustomizer(contractType, features, List.of(e2e.properties())));
+            return new ForgeE2eContextCustomizer(contractType, features, List.of(e2e.properties()));
         }
         final List<String> properties = this.resolveTestProperties(testClass);
-        return this.classOwnedIfRos(testClass, features,
-                new ForgeIntegrationTestContextCustomizer(contractType, features, properties));
-    }
-
-    private ContextCustomizer classOwnedIfRos(Class<?> testClass,
-                                             List<Class<? extends FeatureSupport>> features,
-                                             ContextCustomizer delegate) {
-        if (features.stream().anyMatch(feature -> feature.getName().equals("com.sitionix.forgeit.ros.api.RosSupport"))) {
-            return new ClassOwnedRosContextCustomizer(testClass, delegate);
-        }
-        return delegate;
-    }
-
-    /** A ROS adapter closes after its class, so parallel classes must not share its context. */
-    private record ClassOwnedRosContextCustomizer(Class<?> testClass, ContextCustomizer delegate)
-            implements ContextCustomizer {
-        @Override public void customizeContext(ConfigurableApplicationContext context,
-                                               MergedContextConfiguration configuration) {
-            delegate.customizeContext(context, configuration);
-        }
+        return new ForgeIntegrationTestContextCustomizer(contractType, features, properties);
     }
 
     private Class<?> resolveContractType(final Class<?> testClass) {

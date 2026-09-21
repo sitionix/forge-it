@@ -1040,11 +1040,10 @@ Events: `MESSAGE` (subscription ID and JSON message), `READY`,
 ROS/native logs go to stderr; Java drains and discards them to avoid leaking payloads
 or runtime details. Human-readable logs are never parsed as protocol.
 
-One adapter is reused within each test class. ROS contexts are class-owned, so
-parallel test classes cannot close each other's adapter. A Spring test listener
-closes the adapter and evicts the context at the end of the class. Explicit
-`@DirtiesContext` resets before/after individual methods are also honored, with
-cleanup failures propagated before Spring destroys the beans. Java has at most 128
+The ROS feature follows the Kafka structure: messaging facade, publish/consume
+builders, fixture loader and publisher/consumer ports. A single Python adapter
+implements both ports and is reused for the lifetime of its Spring context.
+Spring owns context caching and bean destruction, as with Kafka. Java has at most 128
 pending requests/subscriptions and 64 queued messages per subscription; overflow
 fails explicitly rather than evicting the first message. Frames are capped at 1 MiB.
 The Python adapter bounds command/publish queues and retains at most 256 publishers
@@ -1053,31 +1052,25 @@ that exceed those limits must use a fresh context. Startup, malformed protocol,
 unknown message types, invalid QoS, process exit and resource exhaustion fail without
 fallback. Subscription STOP acknowledgements are tracked asynchronously so cleanup cannot extend
 the assertion deadline or replace its result. Missing STOP acknowledgement terminates
-the affected adapter after a bounded cleanup timeout.
+the affected adapter after the configured `shutdown-timeout`.
 
 ### Orderly shutdown
 
-`shutdown-timeout` must be non-null and positive (default `10s`). It is one
-monotonic deadline shared by the shutdown command, cleanup acknowledgement and
-process exit; phases do not each receive a fresh timeout. Override it through
-`forge-it.modules.ros.shutdown-timeout` in test configuration or pass
-`-Dforge-it.modules.ros.shutdown-timeout=20s` to Maven. It does not change
-publish/consume budgets.
+`shutdown-timeout` is the positive adapter cleanup budget (default `10s`).
+Override `forge-it.modules.ros.shutdown-timeout` in test configuration or pass
+`-Dforge-it.modules.ros.shutdown-timeout=20s` to Maven.
 
-Once shutdown starts, new work is rejected. Python stops its command reader,
-shuts down the executor, destroys DDS entities and the node, and shuts down rclpy.
-Only then does it emit `SHUTDOWN_COMPLETE`; Java additionally requires exit code 0.
-There are no retries or fixed sleeps. Failed cleanup emits the safe
-`SHUTDOWN_FAILED` code and exits nonzero. Java reports the failed phase and configured
-duration without dumping Python diagnostics or payloads.
+On close, the adapter rejects new work and sends `SHUTDOWN`. Python stops the
+reader, executor, DDS entities, node and rclpy before emitting `SHUTDOWN_COMPLETE`.
+Java requires that acknowledgement, exit code 0 and a successfully completed
+protocol stream within one monotonic deadline. A failed or stalled adapter is
+force-stopped; process exit triggers resource cleanup without fixed sleeps or
+extra polling budgets. Errors report only the phase, safe reason and configured
+duration. Spring handles bean-destruction errors through its standard lifecycle;
+there is no ROS-specific JUnit shutdown listener.
 
-On deadline expiry or protocol failure, forced process cleanup remains a last
-resort. Short internal bounds for reaping/joining after a forced stop are cleanup
-safeguards, not a second graceful-shutdown budget. The test listener calls close
-before bean destruction, so failures fail the test lifecycle instead of becoming
-only Spring destroy-method warnings. A previously failing test keeps its original
-failure; lifecycle cleanup failures are reported separately or suppressed by the
-test framework. ROS contexts are evicted even when cleanup fails.
+A feedback topic is a separate `RosTopicContract` consumed through the same DSL.
+No special feedback transport or lifecycle is needed.
 
 ### ROS self-tests
 

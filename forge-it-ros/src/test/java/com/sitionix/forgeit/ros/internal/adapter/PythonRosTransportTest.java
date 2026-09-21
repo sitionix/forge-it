@@ -1,4 +1,4 @@
-package com.sitionix.forgeit.ros.internal.transport;
+package com.sitionix.forgeit.ros.internal.adapter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.ros.api.RosQos;
@@ -16,6 +16,13 @@ class PythonRosTransportTest {
             RosQos.Durability.VOLATILE, RosQos.History.KEEP_LAST, 10);
     @TempDir Path directory;
 
+    private static void assertProcessExited(final long pid) throws Exception {
+        final var process = ProcessHandle.of(pid);
+        if (process.isPresent()) {
+            assertThat(process.get().onExit().get(TIMEOUT.toNanos(), TimeUnit.NANOSECONDS).isAlive()).isFalse();
+        }
+    }
+
     private PythonRosTransport runtime(String mode) throws Exception {
         return runtime(mode, "", TIMEOUT);
     }
@@ -32,7 +39,7 @@ class PythonRosTransportTest {
             pid = Long.parseLong(Files.readString(directory.resolve("shutdown_eof.py.pid")));
         }
         assertThat(directory.resolve("shutdown_eof.py.clean_exit")).exists();
-        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        assertProcessExited(pid);
     }
 
     @Test void acknowledgedButStalledShutdownRemainsBounded() throws Exception {
@@ -42,7 +49,7 @@ class PythonRosTransportTest {
         assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed")
                 .hasMessageContaining("process-exit");
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(4));
-        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        assertProcessExited(pid);
         transport.close();
     }
 
@@ -51,7 +58,7 @@ class PythonRosTransportTest {
         long pid = Long.parseLong(Files.readString(directory.resolve("shutdown_no_ack.py.pid")));
         assertThatThrownBy(transport::close).hasMessageContaining("cleanup-confirmation")
                 .hasMessageContaining("TIMEOUT").hasMessageContaining("shutdown-timeout=PT0.4S");
-        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        assertProcessExited(pid);
         transport.close();
     }
 
@@ -62,6 +69,11 @@ class PythonRosTransportTest {
         var nonzero = runtime("shutdown_nonzero");
         assertThatThrownBy(nonzero::close).hasMessageContaining("process-exit")
                 .hasMessageContaining("NONZERO_EXIT_7").hasNoCause();
+    }
+
+    @Test void protocolFailureAfterAcknowledgementCannotBecomeSuccessfulShutdown() throws Exception {
+        var transport = runtime("shutdown_trailing_error");
+        assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed");
     }
 
     @Test void shutdownTimeoutMustBePositive() {
@@ -145,7 +157,7 @@ class PythonRosTransportTest {
 
     @Test void missingPythonExecutableFailsWithoutLeakingItsPath() {
         String missingExecutable = directory.resolve("private-host-secret-python").toString();
-        assertThatThrownBy(() -> new PythonRosTransport(missingExecutable, TIMEOUT, "", directory.resolve("adapter.py")))
+        assertThatThrownBy(() -> new PythonRosTransport(missingExecutable, TIMEOUT, SHUTDOWN_TIMEOUT, "", directory.resolve("adapter.py")))
                 .hasMessage("ROS transport: STARTUP_FAILED").hasNoCause();
     }
 
@@ -157,7 +169,7 @@ class PythonRosTransportTest {
         Path pidFile = directory.resolve("startup_timeout.py.pid");
         if (Files.exists(pidFile)) {
             long pid = Long.parseLong(Files.readString(pidFile));
-            assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+            assertProcessExited(pid);
         }
     }
 
@@ -217,7 +229,7 @@ class PythonRosTransportTest {
         assertThat(publish.path("qos").path("depth").asInt()).isEqualTo(10);
         assertThat(publish.path("timeoutMs").asLong()).isBetween(1L, 3000L);
         assertThat(publish.path("message").path("data").asText()).isEqualTo("hello");
-        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        assertProcessExited(pid);
     }
 
     @Test void stalledStopDoesNotDelayCloseOrReplaceCompletedResult() throws Exception {
@@ -235,7 +247,7 @@ class PythonRosTransportTest {
             assertThat(received).isEqualTo(expected);
             subscription.close();
         } finally { assertThatThrownBy(transport::close).hasMessageContaining("ROS shutdown failed"); }
-        assertThat(ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)).isFalse();
+        assertProcessExited(pid);
     }
 
     @Test void unacknowledgedStopEventuallyTerminatesRuntimeWithoutFurtherRequests() throws Exception {

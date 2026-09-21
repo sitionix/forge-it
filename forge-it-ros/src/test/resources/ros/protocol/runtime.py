@@ -48,6 +48,11 @@ for line in sys.stdin:
                 for _ in range(65 if topic == '/overflow' else 1):
                     emit({'type': 'MESSAGE', 'subscriptionId': sub, 'message': request['message']})
     if kind == 'SHUTDOWN':
+        if mode == 'shutdown_trailing_error':
+            frames = [{'type': 'SHUTDOWN_COMPLETE', 'id': request['id']},
+                      {'type': 'ERROR', 'id': '0', 'code': 'SHUTDOWN_FAILED'}]
+            os.write(1, (''.join(json.dumps(frame) + '\n' for frame in frames)).encode())
+            os._exit(0)
         if mode == 'shutdown_no_ack':
             threading.Event().wait()
         if mode == 'shutdown_error':

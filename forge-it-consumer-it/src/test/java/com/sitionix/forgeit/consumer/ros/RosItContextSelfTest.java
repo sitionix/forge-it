@@ -2,7 +2,7 @@ package com.sitionix.forgeit.consumer.ros;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sitionix.forgeit.core.test.IntegrationTest;
-import com.sitionix.forgeit.ros.internal.transport.RosTransport;
+import com.sitionix.forgeit.ros.internal.port.RosPublisherPort;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,7 +36,7 @@ class RosItContextSelfTest {
     }
     @AfterAll static void cleanup() throws Exception { Files.deleteIfExists(python); }
     @Test void onlyRosIsInstalledInItAndGeneratedDslWorks() {
-        assertThat(context.getBeansOfType(RosTransport.class)).hasSize(1);
+        assertThat(context.getBeansOfType(RosPublisherPort.class)).hasSize(1);
         assertThat(context.getBeansOfType(javax.sql.DataSource.class)).isEmpty();
         assertThat(context.containsBean("wireMockContainerManager")).isFalse();
         assertThat(context.containsBean("kafkaContainerManager")).isFalse();

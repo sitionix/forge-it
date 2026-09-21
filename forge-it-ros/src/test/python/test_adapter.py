@@ -6,6 +6,7 @@ import select
 from pathlib import Path
 import subprocess
 import sys
+import time
 from types import SimpleNamespace
 import unittest
 
@@ -16,6 +17,30 @@ if PATH.exists():
     spec.loader.exec_module(adapter)
 
 QOS = dict(reliability='RELIABLE', durability='VOLATILE', history='KEEP_LAST', depth=10)
+PROCESS_TEST_TIMEOUT = 5
+
+
+class ProcessDeadline:
+    def __init__(self):
+        self.end = time.monotonic() + PROCESS_TEST_TIMEOUT
+
+    def remaining(self):
+        remaining = self.end - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError('Adapter process test timed out')
+        return remaining
+
+    def readline(self, stream):
+        line = bytearray()
+        while True:
+            if not select.select([stream], [], [], self.remaining())[0]:
+                raise TimeoutError('Adapter process output timed out')
+            byte = os.read(stream.fileno(), 1)
+            if not byte:
+                return bytes(line)
+            line.extend(byte)
+            if byte == b'\n':
+                return bytes(line)
 
 
 class Publisher:
@@ -268,7 +293,7 @@ sys.exit(adapter.main())
     def test_native_stdout_is_redirected_and_shutdown_and_eof_cleanup(self):
         for commands in ['', '{"type":"SHUTDOWN","id":"r1"}\n']:
             process = subprocess.run([sys.executable, '-c', self.BOOTSTRAP, str(PATH)],
-                                     input=commands, text=True, capture_output=True, timeout=5)
+                                     input=commands, text=True, capture_output=True, timeout=PROCESS_TEST_TIMEOUT)
             self.assertEqual(0, process.returncode, process.stderr)
             frames = [json.loads(line) for line in process.stdout.splitlines()]
             self.assertEqual({'type': 'READY', 'id': '0'}, frames[0])
@@ -279,20 +304,20 @@ sys.exit(adapter.main())
                 self.assertIn(marker, process.stderr)
 
         # A SHUTDOWN must also stop the input thread while the parent pipe is open.
+        deadline = ProcessDeadline()
         process = subprocess.Popen([sys.executable, '-c', self.BOOTSTRAP, str(PATH)],
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, text=True)
+                                   stderr=subprocess.PIPE, bufsize=0)
         try:
-            self.assertEqual('READY', json.loads(process.stdout.readline())['type'])
-            process.stdin.write('{"type":"SHUTDOWN","id":"r1"}\n')
-            process.stdin.flush()
+            self.assertEqual('READY', json.loads(deadline.readline(process.stdout))['type'])
+            process.stdin.write(b'{"type":"SHUTDOWN","id":"r1"}\n')
             self.assertEqual({'type': 'SHUTDOWN_COMPLETE', 'id': 'r1'},
-                             json.loads(process.stdout.readline()))
-            self.assertEqual(0, process.wait(timeout=5), process.stderr.read())
+                             json.loads(deadline.readline(process.stdout)))
+            self.assertEqual(0, process.wait(timeout=deadline.remaining()), process.stderr.read())
         finally:
             if process.poll() is None:
                 process.kill()
-                process.wait(timeout=5)
+                process.wait(timeout=PROCESS_TEST_TIMEOUT)
             process.stdin.close()
             process.stdout.close()
             process.stderr.close()
@@ -300,6 +325,7 @@ sys.exit(adapter.main())
     def test_shutdown_waits_for_each_cleanup_stage_with_stdin_open(self):
         release_read, release_write = os.pipe()
         stage_read, stage_write = os.pipe()
+        deadline = ProcessDeadline()
         process = subprocess.Popen(
             [sys.executable, '-c', self.BOOTSTRAP, str(PATH), '', str(release_read), str(stage_write)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -308,23 +334,22 @@ sys.exit(adapter.main())
         os.close(stage_write)
         control = os.fdopen(stage_read, 'rb', buffering=0)
         try:
-            self.assertEqual({'type': 'READY', 'id': '0'}, json.loads(process.stdout.readline()))
+            self.assertEqual({'type': 'READY', 'id': '0'}, json.loads(deadline.readline(process.stdout)))
             process.stdin.write(b'{"type":"SHUTDOWN","id":"stop1"}\n')
             for stage in ['READER', 'EXECUTOR', 'SUBSCRIPTION', 'PUBLISHER', 'NODE', 'ROS']:
-                self.assertTrue(select.select([control], [], [], 5)[0], 'Cleanup did not reach ' + stage)
-                self.assertEqual(stage.encode() + b'\n', control.readline())
+                self.assertEqual(stage.encode() + b'\n', deadline.readline(control))
                 self.assertEqual([], select.select([process.stdout], [], [], 0)[0],
                                  'Shutdown acknowledged before ' + stage + ' finished')
                 self.assertIsNone(process.poll())
                 os.write(release_write, b'+')
             self.assertEqual({'type': 'SHUTDOWN_COMPLETE', 'id': 'stop1'},
-                             json.loads(process.stdout.readline()))
-            self.assertEqual(0, process.wait(timeout=5), process.stderr.read())
+                             json.loads(deadline.readline(process.stdout)))
+            self.assertEqual(0, process.wait(timeout=deadline.remaining()), process.stderr.read())
             self.assertEqual(b'', process.stdout.read())
         finally:
             if process.poll() is None:
                 process.kill()
-                process.wait(timeout=5)
+                process.wait(timeout=PROCESS_TEST_TIMEOUT)
             control.close()
             os.close(release_write)
             for stream in (process.stdin, process.stdout, process.stderr):
@@ -337,7 +362,7 @@ sys.exit(adapter.main())
                 process = subprocess.run(
                     [sys.executable, '-c', self.BOOTSTRAP, str(PATH), failed_stage],
                     input='{"type":"SHUTDOWN","id":"stop1"}\n',
-                    capture_output=True, text=True, timeout=5)
+                    capture_output=True, text=True, timeout=PROCESS_TEST_TIMEOUT)
                 self.assertNotEqual(0, process.returncode)
                 self.assertEqual([
                     {'type': 'READY', 'id': '0'},
