@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.LongSupplier;
+import java.util.function.Consumer;
 
 public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
 
@@ -77,7 +78,15 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
         this.check(this.rosLoader.expectedPayload(name));
     }
 
+    void assertMessage(final Consumer<Duration> afterSubscription) {
+        this.check(this.rosLoader.defaultExpectedPayload(this.contract.defaultExpectedMessage()), afterSubscription);
+    }
+
     private void check(final JsonNode expected) {
+        this.check(expected, remaining -> { });
+    }
+
+    private void check(final JsonNode expected, final Consumer<Duration> afterSubscription) {
         removeIgnored(expected, this.ignored);
         final Duration timeout = this.assertionTimeout == null ? this.firstTimeout : this.assertionTimeout;
         final long budget = timeout.toNanos();
@@ -87,6 +96,11 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
         String last = "no message received";
         try (final RosSubscription subscription = this.consumerPort.subscribe(topic, this.contract.messageType(),
                 this.contract.qos(), this.remaining(started, budget))) {
+            final Duration publishBudget = this.remaining(started, budget);
+            if (publishBudget.isZero()) {
+                throw this.timeout(timeout, received, last);
+            }
+            afterSubscription.accept(publishBudget);
             while (true) {
                 final Duration remaining = this.remaining(started, budget);
                 if (remaining.isZero()) {
