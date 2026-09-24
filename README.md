@@ -972,6 +972,9 @@ static final RosTopicContract STATUS = RosTopicContract.builder()
 forgeIt.ros().publish(STATUS).message("starting.json").publish();
 forgeIt.ros().publish(STATUS).publishDefault();
 
+// Optional long frequency in Hz: publish repeatedly for this test method.
+forgeIt.ros().publish(STATUS).frequency(10L).publishDefault();
+
 // Asserts the first received message only, even when it mismatches.
 forgeIt.ros().consume(STATUS).await(Duration.ofSeconds(5)).assertMessage("ready.json");
 
@@ -981,6 +984,13 @@ forgeIt.ros().consume(STATUS)
         .ignoreFields("timestamp", "sequence")
         .assertMessage();
 ```
+
+Without `frequency`, publication remains one-shot. A frequency from 1 to 100 Hz
+starts a repeating publisher after discovery and its first successful send.
+ForgeIT stops all repeating publishers after the test method, before JUnit
+`afterEach` cleanup. A numeric top-level `timestamp` in a repeated ROS message
+is refreshed in microseconds for every send; other fixture fields stay fixed.
+The stream is not a replacement for a scenario's observable assertion.
 
 For a publish/feedback assertion, ForgeIT subscribes before publishing so a
 volatile response cannot be lost between separate DSL calls:

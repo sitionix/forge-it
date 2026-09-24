@@ -8,4 +8,7 @@ import java.time.Duration;
 public interface RosPublisherPort {
 
     void publish(String topic, String messageType, RosQos qos, JsonNode message, Duration timeout);
+    void publishPeriodically(String topic, String messageType, RosQos qos, JsonNode message,
+                             Duration timeout, long hertz);
+    void stopPeriodic();
 }

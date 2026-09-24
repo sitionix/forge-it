@@ -1,4 +1,5 @@
 import importlib.util
+import copy
 import io
 import json
 import os
@@ -53,7 +54,7 @@ class Publisher:
         return self.matched
 
     def publish(self, message):
-        self.messages.append(message)
+        self.messages.append(copy.deepcopy(message))
 
     def wait_for_all_acked(self, duration):
         return self.acked
@@ -99,7 +100,8 @@ class AdapterTest(unittest.TestCase):
             ReliabilityPolicy=policy, DurabilityPolicy=policy, HistoryPolicy=policy,
             Duration=lambda **kwargs: kwargs,
         )
-        self.runtime = adapter.Runtime(self.node, self.ros, self.out, clock=lambda: self.now)
+        self.runtime = adapter.Runtime(self.node, self.ros, self.out, clock=lambda: self.now,
+                                       timestamp_clock=lambda: int(self.now * 1000000))
 
     def frames(self):
         return [json.loads(line) for line in self.out.getvalue().splitlines()]
@@ -120,6 +122,63 @@ class AdapterTest(unittest.TestCase):
         self.runtime.command(self.command())
         self.runtime.poll()
         self.assertEqual(1, len(self.node.publishers))
+
+    def test_frequency_absent_remains_one_shot(self):
+        one_shot = self.command()
+        one_shot['message'] = {'timestamp': 0, 'data': 'once'}
+        self.runtime.command(one_shot)
+        self.node.publishers[0].matched = 1
+        self.runtime.poll()
+        self.now += 1
+        self.runtime.poll()
+        self.assertEqual(1, len(self.node.publishers[0].messages))
+        self.assertEqual(0, self.node.publishers[0].messages[0].timestamp)
+
+    def test_frequency_repeats_with_fresh_timestamp_until_stopped(self):
+        start = self.command(kind='START_PERIODIC', frequency=10, publicationId='p1')
+        start['message'] = {'timestamp': 0, 'data': 'heartbeat'}
+        self.runtime.command(start)
+        self.node.publishers[0].matched = 1
+        self.runtime.poll()
+        first = self.node.publishers[0].messages[0].timestamp
+        self.now += 0.1
+        self.runtime.poll()
+        second = self.node.publishers[0].messages[1].timestamp
+        self.assertGreater(second, first)
+        self.assertEqual([{'type': 'READY', 'id': 'r1'}], self.frames())
+        self.runtime.command(dict(type='STOP_PERIODIC', id='r2', publicationId='p1'))
+        self.now += 1
+        self.runtime.poll()
+        self.assertEqual(2, len(self.node.publishers[0].messages))
+        self.assertEqual({'type': 'READY', 'id': 'r2'}, self.frames()[-1])
+
+    def test_invalid_frequency_is_rejected_before_publication(self):
+        for invalid in (0, -1, True, 1.5, 101):
+            self.runtime.command(self.command(kind='START_PERIODIC', frequency=invalid, publicationId='p1'))
+            self.assertEqual('INVALID_FREQUENCY', self.frames()[-1]['code'])
+        self.assertEqual([], self.node.publishers)
+
+    def test_periodic_publish_failure_is_reported_on_stop(self):
+        self.runtime.command(self.command(kind='START_PERIODIC', frequency=10, publicationId='p1'))
+        publisher = self.node.publishers[0]
+        publisher.matched = 1
+        self.runtime.poll()
+        def fail(message):
+            raise RuntimeError('private publisher failure')
+        publisher.publish = fail
+        self.now += 0.1
+        self.runtime.poll()
+        self.runtime.command(dict(type='STOP_PERIODIC', id='r2', publicationId='p1'))
+        self.assertEqual({'type': 'ERROR', 'id': 'r2', 'code': 'ROS_ERROR'}, self.frames()[-1])
+        self.assertNotIn('private publisher failure', self.out.getvalue())
+
+    def test_shutdown_stops_periodic_publication(self):
+        self.runtime.command(self.command(kind='START_PERIODIC', frequency=10, publicationId='p1'))
+        self.node.publishers[0].matched = 1
+        self.runtime.poll()
+        self.runtime.close()
+        self.assertEqual({}, self.runtime.periodic)
+        self.assertEqual([], self.node.publishers)
 
     def test_publish_deadline_is_explicit(self):
         self.runtime.command(self.command())

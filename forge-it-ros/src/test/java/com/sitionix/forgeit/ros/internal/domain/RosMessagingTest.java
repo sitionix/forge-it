@@ -120,6 +120,23 @@ class RosMessagingTest {
         assertEquals("READY", transport.published.getFirst().get("data").asText());
     }
     @Test
+    void optionalFrequencySelectsPeriodicPublishAndAbsentFrequencyRemainsOneShot() {
+        messaging().publish(TOPIC).publishDefault();
+        messaging().publish(TOPIC).frequency(10L).publishDefault();
+        assertEquals(1, transport.published.size());
+        assertEquals(1, transport.periodic.size());
+        assertEquals(10L, transport.frequency);
+        assertEquals("READY", transport.periodic.getFirst().get("data").asText());
+    }
+    @Test
+    void frequencyRejectsUnrepresentableRatesBeforePublishing() {
+        for (long invalid : new long[]{0, -1, 101, Long.MAX_VALUE}) {
+            assertThrows(IllegalArgumentException.class, () -> messaging().publish(TOPIC).frequency(invalid));
+        }
+        assertTrue(transport.published.isEmpty());
+        assertTrue(transport.periodic.isEmpty());
+    }
+    @Test
     void invalidDurationAndMissingFixtureFailBeforeSubscription() {
         for (Duration timeout : new Duration[]{null, Duration.ZERO, Duration.ofMillis(-1)}) {
             assertThrows(IllegalArgumentException.class, () -> consume().await(timeout));
@@ -265,6 +282,8 @@ class RosMessagingTest {
         boolean closed;
         List<Duration> waits = new ArrayList<>();
         List<JsonNode> published = new ArrayList<>();
+        List<JsonNode> periodic = new ArrayList<>();
+        long frequency;
         public RosSubscription subscribe(String topic, String type, RosQos qos, Duration timeout) {
             events.add("subscribe");
             subscribedTopic = topic;
@@ -281,6 +300,13 @@ class RosMessagingTest {
             publishedTopic = topic;
             published.add(message);
         }
+        public void publishPeriodically(final String topic, final String type, final RosQos qos,
+                                        final JsonNode message, final Duration timeout, final long hertz) {
+            events.add("publishPeriodically");
+            periodic.add(message);
+            frequency = hertz;
+        }
+        public void stopPeriodic() { events.add("stopPeriodic"); }
         public void close() { }
     }
 }

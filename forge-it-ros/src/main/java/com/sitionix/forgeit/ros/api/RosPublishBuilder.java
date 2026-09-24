@@ -2,6 +2,8 @@ package com.sitionix.forgeit.ros.api;
 
 public interface RosPublishBuilder {
     RosPublishBuilder message(String fixture);
+    /** Repeats publication at a positive frequency in Hz until ForgeIT's method cleanup. */
+    RosPublishBuilder frequency(long hertz);
     void publish();
     void publishDefault();
 
