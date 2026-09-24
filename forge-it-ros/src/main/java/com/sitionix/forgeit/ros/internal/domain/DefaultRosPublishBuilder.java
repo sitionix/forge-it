@@ -22,6 +22,7 @@ public final class DefaultRosPublishBuilder implements RosPublishBuilder {
     private final RosProperties properties;
     private final Duration publishTimeout;
     private String message;
+    private Long frequency;
 
     public DefaultRosPublishBuilder(final RosTopicContract contract, final RosLoader rosLoader,
                                     final Environment environment, final RosProperties properties,
@@ -42,6 +43,15 @@ public final class DefaultRosPublishBuilder implements RosPublishBuilder {
     }
 
     @Override
+    public RosPublishBuilder frequency(final long hertz) {
+        if (hertz < 1 || hertz > 100) {
+            throw new IllegalArgumentException("ROS publish frequency must be between 1 and 100 Hz");
+        }
+        this.frequency = hertz;
+        return this;
+    }
+
+    @Override
     public void publish() {
         this.send(this.rosLoader.payload(this.message));
     }
@@ -57,10 +67,17 @@ public final class DefaultRosPublishBuilder implements RosPublishBuilder {
         final JsonNode payload = this.defaultPayload();
         final String topic = this.contract.resolveTopic(this.environment);
         new DefaultRosConsumeBuilder(feedbackContract, this.rosLoader, this.environment,
-                this.properties, this.consumerPort)
-                .assertMessage(remaining -> this.publisherPort.publish(topic, this.contract.messageType(),
-                        this.contract.qos(), payload,
-                        remaining.compareTo(this.publishTimeout) < 0 ? remaining : this.publishTimeout));
+                    this.properties, this.consumerPort)
+                    .assertMessage(remaining -> {
+                        final Duration budget = remaining.compareTo(this.publishTimeout) < 0
+                                ? remaining : this.publishTimeout;
+                        if (this.frequency == null) {
+                            this.publisherPort.publish(topic, this.contract.messageType(), this.contract.qos(), payload, budget);
+                        } else {
+                            this.publisherPort.publishPeriodically(topic, this.contract.messageType(),
+                                    this.contract.qos(), payload, budget, this.frequency);
+                        }
+                    });
     }
 
     private JsonNode defaultPayload() {
@@ -82,7 +99,13 @@ public final class DefaultRosPublishBuilder implements RosPublishBuilder {
     }
 
     private void send(final JsonNode payload) {
-        this.publisherPort.publish(this.contract.resolveTopic(this.environment), this.contract.messageType(),
-                this.contract.qos(), payload, this.publishTimeout);
+        final String topic = this.contract.resolveTopic(this.environment);
+        if (this.frequency == null) {
+            this.publisherPort.publish(topic, this.contract.messageType(), this.contract.qos(), payload,
+                    this.publishTimeout);
+        } else {
+            this.publisherPort.publishPeriodically(topic, this.contract.messageType(), this.contract.qos(),
+                    payload, this.publishTimeout, this.frequency);
+        }
     }
 }
