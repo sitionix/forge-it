@@ -983,6 +983,12 @@ forgeIt.ros().consume(STATUS)
         .waitUntilAsserted(Duration.ofSeconds(10))
         .ignoreFields("timestamp", "sequence")
         .assertMessage();
+
+// Holds a subscription for the full window; every new sample must match.
+// await() is the maximum permitted gap between fresh samples in this mode.
+forgeIt.ros().consume(STATUS)
+        .await(Duration.ofSeconds(1))
+        .assertMessageThroughout(Duration.ofSeconds(8));
 ```
 
 Without `frequency`, publication remains one-shot. A frequency from 1 to 100 Hz
@@ -1030,6 +1036,9 @@ Failure summaries contain structural mismatch counts, never expected/actual valu
 Timeouts report the topic template, configured duration, received count and last
 assertion summary. `waitUntilAsserted` selects the overall budget; `await` controls
 first-message mode and does not override that streaming budget.
+`assertMessageThroughout` uses one overall window including subscription setup.
+It requires at least one fresh sample, rejects any mismatch and fails if no new
+sample arrives within `await`; repeating publishers continue until method cleanup.
 
 ```yaml
 forge-it:
