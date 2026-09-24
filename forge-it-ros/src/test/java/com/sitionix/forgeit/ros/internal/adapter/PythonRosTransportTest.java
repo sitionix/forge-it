@@ -129,6 +129,21 @@ class PythonRosTransportTest {
         }
     }
 
+    @Test void periodicPublicationUsesFrequencyAndStopsBeforeContextShutdown() throws Exception {
+        try (PythonRosTransport transport = runtime("generation")) {
+            transport.publishPeriodically("/heartbeat", "std_msgs/msg/String", QOS,
+                    new ObjectMapper().readTree("{\"data\":\"beat\"}"), TIMEOUT, 10L);
+            transport.stopPeriodic();
+            final String commands = Files.readString(directory.resolve("generation.py.commands"));
+            assertThat(commands).contains("\"type\":\"START_PERIODIC\"")
+                    .contains("\"frequency\":10")
+                    .contains("\"type\":\"STOP_PERIODIC\"");
+            assertThatThrownBy(() -> transport.publishPeriodically("/heartbeat", "std_msgs/msg/String",
+                    QOS, new ObjectMapper().createObjectNode(), TIMEOUT, Long.MAX_VALUE))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
     @Test void reportsOnlySafeCodesAndCanContinueAfterRequestError() throws Exception {
         try (var transport = runtime("runtime")) {
             assertThatThrownBy(() -> transport.subscribe("/a", "missing/msg/Type", QOS, TIMEOUT))

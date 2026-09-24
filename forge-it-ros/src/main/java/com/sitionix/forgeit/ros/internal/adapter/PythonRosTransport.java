@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -39,11 +40,12 @@ public final class PythonRosTransport implements RosPublisherPort, RosConsumerPo
     private static final int MAX_PENDING = 128;
     private static final Set<String> CODES = Set.of("INVALID_COMMAND", "INVALID_QOS", "INVALID_MESSAGE",
             "MESSAGE_TYPE_UNAVAILABLE", "ROS_ERROR", "PUBLISH_TIMEOUT", "RESOURCE_LIMIT",
-            "FRAME_TOO_LARGE", "QUEUE_OVERFLOW", "INVALID_FRAME", "SHUTDOWN_FAILED");
+            "FRAME_TOO_LARGE", "QUEUE_OVERFLOW", "INVALID_FRAME", "SHUTDOWN_FAILED", "INVALID_FREQUENCY");
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final Map<String, CompletableFuture<Void>> pending = new ConcurrentHashMap<>();
     private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
+    private final Set<String> periodicIds = ConcurrentHashMap.newKeySet();
     private final AtomicLong requestIds = new AtomicLong();
     private final AtomicLong subscriptionIds = new AtomicLong();
     private final CompletableFuture<Void> startup = new CompletableFuture<>();
@@ -172,6 +174,34 @@ public final class PythonRosTransport implements RosPublisherPort, RosConsumerPo
         command.set("message", message);
         command.put("timeoutMs", Math.max(1, TimeUnit.NANOSECONDS.toMillis(remaining(deadline))));
         this.request(command, deadline);
+    }
+
+    @Override
+    public void publishPeriodically(final String topic, final String messageType, final RosQos qos,
+                                    final JsonNode message, final Duration timeout, final long hertz) {
+        if (hertz < 1 || hertz > 100) {
+            throw new IllegalArgumentException("ROS publish frequency must be between 1 and 100 Hz");
+        }
+        final long deadline = deadline(timeout);
+        final String publicationId = "p" + UUID.randomUUID().toString().replace("-", "");
+        final ObjectNode command = this.command("START_PERIODIC", topic, messageType, qos);
+        command.set("message", message);
+        command.put("timeoutMs", Math.max(1, TimeUnit.NANOSECONDS.toMillis(remaining(deadline))));
+        command.put("frequency", hertz);
+        command.put("publicationId", publicationId);
+        this.request(command, deadline);
+        this.periodicIds.add(publicationId);
+    }
+
+    @Override
+    public void stopPeriodic() {
+        final long deadline = deadline(this.shutdownTimeout);
+        for (final String publicationId : Set.copyOf(this.periodicIds)) {
+            final ObjectNode command = this.mapper.createObjectNode().put("type", "STOP_PERIODIC")
+                    .put("publicationId", publicationId);
+            this.request(command, deadline);
+            this.periodicIds.remove(publicationId);
+        }
     }
 
     private ObjectNode command(

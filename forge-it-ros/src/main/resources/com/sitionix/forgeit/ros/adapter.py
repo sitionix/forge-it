@@ -76,14 +76,17 @@ class CommandReader(threading.Thread):
 
 
 class Runtime:
-    def __init__(self, node, ros, output, clock=time.monotonic):
+    def __init__(self, node, ros, output, clock=time.monotonic, timestamp_clock=lambda: time.time_ns() // 1000):
         self.node = node
         self.ros = ros
         self.output = output
         self.clock = clock
+        self.timestamp_clock = timestamp_clock
         self.subscriptions = {}
         self.publishers = {}
         self.pending = []
+        self.periodic = {}
+        self.periodic_failures = set()
         self.stopping = False
         self.shutdown_id = None
 
@@ -133,7 +136,15 @@ class Runtime:
                     self.node.destroy_subscription(sub)
                 self.ready(request_id)
                 return
-            if kind not in ('START_SUBSCRIPTION', 'PUBLISH'):
+            if kind == 'STOP_PERIODIC':
+                publication_id = self.identifier(frame.get('publicationId'))
+                self.periodic.pop(publication_id, None)
+                if publication_id in self.periodic_failures:
+                    self.periodic_failures.remove(publication_id)
+                    raise ProtocolError('ROS_ERROR')
+                self.ready(request_id)
+                return
+            if kind not in ('START_SUBSCRIPTION', 'PUBLISH', 'START_PERIODIC'):
                 raise ProtocolError('INVALID_COMMAND')
             topic, type_name = frame.get('topic'), frame.get('messageType')
             if not isinstance(topic, str) or not topic or len(topic) > 1024:
@@ -158,7 +169,17 @@ class Runtime:
             timeout = frame.get('timeoutMs')
             if type(timeout) is not int or not 0 < timeout <= 2147483647:
                 raise ProtocolError('INVALID_COMMAND')
-            if len(self.pending) >= MAX_PENDING:
+            frequency = None
+            publication_id = None
+            if kind == 'START_PERIODIC':
+                frequency = frame.get('frequency')
+                if type(frequency) is not int or not 0 < frequency <= 100:
+                    raise ProtocolError('INVALID_FREQUENCY')
+                publication_id = self.identifier(frame.get('publicationId'))
+                if publication_id in self.periodic or any(
+                        item['publication_id'] == publication_id for item in self.pending):
+                    raise ProtocolError('INVALID_COMMAND')
+            if len(self.pending) + len(self.periodic) >= MAX_PENDING:
                 raise ProtocolError('RESOURCE_LIMIT')
             try:
                 if not isinstance(frame.get('message'), dict):
@@ -174,7 +195,8 @@ class Runtime:
                 self.publishers[key] = self.node.create_publisher(message_class, topic, qos)
             self.pending.append(dict(id=request_id, publisher=self.publishers[key], message=message,
                                      deadline=self.clock() + timeout / 1000, published=False,
-                                     reliable=frame['qos']['reliability'] == 'RELIABLE'))
+                                     reliable=frame['qos']['reliability'] == 'RELIABLE',
+                                     frequency=frequency, publication_id=publication_id))
         except ProtocolError as exc:
             self.error(exc.code, id=request_id)
         except Exception:
@@ -198,12 +220,16 @@ class Runtime:
                 if not operation['published']:
                     if publisher.get_subscription_count() == 0:
                         continue
+                    self.refresh_timestamp(operation)
                     publisher.publish(operation['message'])
                     operation['published'] = True
                 if operation['reliable'] and hasattr(publisher, 'wait_for_all_acked'):
                     if not publisher.wait_for_all_acked(self.ros.Duration(nanoseconds=0)):
                         continue
                 self.ready(operation['id'])
+                if operation['frequency'] is not None:
+                    operation['next'] = self.clock() + 1 / operation['frequency']
+                    self.periodic[operation['publication_id']] = operation
             except ProtocolError as exc:
                 self.error(exc.code, id=operation['id'])
             except Exception:
@@ -212,9 +238,28 @@ class Runtime:
                 self.pending.remove(operation)
                 continue
             self.pending.remove(operation)
+        for publication_id, operation in list(self.periodic.items()):
+            if self.clock() < operation['next']:
+                continue
+            try:
+                self.refresh_timestamp(operation)
+                operation['publisher'].publish(operation['message'])
+                operation['next'] = self.clock() + 1 / operation['frequency']
+            except Exception:
+                self.periodic.pop(publication_id, None)
+                self.periodic_failures.add(publication_id)
+
+    def refresh_timestamp(self, operation):
+        message = operation['message']
+        if operation['frequency'] is not None and hasattr(message, 'timestamp'):
+            if type(message.timestamp) is not int:
+                raise ProtocolError('INVALID_MESSAGE')
+            message.timestamp = self.timestamp_clock()
 
     def close(self):
         self.pending.clear()
+        self.periodic.clear()
+        self.periodic_failures.clear()
         failed = False
         for sub in list(self.subscriptions.values()):
             try:
