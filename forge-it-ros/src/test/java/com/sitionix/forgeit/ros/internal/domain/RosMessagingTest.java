@@ -76,6 +76,54 @@ class RosMessagingTest {
         assertTrue(transport.closed);
     }
     @Test
+    void throughoutChecksEverySampleAndHoldsOneBoundedWindow() {
+        transport.receive = remaining -> {
+            clock.addAndGet(Duration.ofMillis(100).toNanos());
+            return json("{\"data\":\"READY\"}");
+        };
+        consume().await(Duration.ofSeconds(1)).assertMessageThroughout(Duration.ofSeconds(3));
+        assertEquals(30, transport.received);
+        assertTrue(transport.closed);
+        assertTrue(transport.waits.stream().allMatch(wait -> wait.compareTo(Duration.ofSeconds(1)) <= 0));
+    }
+    @Test
+    void throughoutRejectsAChangedMessageAndClosesSubscription() {
+        transport.receive = remaining -> {
+            clock.addAndGet(Duration.ofMillis(100).toNanos());
+            return json(transport.received < 3 ? "{\"data\":\"READY\"}"
+                    : "{\"data\":\"private-mismatch\"}");
+        };
+        final AssertionError failure = assertThrows(AssertionError.class,
+                () -> consume().await(Duration.ofSeconds(1))
+                        .assertMessageThroughout(Duration.ofSeconds(3)));
+        assertEquals(3, transport.received);
+        assertTrue(transport.closed);
+        assertFalse(failure.toString().contains("private-mismatch"));
+    }
+    @Test
+    void throughoutRejectsSilenceBeforeWindowEnds() {
+        transport.receive = remaining -> {
+            clock.addAndGet(remaining.toNanos());
+            return transport.received == 1 ? json("{\"data\":\"READY\"}") : null;
+        };
+        final AssertionError failure = assertThrows(AssertionError.class,
+                () -> consume().await(Duration.ofSeconds(1))
+                        .assertMessageThroughout(Duration.ofSeconds(4)));
+        assertEquals(2, transport.received);
+        assertTrue(transport.closed);
+        assertTrue(failure.getMessage().contains("gap"));
+    }
+    @Test
+    void throughoutRejectsNoSamplesAndInvalidWindow() {
+        transport.receive = remaining -> { clock.addAndGet(remaining.toNanos()); return null; };
+        assertThrows(AssertionError.class,
+                () -> consume().await(Duration.ofSeconds(1))
+                        .assertMessageThroughout(Duration.ofSeconds(3)));
+        assertTrue(transport.closed);
+        assertThrows(IllegalArgumentException.class,
+                () -> consume().assertMessageThroughout(Duration.ZERO));
+    }
+    @Test
     void streamingDeadlineIsNotResetAndHasSafeDiagnostics() {
         transport.receive = remaining -> {
             clock.addAndGet(Duration.ofSeconds(3).toNanos());
