@@ -78,6 +78,51 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
         this.check(this.rosLoader.expectedPayload(name));
     }
 
+    @Override
+    public void assertMessageThroughout(final Duration window) {
+        final long budget = positive(window).toNanos();
+        final JsonNode expected = this.rosLoader.defaultExpectedPayload(this.contract.defaultExpectedMessage());
+        removeIgnored(expected, this.ignored);
+        final String topic = this.contract.resolveTopic(this.environment);
+        final long started = this.nanoTime.getAsLong();
+        int received = 0;
+        try (final RosSubscription subscription = this.consumerPort.subscribe(topic, this.contract.messageType(),
+                this.contract.qos(), this.firstTimeout.compareTo(window) < 0 ? this.firstTimeout : window)) {
+            while (true) {
+                final Duration remaining = this.remaining(started, budget);
+                if (remaining.isZero()) {
+                    if (received == 0) {
+                        throw this.windowFailure(window, received, "no fresh message received");
+                    }
+                    return;
+                }
+                final boolean gapLimit = remaining.compareTo(this.firstTimeout) > 0;
+                final Duration readBudget = gapLimit ? this.firstTimeout : remaining;
+                final JsonNode message = subscription.next(readBudget);
+                if (message == null) {
+                    if (!gapLimit && received > 0 && this.remaining(started, budget).isZero()) {
+                        return;
+                    }
+                    throw this.windowFailure(window, received, received == 0
+                            ? "no fresh message received" : "sample gap exceeded " + this.firstTimeout);
+                }
+                if (this.remaining(started, budget).isZero() && received == 0) {
+                    throw this.windowFailure(window, received, "first message arrived after deadline");
+                }
+                received++;
+                final String mismatch = compare(expected, message, this.ignored);
+                if (mismatch != null) {
+                    throw this.windowFailure(window, received, mismatch);
+                }
+            }
+        }
+    }
+
+    private AssertionError windowFailure(final Duration window, final int received, final String reason) {
+        return new AssertionError("ROS window assertion failed: topic=" + this.contract.topicTemplate()
+                + "; window=" + window + "; received=" + received + "; reason=" + reason);
+    }
+
     void assertMessage(final Consumer<Duration> afterSubscription) {
         this.check(this.rosLoader.defaultExpectedPayload(this.contract.defaultExpectedMessage()), afterSubscription);
     }
