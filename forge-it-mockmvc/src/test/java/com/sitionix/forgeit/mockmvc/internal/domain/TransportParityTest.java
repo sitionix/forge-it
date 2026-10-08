@@ -95,6 +95,36 @@ class TransportParityTest {
                 .expectResponse("body.json", "text").assertDefault();
     }
 
+    @ParameterizedTest @ValueSource(booleans = {false,true})
+    void assertAndReturnYieldsActualTypedResponseAfterAssertions(boolean http) throws Exception {
+        var journal = bound(journal(http), http);
+        Payload actual = echo(journal)
+                .withRequest("body.json", payload -> {
+                    payload.text = "asserted";
+                    payload.source = "actual-only";
+                })
+                .expectResponse("body.json", payload -> {
+                    payload.text = "asserted";
+                    payload.source = "fixture-only";
+                }, "source")
+                .expectStatus(org.springframework.http.HttpStatus.OK)
+                .assertAndReturn();
+
+        assertThat(actual.text).isEqualTo("asserted");
+        assertThat(actual.source).isEqualTo("actual-only");
+        assertThat(received).hasSize(1);
+    }
+
+    @ParameterizedTest @ValueSource(booleans = {false,true})
+    void assertAndReturnDoesNotYieldResponseWhenAssertionFails(boolean http) throws Exception {
+        var journal = bound(journal(http), http);
+        assertThatThrownBy(() -> echo(journal)
+                .withRequest("body.json", payload -> payload.text = "actual")
+                .expectResponse("body.json", payload -> payload.text = "wrong")
+                .assertAndReturn())
+                .isInstanceOf(AssertionError.class);
+    }
+
     @Test void interleavedServiceBuildersDoNotShareAddressHeadersOrBody() throws Exception {
         var root = journal(true);
         var a = echo(root.bind(ServiceContract.builder().baseUrlFromProperty("service.a").build()))
@@ -121,7 +151,7 @@ class TransportParityTest {
     }
 
     record Seen(String uri, String authorization, String header, String cookie, String body, int port) { }
-    public static class Payload { public String text; }
+    public static class Payload { public String text; public String source; }
     static class Fixtures implements JsonLoader {
         private String path;
         public void setBasePath(String path) { this.path = path; }

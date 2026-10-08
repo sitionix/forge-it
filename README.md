@@ -865,6 +865,13 @@ forgeIt.mockMvc(ServiceContracts.AUTH).ping(MockMvcEndpoint.login())
         .assertAndCreate();
 ```
 
+When a later request needs a value returned by the service, the same configured
+assertions can finish with `assertAndReturn()` instead. It executes the request once,
+checks the expected response/status/duration, then deserializes the **actual** body as
+the endpoint's declared response type. An assertion failure never returns a value.
+Like `assertAndCreate()`, this terminal operation uses explicitly configured request
+and expectations; `assertDefault()` remains the terminal operation for endpoint defaults.
+
 Configure the consumer's `application-e2e.yml`:
 
 ```yaml
