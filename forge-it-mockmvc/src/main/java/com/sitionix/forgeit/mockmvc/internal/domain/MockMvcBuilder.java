@@ -224,6 +224,24 @@ public class MockMvcBuilder<Req, Res> {
     }
 
     public void assertAndCreate() {
+        this.executeAndAssert();
+    }
+
+    /** Assert the configured response contract, then return the actual response as the endpoint type. */
+    public Res assertAndReturn() {
+        final MockMvcResponse response = this.executeAndAssert();
+        if (this.responseType == Void.class && !StringUtils.hasText(response.body())) {
+            return null;
+        }
+        try {
+            return this.objectMapper.readValue(response.body(), this.responseType);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to deserialize actual MockMvc response as "
+                    + this.responseType.getName(), e);
+        }
+    }
+
+    private MockMvcResponse executeAndAssert() {
         try {
             final MockmvcDefault defaultsContext = this.endpoint.getMockmvcDefault();
             if (nonNull(defaultsContext)) {
@@ -257,6 +275,7 @@ public class MockMvcBuilder<Req, Res> {
             if (this.executor instanceof MvcExecutor mvcExecutor) {
                 mvcExecutor.verifyMatchers();
             }
+            return response;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
