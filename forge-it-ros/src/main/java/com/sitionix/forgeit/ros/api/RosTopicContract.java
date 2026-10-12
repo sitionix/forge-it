@@ -10,6 +10,7 @@ public final class RosTopicContract {
     private final RosQos qos;
     private final String publishFixture;
     private final String expectedFixture;
+    private final Payload<?> payload;
 
     private RosTopicContract(Builder builder) {
         if ((builder.topic == null) == (builder.topicProperty == null)) {
@@ -24,6 +25,7 @@ public final class RosTopicContract {
         }
         if (builder.qos == null) throw new IllegalArgumentException("ROS QoS is required");
         topic = builder.topic; topicProperty = builder.topicProperty; messageType = builder.messageType;
+        payload = builder.payload;
         qos = builder.qos; publishFixture = builder.publishFixture; expectedFixture = builder.expectedFixture;
     }
     public static Builder builder() { return new Builder(); }
@@ -44,8 +46,20 @@ public final class RosTopicContract {
     public RosQos qos() { return qos; }
     public String defaultPublishMessage() { return publishFixture; }
     public String defaultExpectedMessage() { return expectedFixture; }
+    public Payload<?> payload() { return payload; }
+    /** The field stays in the ROS envelope, with decoded content replacing its bytes. */
+    public record Payload<T>(String field, Class<T> type,
+            Class<? extends RosPayloadDeserializer<T>> deserializer) {
+        public Payload {
+            if (field == null || !field.matches("[A-Za-z_][A-Za-z0-9_]*")
+                    || type == null || deserializer == null) {
+                throw new IllegalArgumentException("ROS payload requires a field, type and deserializer");
+            }
+        }
+    }
     public static final class Builder {
         private String topic, topicProperty, messageType, publishFixture, expectedFixture;
+        private Payload<?> payload;
         private RosQos qos = RosQos.reliableVolatile(10);
         private Builder() { }
         public Builder topic(String value) { topic = value; return this; }
@@ -54,6 +68,11 @@ public final class RosTopicContract {
         public Builder qos(RosQos value) { qos = value; return this; }
         public Builder defaultPublishMessage(String value) { publishFixture = value; return this; }
         public Builder defaultExpectedMessage(String value) { expectedFixture = value; return this; }
+        public <T> Builder payload(String field, Class<T> type,
+                Class<? extends RosPayloadDeserializer<T>> deserializer) {
+            payload = new Payload<>(field, type, deserializer);
+            return this;
+        }
         public RosTopicContract build() { return new RosTopicContract(this); }
     }
 }

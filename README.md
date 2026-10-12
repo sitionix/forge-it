@@ -1142,3 +1142,41 @@ This separate consumer uses only the `forgeit` test dependency (plus the compile
 annotation processor), checks that every bundled feature installer is whitelisted,
 and executes an HTTP E2E with generated support. It resolves the packaged JAR,
 not reactor module class directories. CI runs it after the full reactor build.
+
+### Typed ROS byte payloads
+
+A ROS message can carry a binary payload in a `uint8[]` field. Declare its
+consumer-owned target type and deserializer in the topic contract:
+
+```java
+RosTopicContract.builder()
+    .topic("/unit/radio/rx")
+    .messageType("radio_msgs/msg/TelemetryEvent")
+    .payload("event", TaskEvent.class, TaskEventDeserializer.class)
+    .defaultExpectedMessage("taskInProgress.json")
+    .build();
+```
+
+`TaskEventDeserializer` implements `RosPayloadDeserializer<TaskEvent>` and
+provides a public no-argument constructor. Its
+`deserialize(byte[] payload, Class<TaskEvent> targetType)` returns the consumer's
+assertion object. The consumer owns all wire-format libraries and schemas;
+ForgeIT has no dependency on a particular binary format or application protocol.
+The deserializer is instantiated once per consume builder and reused for its
+samples, so implementations must support repeated calls.
+
+ForgeIT preserves the ROS envelope and replaces only `event` with the decoded
+object's Jackson JSON representation for comparison. An expected fixture can
+therefore assert both sender identity and decoded fields:
+
+```json
+{"from_id": 12, "event": {"status": "IN_PROGRESS"}}
+```
+
+The same projection applies to first-message assertions, `waitUntilAsserted`,
+and `assertMessageThroughout`; `ignoreFields` applies after decoding. Wire bytes
+are never changed or published by this setting. A missing field, non-`uint8[]`
+value, decoder exception, null result, or wrong result type fails consumption
+and closes its subscription. Diagnostics omit payload values and decoder
+exception details. Contracts without a payload declaration retain ordinary
+ROS JSON comparison.
