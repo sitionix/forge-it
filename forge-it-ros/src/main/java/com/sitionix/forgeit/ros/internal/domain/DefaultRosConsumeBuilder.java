@@ -26,6 +26,7 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
     private final Environment environment;
     private final RosConsumerPort consumerPort;
     private final LongSupplier nanoTime;
+    private final RosPayloadProjection<?> payloadProjection;
     private Duration firstTimeout;
     private Duration assertionTimeout;
     private String[] ignored = new String[0];
@@ -40,6 +41,7 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
                              final Environment environment, final RosProperties properties,
                              final RosConsumerPort consumerPort, final LongSupplier nanoTime) {
         this.contract = Objects.requireNonNull(contract, "ROS contract is required");
+        this.payloadProjection = contract.payload() == null ? null : new RosPayloadProjection<>(contract.payload());
         this.rosLoader = rosLoader;
         this.environment = environment;
         this.consumerPort = consumerPort;
@@ -110,7 +112,10 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
                     throw this.windowFailure(window, received, "first message arrived after deadline");
                 }
                 received++;
-                final String mismatch = compare(expected, message, this.ignored);
+                final String mismatch = compare(expected, this.decode(message), this.ignored);
+                if (this.remaining(started, budget).isZero() && received == 1) {
+                    throw this.windowFailure(window, received, "first message decoded after deadline");
+                }
                 if (mismatch != null) {
                     throw this.windowFailure(window, received, mismatch);
                 }
@@ -160,7 +165,10 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
                 if (this.remaining(started, budget).isZero()) {
                     throw this.timeout(timeout, received, last);
                 }
-                final String mismatch = compare(expected, message, this.ignored);
+                final String mismatch = compare(expected, this.decode(message), this.ignored);
+                if (this.remaining(started, budget).isZero()) {
+                    throw this.timeout(timeout, received, mismatch == null ? "message decoded after deadline" : mismatch);
+                }
                 if (mismatch == null) {
                     return;
                 }
@@ -176,6 +184,10 @@ public final class DefaultRosConsumeBuilder implements RosConsumeBuilder {
             }
             throw ex;
         }
+    }
+
+    private JsonNode decode(final JsonNode message) {
+        return this.payloadProjection == null ? message : this.payloadProjection.decode(message);
     }
 
     private Duration remaining(final long started, final long budget) {
